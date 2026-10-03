@@ -59,6 +59,7 @@ dmypy.json
 
 # Data
 data/raw/
+data/processed/
 data/*.csv
 data/*.pkl
 data/*.parquet

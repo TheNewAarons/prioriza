@@ -11,7 +11,7 @@ migrate:
 	uv run alembic upgrade head
 
 ingest:
-	@echo "ingest: pendiente"
+	uv run --package ingestion prioriza-ingest all
 
 synth:
 	@echo "synth: pendiente"
