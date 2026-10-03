@@ -21,12 +21,12 @@ Investigación realizada por data-researcher el 2026-10-02. Verificación: sesi�
 | E1 | Glosa 06 III trim. 2025 | Minsal, Subsecretaría de Redes Asistenciales | [Descargar](https://www.minsal.cl/wp-content/uploads/2025/11/1764018133827_Glosa-06-LE-III-trimestre-2025.pdf) | PDF | Nacional, 29 servicios, especialidad, sexo, edad, previsión (FONASA), rangos espera | Corte 30-09-2025 | No indicada | Extracción SIGTE 14-10-2025; publicado nov-2025 | Sin registro | HTTP 200; texto extraído (55 págs.); sha256 `b4fe13ea8afffd9d47fb33ae3a2f071dc6acc13539dd5094d0f8ba29809c4d7c` | Tamaños y composición por servicio/especialidad, distribución tiempos espera, mezcla GES/no-GES, tasa egreso por inasistencia |
 | E2a | Glosa 06 IV trim. 2025 | Minsal | [Descargar](https://www.minsal.cl/wp-content/uploads/2026/02/Glosa-06-LE-IV-trimestre.pdf) | PDF | — | IV-2025 | No indicada | — | — | HTTP 200 | Validar tendencia (extracción pendiente) |
 | E2b | Glosa 06 I trim. 2026 | Minsal | [Descargar](https://www.minsal.cl/wp-content/uploads/2026/07/Glosa-06-letra-a-b-c-i-j-k-comun-a-la-partida-1er-trimestre-1.pdf) | PDF | — | I-2026 | No indicada | — | — | HTTP 200 | Validar tendencia (extracción pendiente) |
-| E3 | Estadísticas GES | Superintendencia de Salud | [Consultar](https://www.superdesalud.gob.cl/tax-temas-de-orientacion/garantias-explicitas-en-salud-ges-1962/) | XLSX trimestral | Casos por problema de salud y aseguradora | 2021 – mar-2026 | No indicada | — | Sin registro | HTTP 200 | Composición de garantías GES por problema de salud (XLSX pendiente abrir) |
+| E3 | Estadísticas GES | Superintendencia de Salud | [Consultar](https://www.superdesalud.gob.cl/tax-temas-de-orientacion/garantias-explicitas-en-salud-ges-1962/) | XLSX trimestral | Casos por problema de salud y aseguradora | 2021 – mar-2026 | No indicada | — | Sin registro | HTTP 200 | Composición de garantías GES por problema de salud; no trae servicio de salud ni tiempos de espera |
 | E4a | Salinas Rebolledo EA et al. Medwave 2014;14(09):e6023 | — | [Consultar](https://www.medwave.cl/investigacion/estudios/6023.html) | Artículo peer-reviewed | 29 servicios | 2005–2010 | CC BY-NC 3.0 | — | — | HTTP 200 | Prior paramétrico: 16,5% nacional (rango regional 8,8–20,2%), variación por especialidad y mes |
 | E4b | Sepúlveda Martin CA. Tesis MSP U. de Chile 2024 | — | [Consultar](https://repositorio.uchile.cl/handle/2250/203932) | Tesis (no revisada por pares) | Por servicio | 2022 | CC BY-NC-ND 3.0 | — | — | HTTP 200 | Prior paramétrico: ~15,6% (1,185 M / 7,575 M citas); desagregación por servicio (Arica 22%, Iquique 21%) |
 | E4c | Dunstan J et al. Health Care Manag Sci 2023;26(2):313-329 | — | [Consultar](https://pmc.ncbi.nlm.nih.gov/articles/PMC10257628/) | Artículo peer-reviewed | Hospital pediátrico; por especialidad | — | CC BY 4.0 | — | — | HTTP 200 | Referencia metodológica: 20,4% (rango 4,9%–30,3% por especialidad); no usado como prior (contexto pediátrico no representativo) |
 | E4d | Barahona M et al. Medwave 2023;22(3):e2667 | — | [Consultar](https://www.medwave.cl/investigacion/estudios/2667.html) | Artículo peer-reviewed | Cirugía electiva | 2018–2021 | CC BY-NC 3.0 | — | — | HTTP 200 | Suspensión de cirugía: 12,9% (2018) → 6,4% (2021); ~50% por causas del paciente; no es inasistencia pura |
-| E5 | Catálogo de establecimientos | Ministerio de Salud (datos.gob.cl) | [Consultar](https://datos.gob.cl/organization/ministerio_de_salud) | CSV | Establecimientos y servicios | — | Pendiente revisar | — | — | HTTP 200 | Estructura de la red sintética (servicios, establecimientos) |
+| E5 | Catálogo de establecimientos | Ministerio de Salud (datos.gob.cl) | [Consultar](https://datos.gob.cl/organization/ministerio_de_salud) | CSV | Establecimientos y servicios | — | CC0 | — | — | HTTP 200 | Estructura de la red sintética (servicios, establecimientos) |
 
 ### Cifras verificadas en la Glosa 06 III-2025
 
@@ -42,6 +42,12 @@ Investigación realizada por data-researcher el 2026-10-02. Verificación: sesi�
 - El % de cumplimiento GES de la Superintendencia usa denominador distinto al Minsal (garantías abiertas vs procesadas); no mezclar.
 - Dunstan et al. (E4c) estudia solo un hospital pediátrico y no es representativo de población adulta; además usa sexo y comuna como variables, que Prioriza no replica por criterios de equidad (CLAUDE.md).
 - Barahona et al. (E4d) reporta suspensión de cirugía, no inasistencia pura; ~50% de suspensiones son por causas del paciente, no solo "no asistencia".
+
+### Hallazgos durante la ingesta (2026-10-03)
+
+- Códigos de problema GES llegan a 90 en los trimestres IV-2025 e I-2026 (máximo previo: 87 en III-2025).
+- Inconsistencia de conteo de personas en IQ III-2025: 365.781 en una tabla, 365.118 en otra; no son sumables ni validables entre tablas.
+- XLSX de Superintendencia utilizado: https://www.superdesalud.gob.cl/app/uploads/2026/07/estadistica-trimestral-de-casos-ges-auge-de-fonasa-y-sistema-isapre-marzo-2026-1.xlsx (casos acumulados desde jul-2005 e ingresos anuales por problema de salud y asegurador).
 
 ## Fuentes solo de contexto
 
@@ -86,9 +92,9 @@ Investigación realizada por data-researcher el 2026-10-02. Verificación: sesi�
 
 ## Pendientes antes de cerrar la ingesta
 
-- [ ] Extraer contenido de Glosa 06 IV-2025 (E2a) y confirmar que I-2026 (E2b) contiene desglose por servicio
-- [ ] Abrir y revisar archivos XLSX de Superintendencia (E3)
-- [ ] Revisar y documentar licencia específica del dataset de establecimientos en datos.gob.cl (E5)
+- [x] Extraer contenido de Glosa 06 IV-2025 (E2a) y confirmar que I-2026 (E2b) contiene desglose por servicio — I-2026 (E2b) sí trae detalles por servicio y especialidad.
+- [x] Abrir y revisar archivos XLSX de Superintendencia (E3) — archivos abiertos, hojas "Año 2025" y "Año 2026" con casos acumulados e ingresos por problema de salud y asegurador.
+- [x] Revisar y documentar licencia específica del dataset de establecimientos en datos.gob.cl (E5) — licencia CC0 verificada.
 - [ ] Localizar descarga de datos abiertos de DEIS y confirmar disponibilidad de campos REM A04 (no verificada)
 - [ ] Reintentar conexión a índices de minsal.cl/publicaciones y minsal.cl/eje-tiempos
 - [ ] Considerar solicitud por Ley de Transparencia para tasas de inasistencia desagregadas

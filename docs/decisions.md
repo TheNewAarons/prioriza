@@ -66,5 +66,35 @@
 
 ---
 
+## 5. Módulo de ingesta
+
+**Fecha**: 2026-10-03
+
+**Dependencias agregadas**:
+- `httpx>=0.27` (ingestion): descargas con timeouts y reintentos; MockTransport permite tests sin red.
+- `pdfplumber>=0.11` (ingestion): extrae palabras con coordenadas; `pypdf` no entrega posiciones y `pdfplumber.find_tables()` no reconstruye las tablas de la Glosa 06 (solo detecta encabezado y total).
+- `polars>=1.0` (ingestion y shared): transformaciones y parquet sin depender de pyarrow; en shared, esquemas polars compartidos con synthetic.
+- `fastexcel>=0.11` (ingestion): lector calamine de polars que lee el XLSX de la Superintendencia (6 MB, ~16.000 columnas declaradas) en ~0,3 s sin openpyxl.
+- `typer>=0.12` (ingestion): CLI `prioriza-ingest` para orquestar descargas y transformaciones.
+
+**Dependencias descartadas**:
+- `tenacity`: reintentos implementados con bucle propio.
+- `pyarrow`, `pypdf`, `openpyxl`: no son dependencias del proyecto (usados solo en `ingestion/tests/fixtures/make_fixtures.py` vía `uv run --with`).
+
+**Decisiones**:
+- **Fuentes con descargador**: `glosa06_2025q3`, `glosa06_2025q4`, `glosa06_2026q1` (PDF Minsal, sha256 fijo); `sis_ges_cases_2026q1` (XLSX Superintendencia, sha256 fijo); `minsal_establishments` (datos.gob.cl, dataset establecimientos-de-salud-vigentes, licencia CC0; resolvedor de recurso CKAN porque el CSV cambia de nombre semanalmente; caché máximo 7 días).
+- **Literatura (E4)** no tiene descargador: irá a archivo de parámetros versionado cuando synthetic/noshow lo necesiten.
+- **Esquemas**: tres en `shared/schemas.py`: `WaitlistRecord` (listas de espera Glosa 06; media y mediana como campos opcionales separados; grano national/health_service/specialty/ges_problem; `wait_basis` distingue espera desde derivación vs retraso sobre plazo GES), `GesCaseRecord` (casos GES acumulados e ingresos por problema de salud y asegurador; no encaja en `WaitlistRecord` porque no tiene tiempos de espera ni servicio), `HealthFacility` (catálogo; excluye dirección y teléfono por minimización).
+- **Identidad de servicios**: 29 servicios de salud y sus códigos DEIS en `shared/health_services.py` con resolvedor de variantes de nombre.
+- **Detección de tablas en Glosa**: por texto del título (regex), no por número, porque la numeración cambia entre trimestres.
+- **Validación**: suma de registros por servicio y especialidad debe igualar la fila Total de cada tabla (se cumple exacto en los 3 trimestres); personas no se validan entre tablas porque no son sumables y el propio informe tiene inconsistencias. Si cambia el formato, `SchemaDriftError` con fuente y tabla en el mensaje.
+- **Descartes por minimización**: desglose por sexo (tabla de GES retrasadas por servicio) y tramos de días.
+- **Licencias y fixtures**: no se versionan PDF ni XLSX completos; fixtures son extractos mínimos (volcados de palabras de cada tabla, PDF de 1 página, XLSX reducido a 5 problemas, 15 filas del CSV con teléfono/dirección vaciados) con `MANIFEST.json` (URL, sha256 del original, metadatos) y script manual `make_fixtures.py` que no corre en CI.
+- **Salidas**: `data/raw/<source_id>/<fecha>/` con `metadata.json` (URL, fecha, sha256) y `data/processed/<source_id>.parquet` + `metadata.json`; ambas ignoradas por git.
+
+Resultado de `make ingest` (2026-10-03): glosa06_2025q3 274 filas, glosa06_2025q4 278, glosa06_2026q1 278, sis_ges_cases_2026q1 882, minsal_establishments 5.743 (388 sin coordenadas válidas). Cifras verificadas contra Glosa III-2025: CNE nacional 2.576.371 registros, mediana 242 días; GES retrasadas 80.022.
+
+---
+
 ## Referencias
 - [CLAUDE.md](../CLAUDE.md): Stack y convenciones del proyecto.
