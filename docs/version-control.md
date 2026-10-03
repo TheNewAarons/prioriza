@@ -49,7 +49,7 @@ Ejemplo: `feat(priority): agrega puntaje por plazo de garantía GES`.
 
 - Se requiere PR y el check `checks` de CI en verde antes de integrar.
 - No se permiten *force push* ni borrado de `main`.
-- GitHub borra automáticamente la rama remota al integrar un PR (`delete_branch_on_merge`). La copia local se borra a mano: `git switch main && git pull --ff-only && git fetch --prune && git branch -d <rama>`.
+- GitHub borra automáticamente la rama remota al integrar un PR (`delete_branch_on_merge`). La copia local se borra a mano: `git switch main && git pull --ff-only && git fetch --prune`, luego confirmar que el PR está integrado (`gh pr view <rama> --json state`) y `git branch -D <rama>`. Se usa `-D` porque con *squash* o *rebase* los commits de la rama no quedan en `main` con el mismo hash y `git branch -d` los rechaza como no integrados.
 
 ## Flujo de trabajo con subagentes
 
