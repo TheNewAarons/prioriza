@@ -10,7 +10,7 @@ Un simulador compara políticas (orden de llegada, solo prioridad, optimizada) a
 
 ## Problema que resuelve
 
-Las listas de espera en Chile superan los 2,5 millones de personas según reportes de 2026, y la reducción de tiempos de espera posterior a la pandemia se estancó. Además, la información se publica de forma heterogénea entre servicios de salud. Prioriza muestra cómo ordenar y programar mejor con la misma capacidad, y cuantifica la ganancia con simulación.
+Al 30-09-2025 la lista de espera no GES del sistema público sumaba 2,58 millones de interconsultas para consulta nueva de especialidad (2,13 millones de personas, mediana 242 días) y 417 mil para intervenciones quirúrgicas (mediana 264 días), además de 80 mil garantías GES retrasadas (Glosa 06, III trimestre 2025, Minsal; ver `docs/data-sources.md`). Además, la información se publica de forma heterogénea entre servicios de salud. Prioriza muestra cómo ordenar y programar mejor con la misma capacidad, y cuantifica la ganancia con simulación.
 
 ## Alcance, privacidad y ética (obligatorio)
 

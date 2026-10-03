@@ -55,5 +55,16 @@
 
 ---
 
+## 4. Fuentes de datos públicos
+
+**Fecha**: 2026-10-02
+
+- Fuentes de entrada y de contexto definidas en [data-sources.md](data-sources.md). Entrada principal: Glosa 06 trimestral del Minsal (PDF, por servicio de salud y especialidad); GES por problema de salud: Superintendencia de Salud; tasas base de inasistencia: literatura chilena (Medwave 2014, tesis U. de Chile 2024) como parámetros explícitos.
+- La prensa nunca es dato de entrada.
+- Los PDF fuente no se versionan en el repo (licencia no indicada): se guardan URL y sha256; las fixtures de tests serán extractos mínimos.
+- CLAUDE.md citaba "más de 2,5 millones de personas según reportes de 2026", cifra no verificable en fuente primaria (corresponde a prensa de dic-2024). Se reemplazó por las cifras verificadas de la Glosa 06 III-2025.
+
+---
+
 ## Referencias
 - [CLAUDE.md](../CLAUDE.md): Stack y convenciones del proyecto.
