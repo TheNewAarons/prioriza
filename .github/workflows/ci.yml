@@ -1,0 +1,49 @@
+# Flujo CI/CD: lint, typecheck y tests sin dependencias de red.
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # Descarga el código fuente.
+      - uses: actions/checkout@v4
+
+      # Instala uv con caché habilitado y Python 3.12.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      # Sincroniza dependencias con lock file congelado.
+      # Incluye todos los paquetes (dev, test, etc.).
+      - run: uv sync --all-packages --frozen
+
+      # Valida formato y lint con ruff.
+      # Comentario: Verifica que el código siga las convenciones de estilo.
+      - run: make lint
+
+      # Valida tipos con mypy en modo strict.
+      # Comentario: Garantiza tipado estricto en shared/, priority/ y scheduler/.
+      - run: make typecheck
+
+      # Ejecuta tests con pytest en modo offline.
+      # Comentario: Ningún test depende de red; las descargas usan fixtures grabadas (uv.lock congelado).
+      # UV_OFFLINE evita cualquier descarga inesperada durante CI.
+      - run: make test
+        env:
+          UV_OFFLINE: "1"
