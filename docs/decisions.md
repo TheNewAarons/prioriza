@@ -94,6 +94,18 @@
 
 Resultado de `make ingest` (2026-10-03): glosa06_2025q3 274 filas, glosa06_2025q4 278, glosa06_2026q1 278, sis_ges_cases_2026q1 882, minsal_establishments 5.743 (388 sin coordenadas válidas). Cifras verificadas contra Glosa III-2025: CNE nacional 2.576.371 registros, mediana 242 días; GES retrasadas 80.022.
 
+
+**Correcciones tras la revisión (reviewer, 2026-10-03)**:
+- Las cifras de cada tabla de la Glosa se asignan a su columna por posición x del encabezado; un encabezado reordenado, una celda vacía o desplazada, o una etiqueta de problema GES que empieza con minúscula o dígito lanzan `SchemaDriftError`.
+- Se valida la consistencia interna con columnas que luego se descartan: tramos de días = total (problemas GES), femenino + masculino + no definido = total (GES por servicio), razón publicada = registros / personas (tablas por servicio).
+- Filas con 0 registros: media y mediana de días quedan en `None` (no hay espera que promediar), aunque la fuente imprima "-", "0" o "0,0".
+- Descargas: se verifica la firma del archivo (`%PDF`, `PK`, CSV no HTML) antes de guardarlo; un error al parsear una fuente se reporta como fuente fallida sin detener `prioriza-ingest all`.
+
+**Pendientes conocidos**:
+- Caché: la carpeta es por día (un `--refresh` el mismo día sobrescribe), `metadata.json` no se escribe de forma atómica y no hay respaldo a caché vencida si falla la red.
+- Descarga: los códigos 3xx se aceptan como éxito con un cliente sin redirecciones y no se respeta `Retry-After` en 429.
+- Catálogo de establecimientos: hay coordenadas que no corresponden a la región declarada (dato de la fuente); falta un chequeo coordenadas vs región.
+
 ---
 
 ## Referencias
