@@ -48,8 +48,8 @@
 
 **Fecha**: 2026-10-02
 
-- Repositorio en GitHub, privado por defecto (proyecto de investigación; se puede publicar después).
-- Trunk-based con ramas cortas, Conventional Commits en español, `main` protegida por CI. Detalle en [version-control.md](version-control.md).
+- Repositorio público en GitHub: https://github.com/TheNewAarons/prioriza. Se creó privado, pero la cuenta no tenía minutos de Actions para repos privados (`startup_failure`) ni protección de ramas (requiere GitHub Pro). El repo no contiene datos reales, solo código y datos sintéticos, por lo que publicarlo no expone información sensible.
+- Trunk-based con ramas cortas, Conventional Commits en español, `main` protegida: requiere PR y el check `checks` en verde; sin force push ni borrado. Detalle en [version-control.md](version-control.md).
 - `uv.lock` se versiona (antes `.gitignore` lo excluía por `*.lock`, lo que rompía `uv sync --frozen` en CI y Docker).
 - Solo la sesión principal commitea; los subagentes no hacen commits.
 
