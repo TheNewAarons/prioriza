@@ -96,7 +96,10 @@ def test_waiting_count_out_of_range_rejected(value: int) -> None:
 
 
 def test_waiting_count_bounds_are_accepted() -> None:
-    assert make_record(waiting_count=0, persons_count=0).waiting_count == 0
+    empty = make_record(
+        waiting_count=0, persons_count=0, mean_wait_days=None, median_wait_days=None
+    )
+    assert empty.waiting_count == 0
     assert make_record(waiting_count=10_000_000, persons_count=None).waiting_count == 10_000_000
 
 
@@ -139,6 +142,30 @@ def test_median_may_exceed_mean() -> None:
 def test_wait_basis_required_when_stats_present(stats: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         make_record(wait_basis=None, **stats)
+
+
+def test_zero_waiting_with_wait_days_is_rejected() -> None:
+    """Sin nadie en espera no hay promedio de espera: '0 días' sería un dato inventado."""
+    for stats in (
+        {"mean_wait_days": 0.0, "median_wait_days": 0.0},
+        {"mean_wait_days": 12.0, "median_wait_days": None},
+        {"mean_wait_days": None, "median_wait_days": 12.0},
+    ):
+        with pytest.raises(ValidationError):
+            make_record(waiting_count=0, persons_count=0, **stats)
+
+
+def test_zero_waiting_without_wait_days_is_accepted() -> None:
+    record = make_record(
+        waiting_count=0, persons_count=0, mean_wait_days=None, median_wait_days=None
+    )
+    assert record.waiting_count == 0
+    assert record.mean_wait_days is None and record.median_wait_days is None
+
+
+def test_positive_waiting_keeps_wait_days() -> None:
+    record = make_record(waiting_count=1, persons_count=1, mean_wait_days=0.0, median_wait_days=0.0)
+    assert record.mean_wait_days == 0.0
 
 
 def test_wait_basis_not_required_without_stats() -> None:

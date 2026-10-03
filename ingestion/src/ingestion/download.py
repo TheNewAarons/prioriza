@@ -87,6 +87,30 @@ def _get(
     )
 
 
+def _check_content(spec: SourceSpec, body: bytes) -> None:
+    """Verifica que el contenido corresponda al tipo esperado (PDF, XLSX o CSV).
+
+    Un WAF o una página de error pueden responder 200 con HTML (a veces con un
+    ``content-type`` engañoso): se mira el contenido, no los encabezados.
+    """
+    head = body[:512].lstrip(b"\xef\xbb\xbf \t\r\n")
+    if spec.kind is SourceKind.GLOSA06_PDF:
+        ok, expected = body.startswith(b"%PDF"), "PDF (empieza con '%PDF')"
+    elif spec.kind is SourceKind.SIS_GES_XLSX:
+        ok, expected = body.startswith(b"PK"), "XLSX (zip, empieza con 'PK')"
+    else:
+        lowered = head[:64].lower()
+        ok = bool(head) and not (
+            head.startswith(b"<") or lowered.startswith((b"<!doctype", b"<html"))
+        )
+        expected = "CSV (no HTML)"
+    if not ok:
+        raise DownloadError(
+            f"[{spec.source_id}] el contenido descargado no es un archivo {expected}: "
+            f"empieza con {body[:24]!r}. Probable página de error o bloqueo; no se guardó."
+        )
+
+
 def resolve_url(
     spec: SourceSpec,
     client: httpx.Client,
@@ -204,6 +228,11 @@ def fetch(
             f"{spec.expected_sha256}, obtenido {digest}. El archivo publicado cambió; "
             "revise la fuente y actualice el registro (sources.py)."
         )
+    try:
+        _check_content(spec, response.content)
+    except DownloadError:
+        part.unlink(missing_ok=True)
+        raise
     part.replace(path)
     metadata = RawMetadata(
         source_id=spec.source_id,

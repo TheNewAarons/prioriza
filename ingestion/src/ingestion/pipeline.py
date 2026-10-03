@@ -14,7 +14,7 @@ from shared.schemas import (
 )
 
 from ingestion.download import fetch, sha256_file
-from ingestion.errors import DataValidationError, IngestionError
+from ingestion.errors import DataValidationError, IngestionError, SchemaDriftError
 from ingestion.normalize import to_frame
 from ingestion.output import write_processed
 from ingestion.parsers.establishments import parse_establishments_csv
@@ -124,7 +124,16 @@ def run_source(
                 "raw_sha256": meta.sha256,
                 "from_cache": download.from_cache,
             }
-        frame, warnings = _process(spec, path, provenance)
+        try:
+            frame, warnings = _process(spec, path, provenance)
+        except (IngestionError, ValidationError):
+            raise
+        except Exception as exc:  # cualquier fallo del parser se informa como deriva de formato
+            raise SchemaDriftError(
+                source_id,
+                "-",
+                f"no se pudo leer el archivo ({type(exc).__name__}: {exc})",
+            ) from exc
         provenance["warnings"] = warnings
         output = write_processed(
             frame,

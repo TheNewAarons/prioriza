@@ -107,27 +107,72 @@ def test_service_tables_have_the_29_services_once(
         assert not specials
 
 
+# Totales publicados en la fila "Total" de cada tabla, leídos del texto de los PDF originales
+# (no del parser): la suma del detalle debe coincidir con ellos.
+PUBLISHED_WAITING_TOTALS: dict[str, dict[str, int]] = {
+    "glosa06_2025q3": {
+        "cne_by_service": 2_576_371,
+        "cne_medical_by_specialty": 2_051_482,
+        "cne_dental_by_specialty": 524_889,
+        "iq_by_service": 417_561,
+        "iq_by_specialty": 417_561,
+        "ges_delayed_by_service": 80_022,
+        "ges_delayed_by_problem": 80_022,
+    },
+    "glosa06_2025q4": {
+        "cne_by_service": 2_464_738,
+        "cne_medical_by_specialty": 1_952_221,
+        "cne_dental_by_specialty": 512_517,
+        "iq_by_service": 425_095,
+        "iq_by_specialty": 425_095,
+        "ges_delayed_by_service": 78_594,
+        "ges_delayed_by_problem": 78_594,
+    },
+    "glosa06_2026q1": {
+        "cne_by_service": 2_513_203,
+        "cne_medical_by_specialty": 1_981_653,
+        "cne_dental_by_specialty": 531_550,
+        "iq_by_service": 458_109,
+        "iq_by_specialty": 458_109,
+        "ges_delayed_by_service": 77_604,
+        "ges_delayed_by_problem": 77_604,
+    },
+}
+
+
 @pytest.mark.parametrize("quarter", QUARTERS)
 @pytest.mark.parametrize("key", [k for k in TABLE_KEYS if k != "noges_national_by_subtype"])
 def test_sum_of_records_equals_published_total(
     glosa_results: Results, quarter: str, key: str
 ) -> None:
+    expected = PUBLISHED_WAITING_TOTALS[quarter][key]
     result = glosa_results[quarter][key]
     detail = sum(r.waiting_count for r in result.records if r.grain is not Grain.NATIONAL)
-    assert detail == result.totals["waiting_count"]
+    assert detail == expected
+    assert result.totals["waiting_count"] == expected
 
 
-@pytest.mark.parametrize("quarter", QUARTERS)
+# Fila "Total" de las tablas por servicio (registros, personas, media, mediana), según el PDF.
+PUBLISHED_NATIONAL_ROWS: dict[tuple[str, str], tuple[int, int, float, float]] = {
+    ("glosa06_2025q3", "cne_by_service"): (2_576_371, 2_134_364, 341.0, 242.0),
+    ("glosa06_2025q4", "cne_by_service"): (2_464_738, 2_047_191, 323.0, 226.0),
+    ("glosa06_2026q1", "cne_by_service"): (2_513_203, 2_088_245, 329.0, 236.0),
+    ("glosa06_2025q3", "iq_by_service"): (417_561, 365_781, 394.0, 264.0),
+    ("glosa06_2025q4", "iq_by_service"): (425_095, 371_907, 378.0, 251.0),
+    ("glosa06_2026q1", "iq_by_service"): (458_109, 398_496, 383.0, 259.0),
+}
+
+
+@pytest.mark.parametrize(("quarter", "key"), list(PUBLISHED_NATIONAL_ROWS))
 def test_by_service_tables_also_emit_the_national_total(
-    glosa_results: Results, quarter: str
+    glosa_results: Results, quarter: str, key: str
 ) -> None:
-    for key in ("cne_by_service", "iq_by_service"):
-        result = glosa_results[quarter][key]
-        national = _national(result)
-        assert national.waiting_count == result.totals["waiting_count"]
-        assert national.mean_wait_days == result.totals["mean_wait_days"]
-        assert national.median_wait_days == result.totals["median_wait_days"]
-        assert len(result.records) == 30
+    result = glosa_results[quarter][key]
+    national = _national(result)
+    waiting, persons, mean, median = PUBLISHED_NATIONAL_ROWS[(quarter, key)]
+    assert (national.waiting_count, national.persons_count) == (waiting, persons)
+    assert (national.mean_wait_days, national.median_wait_days) == (mean, median)
+    assert len(result.records) == 30
 
 
 @pytest.mark.parametrize("quarter", QUARTERS)
@@ -295,7 +340,9 @@ def test_q1_t18_valparaiso_san_antonio(glosa_results: Results) -> None:
 
 def test_q1_t6_dashes_are_zero_and_hospital_digital_has_no_code(glosa_results: Results) -> None:
     result = glosa_results["glosa06_2026q1"]["ges_delayed_by_service"]
-    assert _service_row(result, 1).waiting_count == 0  # Arica: "- - - -"
+    arica = _service_row(result, 1)
+    assert arica.waiting_count == 0  # Arica: "- - - -" en conteos vale 0
+    assert arica.mean_wait_days is None  # y en días significa "sin dato", no 0
     digital = [r for r in result.records if r.health_service_code is None]
     assert [(r.health_service, r.waiting_count) for r in digital] == [("HOSPITAL DIGITAL", 5)]
     assert result.totals["waiting_count"] == 77604
@@ -475,9 +522,8 @@ def _copy(result: TableResult) -> TableResult:
 
 @pytest.mark.parametrize("quarter", QUARTERS)
 def test_validate_accepts_real_data(glosa_results: Results, quarter: str) -> None:
-    warnings = validate_waitlist(list(glosa_results[quarter].values()), get_source(quarter))
-    assert isinstance(warnings, list)
-    assert all(isinstance(w, str) for w in warnings)
+    """Los PDF publicados no deben generar ni errores ni advertencias."""
+    assert validate_waitlist(list(glosa_results[quarter].values()), get_source(quarter)) == []
 
 
 def test_validate_flags_a_tampered_total(glosa_results: Results) -> None:

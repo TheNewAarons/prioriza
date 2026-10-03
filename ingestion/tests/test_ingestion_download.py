@@ -220,9 +220,10 @@ def test_sha_mismatch_removes_everything_and_raises(spec: SourceSpec, tmp_path: 
 
 def test_no_expected_sha_accepts_any_content(spec: SourceSpec, tmp_path: Path) -> None:
     free = dataclasses.replace(spec, expected_sha256=None)
-    rec = Recorder([ok(content=b"cualquier cosa")])
+    other = b"%PDF-1.7 otro contenido sintetico\n"
+    rec = Recorder([ok(content=other)])
     result = fetch(free, raw_dir=tmp_path, today=TODAY, client=rec.client(), sleep=lambda _s: None)
-    assert result.metadata.sha256 == _sha(b"cualquier cosa")
+    assert result.metadata.sha256 == _sha(other)
 
 
 # --- caché ------------------------------------------------------------------------------

@@ -134,6 +134,10 @@ class WaitlistRecord(BaseModel):
             self.mean_wait_days is not None or self.median_wait_days is not None
         ) and self.wait_basis is None:
             raise ValueError("wait_basis es obligatorio si hay media o mediana")
+        if self.waiting_count == 0 and (
+            self.mean_wait_days is not None or self.median_wait_days is not None
+        ):
+            raise ValueError("sin registros no hay promedio ni mediana (deben ser None)")
         return self
 
     def key(self) -> tuple[object, ...]:

@@ -8,9 +8,15 @@ Las tablas se reconstruyen desde las palabras de cada página (``pdf_words``):
    uniendo la línea del título con la siguiente), no por su número, que cambia entre
    trimestres.
 3. Una línea es fila de datos si sus últimos ``n`` tokens son numéricos (``n`` = columnas
-   numéricas de la tabla). Los tokens previos forman la etiqueta. Las líneas sin números
-   (etiquetas partidas en varias líneas) se unen a la fila numérica verticalmente más
-   cercana; en caso de empate, a la siguiente.
+   numéricas de la tabla). Las celdas se asignan a columnas por posición horizontal (x), no
+   por orden: cada fila debe traer exactamente una celda por columna; un dígito que es parte
+   de la etiqueta ("tipo 2") queda a la izquierda de la zona numérica y sigue siendo etiqueta.
+   El orden de los encabezados se verifica contra ``TableSpec.columns``.
+   Las líneas sin números (etiquetas partidas en varias líneas) se unen a la fila numérica
+   verticalmente más cercana (empate: la siguiente). En tablas con columna de código, si los
+   números van en la primera línea de la etiqueta (diseño "arriba", p. ej. 2026q1) las
+   líneas de continuación pertenecen siempre a la fila anterior; si van centrados (2025q3,
+   2025q4) rige la regla de la fila más cercana.
 4. La tabla termina en la fila ``Total`` (o en ``Fuente:`` si no tiene fila Total), de donde se
    leen la fecha de corte y de extracción.
 
@@ -18,10 +24,13 @@ Cualquier desviación del formato esperado lanza :class:`SchemaDriftError`.
 """
 
 import re
+from bisect import bisect_left
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
+from itertools import pairwise
 from pathlib import Path
+from statistics import median
 from types import MappingProxyType
 
 from shared.health_services import (
@@ -39,7 +48,7 @@ from shared.schemas import (
     WaitlistRecord,
 )
 
-from ingestion.errors import SchemaDriftError
+from ingestion.errors import DataValidationError, SchemaDriftError
 from ingestion.normalize import fold_text, normalize_specialty
 from ingestion.parsers.numbers import is_number_token, parse_cl_number
 from ingestion.pdf_words import PageWords, Word, read_pdf_words
@@ -52,6 +61,17 @@ BOTTOM_MARGIN = 70.0
 LINE_TOLERANCE = 3.0
 #: Una línea sin números a lo sumo a esta distancia sobre la primera fila es etiqueta.
 HEADER_GAP = 9.0
+#: Si alguna línea de etiqueta está más cerca que esto (pt) de una fila de datos, los números
+#: van centrados verticalmente respecto de la etiqueta; si no, están en su primera línea.
+CENTERED_LAYOUT_GAP = 8.0
+#: Semiancho (pt) de la zona de una columna cuando la tabla tiene una sola columna numérica.
+SINGLE_COLUMN_HALF_WIDTH = 45.0
+#: Tolerancia (pt) del borde izquierdo de la zona numérica.
+ZONE_MARGIN = 2.0
+#: Tolerancia de |razón - registros/personas| en las tablas por servicio.
+RATIO_TOLERANCE = 0.01
+#: Campos de días: ``-`` significa "sin dato" y no cero.
+_DAY_FIELDS = frozenset({"mean_wait_days", "median_wait_days"})
 
 _RUNNING_HEADER = re.compile(r"^(?:(?:primer|segundo|tercer|cuarto|i{1,3}|iv) )?trimestre \d{4}$")
 _TABLE_TITLE = re.compile(r"^tabla (\d+)\.\s*")
@@ -287,6 +307,15 @@ def _is_data(line: Line, n: int) -> bool:
     return len(tokens) >= n and all(is_number_token(w.text) for w in tokens[-n:])
 
 
+def _trailing_numbers(line: Line) -> int:
+    count = 0
+    for word in reversed(line.tokens):
+        if not is_number_token(word.text):
+            break
+        count += 1
+    return count
+
+
 def _is_source_line(line: Line) -> bool:
     return line.norm.startswith("fuente")
 
@@ -337,6 +366,7 @@ def _walk(
     header: list[Line] = []
     header_text = ""
     first: int | None = None
+    keywords_done: int | None = None
     while j < len(lines):
         line = lines[j]
         if _is_source_line(line):
@@ -352,6 +382,8 @@ def _walk(
             break
         header.append(line)
         header_text += " " + line.norm
+        if keywords_done is None and not _missing_keywords(spec, header_text):
+            keywords_done = len(header)
         j += 1
     if first is None:
         raise _drift(source, spec.key, "no se encontró el fin de la tabla (falta 'Fuente:')")
@@ -365,6 +397,16 @@ def _walk(
             first_line = line
         else:
             break
+    # Una fila de datos con celdas faltantes antes de la primera fila completa no es un
+    # encabezado: casi todas sus columnas traen cifras al final de la línea.
+    for ln in header[keywords_done or 0 :]:
+        if _trailing_numbers(ln) >= max(2, n - 2):
+            raise _drift(
+                source,
+                spec.key,
+                "fila sin las celdas esperadas antes de la primera fila de datos",
+                found=" ".join(w.text for w in ln.tokens),
+            )
     hit_indices = {h.index for h in hits}
     total: Line | None = None
     end = first
@@ -397,11 +439,6 @@ def _walk(
         if k in block_skip:
             k += 1
             continue
-        if total is not None:
-            k += 1
-            if k - end > 8:
-                break
-            continue
         if _is_data(line, n):
             norm_label = fold_text(" ".join(w.text for w in line.tokens[:-n]))
             groups.append(_Group(line))
@@ -428,58 +465,238 @@ def _walk(
     return groups, loose, total, end, header
 
 
-def _assign_labels(groups: list[_Group], loose: Sequence[Line]) -> None:
-    """Une cada línea de etiqueta a la fila numérica más cercana (empate: la siguiente)."""
+def _is_centered_layout(groups: Sequence[_Group], loose: Sequence[Line]) -> bool:
+    """¿Los números van centrados respecto de la etiqueta (alguna línea a media altura)?"""
+    gaps = [abs(group.data.y - line.y) for line in loose for group in groups]
+    return bool(gaps) and min(gaps) < CENTERED_LAYOUT_GAP
+
+
+def _assign_labels(
+    groups: list[_Group],
+    loose: Sequence[Line],
+    spec: TableSpec,
+    source: SourceSpec,
+) -> None:
+    """Une cada línea de etiqueta a su fila numérica.
+
+    En tablas con código y números en la primera línea de la etiqueta, la línea pertenece a la
+    fila anterior (banda de fila). En el resto se une a la fila numérica más cercana (empate:
+    la siguiente), lo que cubre las etiquetas centradas verticalmente.
+    """
+    continuation = spec.has_code and not _is_centered_layout(groups, loose)
     for line in loose:
         best: _Group | None = None
-        best_dist = float("inf")
-        for group in groups:
-            dist = abs(group.data.y - line.y)
-            later = group.data.y > line.y
-            if dist < best_dist or (dist == best_dist and later):
-                best, best_dist = group, dist
+        if continuation:
+            above = [g for g in groups if g.data.y < line.y]
+            best = above[-1] if above else None
+            if best is None:
+                raise _drift(
+                    source,
+                    spec.key,
+                    "línea de etiqueta antes de la primera fila con código",
+                    found=line.norm,
+                )
+        else:
+            best_dist = float("inf")
+            for group in groups:
+                dist = abs(group.data.y - line.y)
+                later = group.data.y > line.y
+                if dist < best_dist or (dist == best_dist and later):
+                    best, best_dist = group, dist
         if best is not None:
             best.labels.append(line)
 
 
-def _column_order(spec: TableSpec, header: Sequence[Line], source: SourceSpec) -> list[ColumnSpec]:
-    """Orden de las columnas numéricas (de izquierda a derecha)."""
-    if not spec.reorderable:
-        return list(spec.columns)
-    positions: list[tuple[float, ColumnSpec]] = []
+def _header_positions(
+    spec: TableSpec, header: Sequence[Line], source: SourceSpec
+) -> dict[str, float]:
+    """Posición x (borde izquierdo) del encabezado de cada columna con palabra clave."""
+    positions: dict[str, float] = {}
     for column in spec.columns:
-        assert column.keyword is not None
-        xs = [
-            w.x0 for line in header for w in line.tokens if column.keyword.search(fold_text(w.text))
-        ]
+        if column.keyword is None:
+            continue
+        xs: list[float] = []
+        for line in header:
+            folded = [fold_text(w.text) for w in line.tokens]
+            text = " ".join(folded)
+            starts: list[int] = []
+            offset = 0
+            for token in folded:
+                starts.append(offset)
+                offset += len(token) + 1
+            for match in column.keyword.finditer(text):
+                index = bisect_left(starts, match.start() + 1) - 1
+                xs.append(line.tokens[max(index, 0)].x0)
         if not xs:
             raise _drift(source, spec.key, "encabezado cambió", expected=column.keyword.pattern)
-        positions.append((min(xs), column))
-    return [column for _, column in sorted(positions, key=lambda p: p[0])]
+        positions[column.field] = min(xs)
+    return positions
+
+
+def _column_order(spec: TableSpec, header: Sequence[Line], source: SourceSpec) -> list[ColumnSpec]:
+    """Orden de las columnas numéricas (de izquierda a derecha), verificado con el encabezado.
+
+    En tablas ``reorderable`` el orden lo dicta el encabezado. En las demás, el encabezado debe
+    traer las columnas con palabra clave en el mismo orden que ``spec.columns``; si no, hay
+    deriva de formato (columnas intercambiadas) y se lanza ``SchemaDriftError``.
+    """
+    positions = _header_positions(spec, header, source)
+    if spec.reorderable:
+        return sorted(spec.columns, key=lambda c: positions[c.field])
+    keyed = [c for c in spec.columns if c.field in positions]
+    found = sorted(keyed, key=lambda c: positions[c.field])
+    if found != keyed:
+        raise _drift(
+            source,
+            spec.key,
+            "las columnas del encabezado están en otro orden",
+            expected=", ".join(c.field for c in keyed),
+            found=", ".join(c.field for c in found),
+        )
+    return list(spec.columns)
+
+
+@dataclass(frozen=True)
+class _Geometry:
+    """Zona numérica de una tabla: centros de las columnas y borde izquierdo de la zona."""
+
+    centers: tuple[float, ...]
+    left: float
+    right: float
+
+    def in_zone(self, word: Word) -> bool:
+        return word.x1 > self.left
+
+    def column_of(self, word: Word) -> int | None:
+        """Índice de la columna a la que pertenece el token, o ``None`` si está fuera."""
+        center = (word.x0 + word.x1) / 2
+        if center > self.right:
+            return None
+        bounds = [(a + b) / 2 for a, b in pairwise(self.centers)]
+        return bisect_left(bounds, center)
+
+
+def _geometry(groups: Sequence[_Group], n: int, source: SourceSpec, key: str) -> _Geometry:
+    """Estima la zona numérica desde las filas de datos (mediana de los centros por columna)."""
+    cells = [g.data.tokens[-n:] for g in groups]
+    centers = tuple(median((row[i].x0 + row[i].x1) / 2 for row in cells) for i in range(n))
+    if any(a >= b for a, b in pairwise(centers)):
+        raise _drift(source, key, "las columnas numéricas se solapan", found=str(centers))
+    half_first = (centers[1] - centers[0]) / 2 if n > 1 else SINGLE_COLUMN_HALF_WIDTH
+    half_last = (centers[-1] - centers[-2]) / 2 if n > 1 else SINGLE_COLUMN_HALF_WIDTH
+    # Borde izquierdo: el x0 mínimo de la primera columna, ignorando filas cuyo "primer
+    # número" es en realidad un dígito de la etiqueta (celda vacía).
+    firsts = [
+        row[0] for row in cells if abs((row[0].x0 + row[0].x1) / 2 - centers[0]) <= half_first
+    ]
+    left = min(w.x0 for w in firsts) - ZONE_MARGIN
+    return _Geometry(centers, left, centers[-1] + half_last)
+
+
+def _row_text(line: Line) -> str:
+    return " ".join(w.text for w in line.tokens)
+
+
+def _check_loose_lines(
+    groups: Sequence[_Group],
+    loose: Sequence[Line],
+    geometry: _Geometry,
+    spec: TableSpec,
+    source: SourceSpec,
+) -> None:
+    """Una línea de etiqueta no puede traer cifras en la zona numérica (celdas faltantes)."""
+    for line in loose:
+        stray = [w for w in line.tokens if geometry.in_zone(w) and is_number_token(w.text)]
+        if stray:
+            raise _drift(
+                source,
+                spec.key,
+                "cifras en una línea sin las demás celdas de la fila (celda vacía o desplazada)",
+                found=_row_text(line),
+            )
+
+
+def _split_cells(
+    line: Line,
+    geometry: _Geometry,
+    order: Sequence[ColumnSpec],
+    spec: TableSpec,
+    source: SourceSpec,
+) -> tuple[list[Word], dict[str, str]]:
+    """Separa la etiqueta de las celdas de una fila de datos, asignando celdas por posición x."""
+    label: list[Word] = []
+    cells: dict[str, str] = {}
+    for word in line.tokens:
+        if not geometry.in_zone(word):
+            label.append(word)
+            continue
+        index = geometry.column_of(word)
+        if index is None or not is_number_token(word.text):
+            raise _drift(
+                source,
+                spec.key,
+                "token fuera de las columnas numéricas",
+                found=_row_text(line),
+            )
+        field_name = order[index].field
+        if field_name in cells:
+            raise _drift(
+                source,
+                spec.key,
+                f"dos cifras en la misma columna ({field_name})",
+                found=_row_text(line),
+            )
+        cells[field_name] = word.text
+    missing = [c.field for c in order if c.field not in cells]
+    if missing:
+        raise _drift(
+            source,
+            spec.key,
+            "celda vacía o desplazada en la fila",
+            expected=", ".join(missing),
+            found=_row_text(line),
+        )
+    return label, cells
+
+
+def _cell_value(field_name: str, text: str) -> float | None:
+    """Valor de una celda; ``-`` es cero en conteos y "sin dato" (``None``) en días."""
+    if text.rstrip("*") == "-" and field_name in _DAY_FIELDS:
+        return None
+    return parse_cl_number(text)
 
 
 def _build_rows(
-    groups: Sequence[_Group], spec: TableSpec, order: Sequence[ColumnSpec]
+    groups: Sequence[_Group],
+    spec: TableSpec,
+    order: Sequence[ColumnSpec],
+    geometry: _Geometry,
+    source: SourceSpec,
 ) -> list[_RawRow]:
-    n = len(spec.columns)
     rows: list[_RawRow] = []
     for group in groups:
-        lines = sorted([group.data, *group.labels], key=lambda ln: ln.y)
-        label_tokens: list[Word] = []
-        for line in lines:
-            label_tokens.extend(line.tokens[:-n] if line is group.data else line.tokens)
+        data_label, cells = _split_cells(group.data, geometry, order, spec, source)
         code: int | None = None
-        if spec.has_code and label_tokens:
-            leftmost = min(label_tokens, key=lambda w: w.x0)
-            if leftmost.text.isdigit():
-                code = int(leftmost.text)
-                label_tokens = [w for w in label_tokens if w is not leftmost]
+        if spec.has_code and data_label and data_label[0].text.isdigit():
+            code = int(data_label[0].text)
+            data_label = data_label[1:]
+        label_tokens: list[Word] = []
+        for line in sorted([group.data, *group.labels], key=lambda ln: ln.y):
+            label_tokens.extend(data_label if line is group.data else line.tokens)
         label = re.sub(r"\s+", " ", " ".join(w.text for w in label_tokens)).strip()
-        numbers = group.data.tokens[-n:]
-        values = {
-            column.field: parse_cl_number(token.text)
-            for column, token in zip(order, numbers, strict=True)
-        }
+        if spec.has_code and (not label or label[0].islower() or label[0].isdigit()):
+            raise _drift(
+                source,
+                spec.key,
+                "etiqueta mal formada (vacía o empieza con minúscula/dígito); "
+                "probable línea de etiqueta asignada a la fila equivocada",
+                found=f"código {code}: {label!r}",
+            )
+        values: dict[str, float] = {}
+        for column in order:
+            value = _cell_value(column.field, cells[column.field])
+            if value is not None:
+                values[column.field] = value
         rows.append(_RawRow(label, code, values))
     return rows
 
@@ -530,14 +747,17 @@ def _record(ctx: _Ctx, **kwargs: object) -> WaitlistRecord:
 
 
 def _wait_kwargs(values: Mapping[str, float], basis: WaitBasis) -> dict[str, object]:
-    mean = values.get("mean_wait_days")
-    median = values.get("median_wait_days")
-    out: dict[str, object] = {}
-    if mean is not None or median is not None:
-        out["mean_wait_days"] = mean
-        out["median_wait_days"] = median
-        out["wait_basis"] = basis
-    return out
+    """Campos de espera de tablas con columnas de días.
+
+    Sin registros, o con ``-`` en la celda, no hay dato: promedio y mediana quedan en ``None``
+    (nunca cero, para que un promedio ponderado posterior no trate "sin dato" como 0 días).
+    """
+    empty = values["waiting_count"] == 0
+    return {
+        "mean_wait_days": None if empty else values.get("mean_wait_days"),
+        "median_wait_days": None if empty else values.get("median_wait_days"),
+        "wait_basis": basis,
+    }
 
 
 _T9_ROWS: Mapping[str, tuple[CareType, CareSubtype | None]] = MappingProxyType(
@@ -692,6 +912,49 @@ def _build_t5(
     return records, dict(total.values)
 
 
+def _inconsistent(ctx: _Ctx, row: _RawRow, detail: str) -> DataValidationError:
+    name = f"código {row.code} {row.label}" if row.code is not None else row.label
+    return DataValidationError(ctx.source.source_id, ctx.key, f"fila {name!r}: {detail}")
+
+
+def _check_row_consistency(ctx: _Ctx, rows: Sequence[_RawRow]) -> None:
+    """Chequeos por fila con columnas que luego se descartan; detectan celdas corridas.
+
+    - Tabla 5: la suma de los seis tramos de retraso es igual al total.
+    - Tabla 6: femenino + masculino + no definido es igual al total.
+    - Tablas por servicio: ``razón`` coincide con registros/personas (±0,01) si hay personas.
+    """
+    for row in rows:
+        values = row.values
+        if ctx.key == "ges_delayed_by_problem":
+            buckets = sum(values[f"bucket{i}"] for i in range(1, 7))
+            if buckets != values["waiting_count"]:
+                raise _inconsistent(
+                    ctx,
+                    row,
+                    f"los tramos suman {buckets:.0f} y el total publicado es "
+                    f"{values['waiting_count']:.0f}",
+                )
+        elif ctx.key == "ges_delayed_by_service":
+            by_sex = values["female"] + values["male"] + values["undefined"]
+            if by_sex != values["waiting_count"]:
+                raise _inconsistent(
+                    ctx,
+                    row,
+                    f"femenino+masculino+no definido suman {by_sex:.0f} y el total publicado "
+                    f"es {values['waiting_count']:.0f}",
+                )
+        elif ctx.key in ("cne_by_service", "iq_by_service") and values["persons_count"] > 0:
+            expected = values["waiting_count"] / values["persons_count"]
+            if abs(values["ratio"] - expected) > RATIO_TOLERANCE:
+                raise _inconsistent(
+                    ctx,
+                    row,
+                    f"razón publicada {values['ratio']} distinta de registros/personas "
+                    f"= {expected:.3f}",
+                )
+
+
 _Builder = Callable[
     [_Ctx, Sequence[_RawRow], _RawRow | None], tuple[list[WaitlistRecord], dict[str, float]]
 ]
@@ -703,7 +966,8 @@ def _dispatch(
     key = ctx.key
     if key == "noges_national_by_subtype":
         return _build_t9(ctx, rows)
-    assert total is not None
+    if total is None:
+        raise _drift(ctx.source, key, "falta la fila Total", expected="Total", found=None)
     if key == "cne_by_service":
         return _build_service_table(ctx, rows, total, CareType.CONSULTATION)
     if key == "iq_by_service":
@@ -739,9 +1003,11 @@ def _parse_table(lines: Sequence[Line], spec: TableSpec, source: SourceSpec) -> 
             "ancla duplicada: el título aparece otra vez en otra parte del documento",
             found=hits[0].label,
         )
-    _assign_labels(groups, loose)
     order = _column_order(spec, header, source)
-    raw = _build_rows(groups, spec, order)
+    geometry = _geometry(groups, len(spec.columns), source, spec.key)
+    _check_loose_lines(groups, loose, geometry, spec, source)
+    _assign_labels(groups, loose, spec, source)
+    raw = _build_rows(groups, spec, order, geometry, source)
     total_row: _RawRow | None = None
     if total_line is not None:
         total_row = next(r for g, r in zip(groups, raw, strict=True) if g.data is total_line)
@@ -757,6 +1023,7 @@ def _parse_table(lines: Sequence[Line], spec: TableSpec, source: SourceSpec) -> 
         )
     pages = tuple(sorted({lines[i].page for i in range(hits[0].index, end + 1)}))
     ctx = _Ctx(source, spec.key, hits[0].label, pages[0], cutoff, extracted)
+    _check_row_consistency(ctx, raw if total_row is None else [*raw, total_row])
     records, totals = _dispatch(ctx, raw, total_row)
     return TableResult(spec.key, hits[0].label, pages, records, totals, cutoff, extracted)
 
