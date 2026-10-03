@@ -1,6 +1,7 @@
 """Configuración de la aplicación, leída desde variables de entorno o `.env`."""
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,6 +24,8 @@ class Settings(BaseSettings):
     dashboard_port: int = 8050
     environment: str = "development"
     seed: int = 42
+    # Directorio raíz de datos (raw/ y processed/ cuelgan de aquí).
+    data_dir: Path = Path("data")
 
     @property
     def sqlalchemy_url(self) -> str:
