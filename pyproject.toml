@@ -58,3 +58,6 @@ testpaths = [
 ]
 addopts = "--import-mode=importlib -q"
 consider_namespace_packages = true
+markers = [
+    "db: requiere un PostgreSQL alcanzable (se omite si no hay conexión)",
+]
