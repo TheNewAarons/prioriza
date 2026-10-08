@@ -152,7 +152,16 @@ class SyntheticRun(Base):
     """Corrida de generación de población sintética (id determinista)."""
 
     __tablename__ = "synthetic_run"
-    __table_args__ = ({"comment": "Corrida de generación sintética; borrarla elimina sus datos."},)
+    __table_args__ = (
+        sa.CheckConstraint("size > 0", name="ck_synthetic_run_size_positive"),
+        {
+            "comment": (
+                "Corrida de generación sintética; borrarla elimina sus datos. La carga es una "
+                "sola transacción: una corrida en estado loading no es visible para otras "
+                "conexiones y failed queda reservado para futuras cargas no transaccionales."
+            )
+        },
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True)
     seed: Mapped[int] = mapped_column(sa.BigInteger)
@@ -178,6 +187,7 @@ class Patient(Base):
 
     __tablename__ = "patient"
     __table_args__ = (
+        sa.UniqueConstraint("run_id", "id", name="uq_patient_run_id_id"),
         sa.Index("ix_patient_run_id_health_service_code", "run_id", "health_service_code"),
         sa.Index("ix_patient_run_id_commune_code", "run_id", "commune_code"),
         sa.Index("ix_patient_run_id_age_group_insurance", "run_id", "age_group", "insurance"),
@@ -196,11 +206,17 @@ class PatientLatent(Base):
     """Variable latente de inasistencia: verdad del generador."""
 
     __tablename__ = "patient_latent"
-    __table_args__ = ({"comment": _TRUTH_COMMENT},)
-
-    patient_id: Mapped[uuid.UUID] = mapped_column(
-        sa.Uuid, sa.ForeignKey("patient.id", ondelete="CASCADE"), primary_key=True
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["run_id", "patient_id"],
+            ["patient.run_id", "patient.id"],
+            ondelete="CASCADE",
+            name="fk_patient_latent_patient",
+        ),
+        {"comment": _TRUTH_COMMENT},
     )
+
+    patient_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True)
     run_id: Mapped[uuid.UUID] = _run_fk()
     noshow_frailty: Mapped[float] = mapped_column(sa.Float, comment=_TRUTH_COMMENT)
 
@@ -210,6 +226,21 @@ class WaitlistEntry(Base):
 
     __tablename__ = "waitlist_entry"
     __table_args__ = (
+        sa.UniqueConstraint("run_id", "id", name="uq_waitlist_entry_run_id_id"),
+        sa.ForeignKeyConstraint(
+            ["run_id", "patient_id"],
+            ["patient.run_id", "patient.id"],
+            ondelete="CASCADE",
+            name="fk_waitlist_entry_patient",
+        ),
+        sa.CheckConstraint(
+            "ges_deadline IS NULL OR ges_deadline >= entry_date",
+            name="ck_waitlist_entry_deadline_after_entry",
+        ),
+        sa.CheckConstraint(
+            "resolved_on IS NULL OR status IN ('resolved', 'removed')",
+            name="ck_waitlist_entry_resolved_on_status",
+        ),
         sa.CheckConstraint(
             "is_ges = (ges_problem_code IS NOT NULL AND ges_deadline IS NOT NULL)",
             name="ck_waitlist_entry_ges_consistency",
@@ -237,7 +268,7 @@ class WaitlistEntry(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True)
     run_id: Mapped[uuid.UUID] = _run_fk()
-    patient_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("patient.id", ondelete="CASCADE"))
+    patient_id: Mapped[uuid.UUID] = mapped_column()
     health_service_code: Mapped[int] = mapped_column(sa.ForeignKey("health_service.code"))
     establishment_code: Mapped[str] = mapped_column(sa.ForeignKey("establishment.code"))
     specialty_code: Mapped[str] = mapped_column(sa.ForeignKey("specialty.code"))
@@ -260,6 +291,7 @@ class Resource(Base):
 
     __tablename__ = "resource"
     __table_args__ = (
+        sa.UniqueConstraint("run_id", "id", name="uq_resource_run_id_id"),
         sa.Index(
             "ix_resource_run_id_health_service_code_kind", "run_id", "health_service_code", "kind"
         ),
@@ -280,6 +312,13 @@ class Slot(Base):
 
     __tablename__ = "slot"
     __table_args__ = (
+        sa.UniqueConstraint("run_id", "id", name="uq_slot_run_id_id"),
+        sa.ForeignKeyConstraint(
+            ["run_id", "resource_id"],
+            ["resource.run_id", "resource.id"],
+            ondelete="CASCADE",
+            name="fk_slot_resource",
+        ),
         sa.CheckConstraint("duration_min > 0", name="ck_slot_duration_positive"),
         sa.UniqueConstraint("resource_id", "start_at", name="uq_slot_resource_id_start_at"),
         sa.Index("ix_slot_run_id_specialty_code_start_at", "run_id", "specialty_code", "start_at"),
@@ -288,7 +327,7 @@ class Slot(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True)
     run_id: Mapped[uuid.UUID] = _run_fk()
-    resource_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("resource.id", ondelete="CASCADE"))
+    resource_id: Mapped[uuid.UUID] = mapped_column()
     specialty_code: Mapped[str] = mapped_column(sa.ForeignKey("specialty.code"))
     start_at: Mapped[datetime] = mapped_column(_tstz())
     duration_min: Mapped[int] = mapped_column(sa.Integer)
@@ -302,6 +341,8 @@ class ScheduleRun(Base):
 
     __tablename__ = "schedule_run"
     __table_args__ = (
+        sa.UniqueConstraint("run_id", "id", name="uq_schedule_run_run_id_id"),
+        sa.CheckConstraint("horizon_end >= horizon_start", name="ck_schedule_run_horizon_order"),
         {"comment": "Plan de programación; todo plan nace pendiente de revisión humana."},
     )
 
@@ -329,6 +370,35 @@ class Appointment(Base):
 
     __tablename__ = "appointment"
     __table_args__ = (
+        sa.UniqueConstraint("run_id", "id", name="uq_appointment_run_id_id"),
+        sa.ForeignKeyConstraint(
+            ["run_id", "patient_id"],
+            ["patient.run_id", "patient.id"],
+            ondelete="CASCADE",
+            name="fk_appointment_patient",
+        ),
+        sa.ForeignKeyConstraint(
+            ["run_id", "entry_id"],
+            ["waitlist_entry.run_id", "waitlist_entry.id"],
+            ondelete="CASCADE",
+            name="fk_appointment_entry",
+        ),
+        sa.ForeignKeyConstraint(
+            ["run_id", "slot_id"],
+            ["slot.run_id", "slot.id"],
+            ondelete="CASCADE",
+            name="fk_appointment_slot",
+        ),
+        sa.ForeignKeyConstraint(
+            ["run_id", "schedule_run_id"],
+            ["schedule_run.run_id", "schedule_run.id"],
+            ondelete="CASCADE",
+            name="fk_appointment_schedule_run",
+        ),
+        sa.CheckConstraint("duration_min > 0", name="ck_appointment_duration_positive"),
+        sa.CheckConstraint(
+            "lead_days IS NULL OR lead_days >= 0", name="ck_appointment_lead_days_nonneg"
+        ),
         sa.CheckConstraint(
             "origin = 'history' OR slot_id IS NOT NULL", name="ck_appointment_slot_unless_history"
         ),
@@ -350,14 +420,10 @@ class Appointment(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True)
     run_id: Mapped[uuid.UUID] = _run_fk()
-    patient_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("patient.id", ondelete="CASCADE"))
-    entry_id: Mapped[uuid.UUID | None] = mapped_column(
-        sa.ForeignKey("waitlist_entry.id", ondelete="CASCADE")
-    )
-    slot_id: Mapped[uuid.UUID | None] = mapped_column(sa.ForeignKey("slot.id", ondelete="CASCADE"))
-    schedule_run_id: Mapped[uuid.UUID | None] = mapped_column(
-        sa.ForeignKey("schedule_run.id", ondelete="CASCADE")
-    )
+    patient_id: Mapped[uuid.UUID] = mapped_column()
+    entry_id: Mapped[uuid.UUID | None] = mapped_column()
+    slot_id: Mapped[uuid.UUID | None] = mapped_column()
+    schedule_run_id: Mapped[uuid.UUID | None] = mapped_column()
     origin: Mapped[AppointmentOrigin] = mapped_column(_enum(AppointmentOrigin))
     status: Mapped[AppointmentStatus] = mapped_column(_enum(AppointmentStatus))
     scheduled_start: Mapped[datetime] = mapped_column(_tstz())
@@ -379,11 +445,20 @@ class AppointmentTruth(Base):
     """Probabilidad verdadera de inasistencia: verdad del generador."""
 
     __tablename__ = "appointment_truth"
-    __table_args__ = ({"comment": _TRUTH_COMMENT},)
-
-    appointment_id: Mapped[uuid.UUID] = mapped_column(
-        sa.Uuid, sa.ForeignKey("appointment.id", ondelete="CASCADE"), primary_key=True
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["run_id", "appointment_id"],
+            ["appointment.run_id", "appointment.id"],
+            ondelete="CASCADE",
+            name="fk_appointment_truth_appointment",
+        ),
+        sa.CheckConstraint(
+            "true_noshow_prob BETWEEN 0 AND 1", name="ck_appointment_truth_prob_range"
+        ),
+        {"comment": _TRUTH_COMMENT},
     )
+
+    appointment_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True)
     run_id: Mapped[uuid.UUID] = _run_fk()
     true_noshow_prob: Mapped[float] = mapped_column(sa.Float, comment=_TRUTH_COMMENT)
 
@@ -393,6 +468,16 @@ class PolicyResult(Base):
 
     __tablename__ = "policy_result"
     __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["run_id", "schedule_run_id"],
+            ["schedule_run.run_id", "schedule_run.id"],
+            ondelete="CASCADE",
+            name="fk_policy_result_schedule_run",
+        ),
+        sa.CheckConstraint(
+            "ci_low IS NULL OR ci_high IS NULL OR ci_low <= ci_high",
+            name="ck_policy_result_ci_order",
+        ),
         sa.UniqueConstraint(
             "experiment_id",
             "policy",
@@ -408,9 +493,7 @@ class PolicyResult(Base):
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True)
     run_id: Mapped[uuid.UUID] = _run_fk()
     experiment_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, index=True)
-    schedule_run_id: Mapped[uuid.UUID | None] = mapped_column(
-        sa.ForeignKey("schedule_run.id", ondelete="CASCADE")
-    )
+    schedule_run_id: Mapped[uuid.UUID | None] = mapped_column()
     policy: Mapped[Policy] = mapped_column(_enum(Policy))
     metric: Mapped[str] = mapped_column(sa.String(64))
     group_dimension: Mapped[str | None] = mapped_column(sa.String(32))
