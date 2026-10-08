@@ -52,6 +52,8 @@ Datos públicos agregados ──► ingestion/  ──► calibra ──► synt
 
 El proyecto define subagentes en `.claude/agents/`. La sesión principal **orquesta**: planifica, delega y verifica. Regla de asignación por esfuerzo:
 
+> **Precedencia:** si esta tabla entra en conflicto con el routing por niveles (secciones 2 a 4, al final de este archivo), manda el routing por niveles. Las tareas de Tier 2 y Tier 3 se delegan a `claude-ds`, `claude-qwen` o `claude-kimi` en vez de a los subagentes sonnet/haiku de esta tabla.
+
 | Subagente | Modelo | Para qué |
 |---|---|---|
 | `architect` | opus | Diseño de módulos, modelado matemático de CP-SAT, decisiones de trade-off |
@@ -92,3 +94,67 @@ make test / lint / typecheck
 - Si una decisión cambia algo de este archivo, actualízalo junto con `docs/decisions.md`.
 - No agregues dependencias sin justificarlas en `docs/decisions.md`.
 - Control de versiones según `docs/version-control.md`: ramas cortas desde `main`, Conventional Commits en español, un commit por cambio lógico y solo con `make lint typecheck test` en verde. Solo la sesión principal commitea y hace push.
+
+
+
+## Metodología de Selección de Modelos (Routing)
+
+Tienes a tu disposición comandos alias redirigidos a OpenCode Go (vía LiteLLM local) y acceso nativo a Anthropic.
+Analiza la complejidad de la tarea antes de ejecutar cambios grandes:
+
+1. **Tareas de Mantenimiento / Escaneo / Tests (Usar OpenCode Go):**
+   - LECTURA: Lectura masiva de archivos, auditorías de logs, búsqueda de patrones.
+   - BOILERPLATE: Generación de unit tests, tipos de TypeScript/Zod, documentación JSDoc.
+   - Sugiere o ejecuta mediante sub-proceso/CLI con `claude-qwen` o `claude-ds`.
+
+2. **Tareas Críticas y Arquitectura (Usar Claude Pro / Sonnet / Opus):**
+   - REFACTORING CORE: Modificación de la arquitectura principal de la app.
+   - BUGS COMPLEJOS: Errores de concurrencia, lógica de negocio intrincada o memory leaks.
+   - Mantén la ejecución actual nativa en Claude Code.
+
+3. **Flujo Híbrido:**
+   - Si la tarea requiere más de 5 archivos de contexto preliminar, usa primero `claude-qwen` para redactar un resumen en `TASK_PLAN.md` y luego retoma la implementación crítica en la sesión nativa.
+
+## 2. Arquitectura de Agentes y Enrutamiento por Esfuerzo (Agent Routing)
+
+> **Precedencia:** estas secciones (2 a 4) mandan sobre la tabla de "Subagentes y asignación de modelos" y sobre "Metodología de Selección de Modelos" cuando haya conflicto.
+
+Este proyecto y entorno de trabajo utiliza una estrategia de **routing de modelos en 3 niveles (Tiers)** según la complejidad, esfuerzo y volumen de tokens de cada tarea. Tu objetivo es optimizar la precisión y preservar el presupuesto de tokens contextualmente.
+
+### Tabla de Niveles y Delegación
+
+| Nivel / Tier | Esfuerzo / Tipo de Tarea | Modelo Objetivo | Ejecución / Alias |
+| :--- | :--- | :--- | :--- |
+| **Tier 1: High Effort** | Arquitectura core, debugging complejo de concurrencia, refactorizaciones críticas, lógica de negocio intrincada. | Claude 3.7 Sonnet / Opus (Nativo) | `claude` |
+| **Tier 2: Mid Effort** | Implementación de features estándar, algoritmos, refactorización de componentes, endpoints API. | DeepSeek V4 / Qwen 3.7 Max | `claude-ds` / `claude-qwen` |
+| **Tier 3: Low Effort / Bulk** | Generación de unit tests, tipos Zod/TypeScript, JSDoc/documentación, escaneo de repos, linters. | Kimi K3 / Qwen 3.7 Max | `claude-kimi` / `claude-qwen` |
+
+---
+
+## 3. Reglas Autónomas de Delegación
+
+Cuando operes como agente principal (`claude` nativo):
+
+1. **Evaluación Preliminar del Prompt:** Antes de ejecutar una tarea masiva (más de 3 archivos o más de 200 líneas de código a modificar/generar):
+   - Si la tarea es de **Tier 2 o Tier 3**, advierte al usuario o genera un script para delegarla al subagente correspondiente mediante `claude-qwen`, `claude-ds` o `claude-kimi`.
+2. **Estrategia "Plan First, Code Later":**
+   - Para tareas que requieran leer más de 5 archivos de contexto:
+     1. Usa un subagente de **Tier 3** (`claude-kimi` o `claude-qwen`) para escanear la estructura y redactar/actualizar el archivo `TASK_PLAN.md`.
+     2. Retoma la sesión principal en **Tier 1** (`claude`) para leer `TASK_PLAN.md` e implementar la solución crítica.
+
+---
+
+## 4. Estado Compartido y Sincronización entre Agentes
+
+Para garantizar que el cambio de contexto entre subagentes sea continuo y sin pérdida de información:
+
+- **`TASK_PLAN.md`:** Debe usarse como el tablero de transferencia entre agentes.
+  - *Estructura obligatoria:*
+    ```markdown
+    # Plan de Trabajo
+    - [ ] Tarea 1 (Asignada a: Tier 3 - Qwen) -> Estado
+    - [ ] Tarea 2 (Asignada a: Tier 1 - Claude) -> Estado
+    ```
+- Cada subagente que termine una fase debe actualizar el estado del paso en `TASK_PLAN.md` y dejar un breve log de lo realizado antes de ceder el control.
+
+---
