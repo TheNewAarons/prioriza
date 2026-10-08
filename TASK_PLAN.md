@@ -8,8 +8,8 @@ Rama: `feat/noshow-model`.
 
 - [x] P5-T0 (Asignada a: Tier 3 - Kimi) -> Hecha por Tier 1 (fallback: proxy Tier 3 caído, ver log)
 - [x] P5-T1 (Asignada a: Tier 1 - Claude) -> Hecha
-- [ ] P5-T2 (Asignada a: Tier 3 - Qwen) -> Pendiente (depende de P5-T1)
-- [ ] P5-T3 (Asignada a: Tier 3 - Kimi) -> Pendiente (depende de P5-T1 y `results/noshow.json`)
+- [x] P5-T2 (Asignada a: Tier 3 - Qwen) -> Hecha por test-writer (fallback)
+- [x] P5-T3 (Asignada a: Tier 3 - Kimi) -> Hecha por docs-writer (fallback)
 
 ### P5-T0: variables de cita e historial disponibles
 
@@ -48,3 +48,4 @@ No existen en los datos: sexo, etnia, nacionalidad, coordenadas ni distancia.
   `prioriza-noshow train` y `make train-noshow`). Tests de invariantes en `noshow/tests/test_noshow_invariants.py`;
   fixture reutilizable en `noshow/tests/noshow_test_support.py`. Resultado (seed 42, n 100.000): logística principal,
   AUC 0,624 vs 0,602 del baseline; Δ Brier −0,00089 (IC95 −0,00119 a −0,00058). Decisiones en `docs/decisions.md` §9.
+- 2026-10-08, test-writer (P5-T2): 29 tests nuevos en `noshow/tests/` (`test_noshow_pipeline.py` 10, `test_noshow_metrics.py` 6, `test_noshow_models_split_data.py` 11, `test_noshow_cli.py` 2): pipeline de punta a punta, save/load/predict, reproducibilidad, métricas, baseline, calibración, split, data y CLI. Suite noshow: 41 tests, pytest y lint en verde; sin bugs de producción encontrados.
