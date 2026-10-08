@@ -20,8 +20,10 @@ SYNTH_ARGS ?=
 synth:
 	uv run --package synthetic prioriza-synth generate --size $(SIZE) --seed $(SEED) --load $(SYNTH_ARGS)
 
+SCENARIO ?= baseline
+
 train-noshow:
-	@echo "train-noshow: pendiente"
+	uv run --package noshow prioriza-noshow train --seed $(SEED) --size $(SIZE) --scenario $(SCENARIO)
 
 schedule:
 	@echo "schedule: pendiente"

@@ -73,3 +73,6 @@ logs/
 
 # Población sintética generada (reproducible con make synth)
 data/synthetic/
+
+# Artefactos de modelos (reproducibles con make train-noshow; los resultados van en results/)
+models/

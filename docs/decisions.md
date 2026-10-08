@@ -182,5 +182,29 @@ Diseño en [design/priority-plan.md](design/priority-plan.md); fórmula, reglas 
 
 ---
 
+## 9. Modelo de inasistencias
+
+**Fecha**: 2026-10-08
+
+**Dependencias agregadas** (solo en `noshow`):
+- `scikit-learn`: definido en CLAUDE.md para el modelo de inasistencias (pipelines, regresión logística, `HistGradientBoostingClassifier`, `CalibratedClassifierCV` con `FrozenEstimator`, que exige >= 1.6).
+- `joblib`: persistencia de los pipelines ajustados; ya es dependencia de scikit-learn y es su formato recomendado. Usa pickle: solo se cargan artefactos propios.
+- `numpy`, `polars`, `typer`: ya usados en el workspace (`synthetic`); se declaran porque `noshow` los importa directamente. scikit-learn >= 1.4 acepta DataFrames de polars, así que no se agrega pandas.
+
+**Decisiones**:
+- **Variables**: especialidad, tipo de atención, día de la semana, franja horaria local, `lead_days` y conteos de asistencias e inasistencias previas del paciente. Los conteos solo usan citas con `scheduled_start` estrictamente anterior a la fecha de agendamiento (`scheduled_start - lead_days`), para que ninguna variable use información posterior a la decisión. Las variables constantes en entrenamiento se descartan y se registran (la franja horaria es constante en el historial sintético).
+- **Excluidas**, con motivo en `noshow.features.EXCLUDED_FEATURES` y en `results/noshow.json`: sexo, etnia y nacionalidad (protegidas; no existen en el sintético), `age_group` (no está en la lista permitida; concentraría el sobreagendamiento en 15-44 años), previsión, comuna y servicio de salud (proxies de nivel socioeconómico, etnia y nacionalidad), `duration_min` (delata el procedimiento solo en IQ), prioridad clínica y la verdad sintética. `wait_days` y distancia están permitidas pero no existen en el historial (A2 de la revisión del generador); `wait_days` entra automáticamente cuando tenga valores en entrenamiento.
+- **Lista de tablas permitidas** (`noshow.data.FEATURE_TABLES`): las features solo leen `appointment`, `waitlist_entry` y `catalog_specialty`. `patient` se lee solo para equidad y `appointment_truth` solo para la referencia del oráculo, con funciones separadas y tests que lo verifican (cierra M1).
+- **Split temporal en tres bloques**: entrenamiento hasta `calibración`, calibración 120 días y prueba los últimos 180 días del historial. Los hiperparámetros son fijos (sin búsqueda). `early_stopping` del boosting queda apagado porque usaría una validación aleatoria.
+- **Calibración**: isotónica si la clase minoritaria del conjunto de calibración tiene >= 1000 casos; sigmoide si no. La isotónica no impone forma y con miles de eventos no sobreajusta; con pocos, Platt es más estable. Se reportan también las métricas sin calibrar, aunque la calibración empeore alguna.
+- **Modelo principal**: el de menor Brier fuera de pliegue (5 bloques contiguos) en el conjunto de calibración. El conjunto de prueba no participa en ninguna elección.
+- **Comparación con el baseline** (tasa histórica por especialidad, contraída con m = 20 hacia la tasa global): diferencia de Brier con IC 95 % por bootstrap de pacientes, porque las citas de un mismo paciente comparten la fragilidad latente.
+- **Persistencia**: `models/noshow/<run_id>/noshow_model.joblib` + `metadata.json` (versión del modelo = huella de la configuración + `dataset_sha256`, versión de datos, configuración, límites del split y versiones de librerías). `models/` no se versiona; `results/noshow.json` sí.
+- **Selección de corrida**: `prioriza-noshow train` busca en `data/synthetic/` la corrida con esa semilla, tamaño y escenario; si hay varias, usa la de `manifest.json` más reciente y avisa (`--run-dir` la fija).
+
+**Limitaciones aceptadas** (ver `docs/noshow-model-card.md`): techo de AUC ~0,63-0,65 por la poca historia por paciente (A3, λ = 1,5 sin cambios); el modelo no ve servicio ni edad, por lo que subestima Arica e Iquique y sobreestima 65+ frente a la verdad sintética.
+
+---
+
 ## Referencias
 - [CLAUDE.md](../CLAUDE.md): Stack y convenciones del proyecto.
