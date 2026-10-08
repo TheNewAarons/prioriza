@@ -168,5 +168,19 @@ Diseño en [design/priority-plan.md](design/priority-plan.md); fórmula, reglas 
 
 ---
 
+## 8. Routing de modelos por niveles
+
+**Fecha**: 2026-10-08
+
+**Decisión** (del usuario):
+- Se adopta un routing de modelos en 3 niveles (secciones 2 a 4 de [CLAUDE.md](../CLAUDE.md)): Tier 1 en Claude nativo (`claude`), Tier 2 en `claude-ds` / `claude-qwen` y Tier 3 en `claude-kimi` / `claude-qwen`, vía LiteLLM local.
+- Ante conflicto, el routing por niveles manda sobre la tabla de subagentes (opus/sonnet/haiku) y sobre la sección "Metodología de Selección de Modelos".
+- `TASK_PLAN.md` es el tablero de transferencia entre agentes; cada agente actualiza el estado de su paso y deja un log breve antes de ceder el control.
+
+**Justificación**:
+- Preservar el presupuesto de tokens de Claude nativo para arquitectura, optimización y lógica crítica, y mover tareas de volumen (tests, documentación, escaneo) a modelos más baratos.
+
+---
+
 ## Referencias
 - [CLAUDE.md](../CLAUDE.md): Stack y convenciones del proyecto.
