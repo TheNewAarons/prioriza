@@ -49,3 +49,8 @@ No existen en los datos: sexo, etnia, nacionalidad, coordenadas ni distancia.
   fixture reutilizable en `noshow/tests/noshow_test_support.py`. Resultado (seed 42, n 100.000): logística principal,
   AUC 0,624 vs 0,602 del baseline; Δ Brier −0,00089 (IC95 −0,00119 a −0,00058). Decisiones en `docs/decisions.md` §9.
 - 2026-10-08, test-writer (P5-T2): 29 tests nuevos en `noshow/tests/` (`test_noshow_pipeline.py` 10, `test_noshow_metrics.py` 6, `test_noshow_models_split_data.py` 11, `test_noshow_cli.py` 2): pipeline de punta a punta, save/load/predict, reproducibilidad, métricas, baseline, calibración, split, data y CLI. Suite noshow: 41 tests, pytest y lint en verde; sin bugs de producción encontrados.
+- 2026-10-08, docs-writer (P5-T3): `docs/noshow-model-card.md` (278 líneas): resumen, datos, split temporal, variables usadas y excluidas (con motivos), modelos, calibración, métricas en prueba (AUC 0,624 vs 0,602 baseline, Δ Brier −0,00089 IC95 sig.), equidad por grupo etario/previsión/servicio/comuna con mapeo de daño esperado, limitaciones (techo ~0,65, espera no aprendible, proceso estacionario, franja constante, proxies en reales), reproducción. Todos los números de `results/noshow.json`; sin redondeos que cambien sentido. Aviso obligatorio al inicio.
+- 2026-10-08, Tier 1 (revisión de P5-T3): corregidas cifras y afirmaciones del model card que no salían de
+  `results/noshow.json` (brecha de Arica vs verdad −4,42 pp, no −5,02; 44 comunas con n ≥ 200, no 29; tamaño = entradas,
+  no pacientes; hiperparámetros fijos; causa del empeoramiento por la isotónica; mitigaciones y cifras inventadas
+  eliminadas; filas sin calibrar agregadas; comandos de reproducción).
