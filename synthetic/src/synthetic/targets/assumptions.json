@@ -7,19 +7,56 @@
       "justification": "Fecha de referencia: todas las fechas se calculan relativas a ella.",
       "verified": true
     },
-    "wait_clip_days": {
-      "value": [
-        1,
-        3650
-      ],
+    "capacity_multiplier": {
+      "value": 1.0,
       "source": "SUPUESTO",
-      "justification": "Se acota la espera a [1 día, 10 años] para evitar colas absurdas de la lognormal.",
+      "justification": "Multiplicador de oferta respecto de la ley de Little; palanca de sensibilidad.",
       "verified": false
     },
-    "lognormal_sigma_floor": {
-      "value": 0.1,
+    "cne_session_min": {
+      "value": 240,
       "source": "SUPUESTO",
-      "justification": "Piso de sigma cuando media <= 1,001·mediana (la lognormal no ajusta); se avisa en el informe.",
+      "justification": "Sesión de consulta de 4 h (08:30-12:30 o 14:00-18:00).",
+      "verified": false
+    },
+    "cne_session_starts": {
+      "value": [
+        "08:30",
+        "14:00"
+      ],
+      "source": "SUPUESTO",
+      "justification": "Horas de inicio locales de las sesiones CNE.",
+      "verified": false
+    },
+    "commune_facility_weights": {
+      "value": {
+        "cesfam_like": 1.0,
+        "cecosf": 0.5,
+        "psr": 0.1
+      },
+      "source": "SUPUESTO",
+      "justification": "Proxy de población inscrita por comuna: CESFAM/CGU/CGR ×1, CECOSF ×0,5, PSR ×0,1 (solo SNSS operativos).",
+      "verified": false
+    },
+    "consult_min": {
+      "value": {
+        "default": 20,
+        "overrides": {}
+      },
+      "source": "SUPUESTO",
+      "justification": "Duración de una consulta nueva de especialidad (minutos); sin dato público por especialidad.",
+      "verified": false
+    },
+    "general_age_mix": {
+      "value": {
+        "0_14": 0.06,
+        "15_19": 0.04,
+        "20_44": 0.25,
+        "45_64": 0.33,
+        "65_plus": 0.32
+      },
+      "source": "SUPUESTO",
+      "justification": "Mezcla etaria adulta provisoria; pendiente: tabla de edad de la Glosa 06.",
       "verified": false
     },
     "ges_in_plazo_factor": {
@@ -40,37 +77,44 @@
       "justification": "Las garantías en plazo se distribuyen entre servicios como las retrasadas (ges_delayed_by_service).",
       "verified": false
     },
-    "iq_major_share": {
-      "value": "from_targets",
-      "source": "Glosa III-2025, noges_national_by_subtype",
-      "justification": "Participación de cirugía mayor (302.093/417.561 = 72,3 %), exacta por asignación de Hamilton; cada entrada recibe un procedimiento del subtipo asignado.",
-      "verified": true
-    },
-    "pediatric_age_mix": {
-      "value": {
-        "0_14": 0.9,
-        "15_19": 0.1,
-        "20_44": 0.0,
-        "45_64": 0.0,
-        "65_plus": 0.0
-      },
+    "history_lead_range_days": {
+      "value": [
+        7,
+        90
+      ],
       "source": "SUPUESTO",
-      "justification": "Especialidades pediátricas (nombre con PEDIATR/INFANTIL/DEL NINO/ADOLESCENTE). Pendiente: extender la ingesta con la tabla de edad de la Glosa.",
+      "justification": "Anticipación de las citas pasadas ~ U{7..90}.",
       "verified": false
     },
-    "general_age_mix": {
-      "value": {
-        "0_14": 0.06,
-        "15_19": 0.04,
-        "20_44": 0.25,
-        "45_64": 0.33,
-        "65_plus": 0.32
-      },
+    "history_max_appointments": {
+      "value": 6,
       "source": "SUPUESTO",
-      "justification": "Mezcla etaria adulta provisoria; pendiente: tabla de edad de la Glosa 06.",
+      "justification": "Máximo de citas pasadas por paciente.",
       "verified": false
     },
-    "insurance": {
+    "history_poisson_lambda": {
+      "value": 1.5,
+      "source": "SUPUESTO",
+      "justification": "Citas pasadas por paciente ~ Poisson(1,5).",
+      "verified": false
+    },
+    "history_window_days": {
+      "value": 730,
+      "source": "SUPUESTO",
+      "justification": "Las citas pasadas caen en los últimos 730 días antes de as_of.",
+      "verified": false
+    },
+    "hospital_complexity_weights": {
+      "value": {
+        "Alta Complejidad": 2.0,
+        "Mediana Complejidad": 1.0,
+        "Baja Complejidad": 0.5
+      },
+      "source": "SUPUESTO",
+      "justification": "Alta=2 y mediana=1 según el plan; baja=0,5 es añadido del implementador (el plan no define el peso).",
+      "verified": false
+    },
+    "insurance_aps_counts": {
       "value": {
         "counts": {
           "fonasa_a": 2625130,
@@ -88,84 +132,13 @@
         }
       },
       "source": "FONASA, Cuenta Pública 2025, Tabla N°11 (pág. 21), https://nuevo.fonasa.gob.cl/wp-content/uploads/2025/09/Cuenta-Puiblica-Fonasa-20225-IXrev.pdf, sha256 6fd0f77a5481f498e84232a6da375f921e347aa380cd49ea105472e9435dc35b (población inscrita en APS a dic-2023; total 14.293.457)",
-      "justification": "Conteos verificados en fuente primaria. Las derivaciones a especialidad provienen de APS; se asume que la lista de espera replica la composición de la población inscrita en APS (SUPUESTO de proxy). La independencia respecto de la edad también es SUPUESTO.",
+      "justification": "Conteos de población inscrita en APS por previsión y tramo FONASA, verificados en fuente primaria (Tabla N°11).",
       "verified": true
     },
-    "priority_mix_cne": {
-      "value": {
-        "p1": 0.05,
-        "p2": 0.15,
-        "p3": 0.4,
-        "p4": 0.4
-      },
-      "source": "SUPUESTO",
-      "justification": "Dato de entrada sintético; el sistema nunca infiere la prioridad. Independiente de la espera.",
-      "verified": false
-    },
-    "priority_mix_iq": {
-      "value": {
-        "p1": 0.08,
-        "p2": 0.22,
-        "p3": 0.4,
-        "p4": 0.3
-      },
-      "source": "SUPUESTO",
-      "justification": "Dato de entrada sintético; independiente de la espera. También se usa para GES no oncológico.",
-      "verified": false
-    },
-    "priority_mix_ges_oncologic": {
-      "value": {
-        "p1": 0.4,
-        "p2": 0.4,
-        "p3": 0.2,
-        "p4": 0.0
-      },
-      "source": "SUPUESTO",
-      "justification": "Dato de entrada sintético para problemas GES oncológicos.",
-      "verified": false
-    },
-    "commune_facility_weights": {
-      "value": {
-        "cesfam_like": 1.0,
-        "cecosf": 0.5,
-        "psr": 0.1
-      },
-      "source": "SUPUESTO",
-      "justification": "Proxy de población inscrita por comuna: CESFAM/CGU/CGR ×1, CECOSF ×0,5, PSR ×0,1 (solo SNSS operativos).",
-      "verified": false
-    },
-    "hospital_complexity_weights": {
-      "value": {
-        "Alta Complejidad": 2.0,
-        "Mediana Complejidad": 1.0,
-        "Baja Complejidad": 0.5
-      },
-      "source": "SUPUESTO",
-      "justification": "Alta=2 y mediana=1 según el plan; baja=0,5 es añadido del implementador (el plan no define el peso).",
-      "verified": false
-    },
-    "consult_min": {
-      "value": {
-        "default": 20,
-        "overrides": {}
-      },
-      "source": "SUPUESTO",
-      "justification": "Duración de una consulta nueva de especialidad (minutos); sin dato público por especialidad.",
-      "verified": false
-    },
-    "cne_session_min": {
-      "value": 240,
-      "source": "SUPUESTO",
-      "justification": "Sesión de consulta de 4 h (08:30-12:30 o 14:00-18:00).",
-      "verified": false
-    },
-    "cne_session_starts": {
-      "value": [
-        "08:30",
-        "14:00"
-      ],
-      "source": "SUPUESTO",
-      "justification": "Horas de inicio locales de las sesiones CNE.",
+    "insurance_waitlist_proxy": {
+      "value": "same_as_aps_counts",
+      "source": "SUPUESTO (proxy)",
+      "justification": "Las derivaciones a especialidad provienen de APS; se asume que la lista de espera replica la composición de la población inscrita en APS. Además se asume independencia respecto de la edad. Pendiente: tabla de previsión de la Glosa 06.",
       "verified": false
     },
     "iq_block_min": {
@@ -180,6 +153,12 @@
       "justification": "Hora de inicio local del bloque de pabellón.",
       "verified": false
     },
+    "iq_major_share": {
+      "value": "from_targets",
+      "source": "Glosa III-2025, noges_national_by_subtype",
+      "justification": "Participación de cirugía mayor (302.093/417.561 = 72,3 %), exacta por asignación de Hamilton; cada entrada recibe un procedimiento del subtipo asignado.",
+      "verified": true
+    },
     "iq_turnover_min": {
       "value": 30,
       "source": "SUPUESTO",
@@ -192,22 +171,19 @@
       "justification": "Utilización objetivo del pabellón.",
       "verified": false
     },
-    "capacity_multiplier": {
-      "value": 1.0,
+    "lognormal_sigma_floor": {
+      "value": 0.1,
       "source": "SUPUESTO",
-      "justification": "Multiplicador de oferta respecto de la ley de Little; palanca de sensibilidad.",
+      "justification": "Piso de sigma cuando media <= 1,001·mediana (la lognormal no ajusta); se avisa en el informe.",
       "verified": false
     },
-    "timezone": {
-      "value": "America/Santiago",
-      "source": "SUPUESTO",
-      "justification": "Zona horaria de las sesiones (zoneinfo).",
-      "verified": false
-    },
-    "noshow_sigma_u": {
-      "value": 0.8,
-      "source": "SUPUESTO",
-      "justification": "Desviación estándar de la fragilidad individual u_i; única fuente de correlación entre citas de un paciente.",
+    "noshow_e_p2_cne_target": {
+      "value": {
+        "value": 0.0304,
+        "tolerance": 0.015
+      },
+      "source": "Glosa: 82.420/2.707.426 egresos por 'dos inasistencias'",
+      "justification": "Chequeo blando de E[p²] en CNE.",
       "verified": false
     },
     "noshow_rate_cne_national": {
@@ -215,6 +191,18 @@
       "source": "Tesis, Repositorio U. de Chile, https://repositorio.uchile.cl/handle/2250/203932 (resumen); 1.185.393/7.575.359 citas 2022",
       "justification": "Tasa nacional de inasistencia a consulta nueva de especialidad.",
       "verified": true
+    },
+    "noshow_rate_iq": {
+      "value": 0.05,
+      "source": "SUPUESTO",
+      "justification": "Inasistencia a cirugía; la suspensión de cirugías es 6,4-12,9 % (~50 % por causas del paciente).",
+      "verified": false
+    },
+    "noshow_rate_others_rule": {
+      "value": "common_scale_k",
+      "source": "SUPUESTO",
+      "justification": "Resto de servicios con tasa común escalada para cuadrar el promedio nacional; sin dato por servicio.",
+      "verified": false
     },
     "noshow_rate_overrides": {
       "value": {
@@ -224,18 +212,6 @@
       "source": "Tesis, Repositorio U. de Chile, https://repositorio.uchile.cl/handle/2250/203932 (resumen)",
       "justification": "Arica y Parinacota 22 %, Iquique 21 % (verificados en el resumen). La tabla de los otros 27 servicios no está disponible (PDF bloqueado): el resto usa una tasa común k tal que el promedio ponderado por L dé la tasa nacional.",
       "verified": true
-    },
-    "noshow_rate_others_rule": {
-      "value": "common_scale_k",
-      "source": "SUPUESTO",
-      "justification": "Resto de servicios con tasa común escalada para cuadrar el promedio nacional; sin dato por servicio.",
-      "verified": false
-    },
-    "noshow_rate_iq": {
-      "value": 0.05,
-      "source": "SUPUESTO",
-      "justification": "Inasistencia a cirugía; la suspensión de cirugías es 6,4-12,9 % (~50 % por causas del paciente).",
-      "verified": false
     },
     "noshow_ref_lead_days": {
       "value": 28,
@@ -307,46 +283,76 @@
       "justification": "baseline sin efecto de previsión; ses_gradient solo para análisis de sensibilidad; neutral es el control obligatorio. beta_wait y beta_lead se mantienen en neutral (no son atributos protegidos).",
       "verified": false
     },
-    "noshow_e_p2_cne_target": {
-      "value": {
-        "value": 0.0304,
-        "tolerance": 0.015
-      },
-      "source": "Glosa: 82.420/2.707.426 egresos por 'dos inasistencias'",
-      "justification": "Chequeo blando de E[p²] en CNE.",
-      "verified": false
-    },
-    "history_poisson_lambda": {
-      "value": 1.5,
+    "noshow_sigma_u": {
+      "value": 0.8,
       "source": "SUPUESTO",
-      "justification": "Citas pasadas por paciente ~ Poisson(1,5).",
-      "verified": false
-    },
-    "history_max_appointments": {
-      "value": 6,
-      "source": "SUPUESTO",
-      "justification": "Máximo de citas pasadas por paciente.",
-      "verified": false
-    },
-    "history_window_days": {
-      "value": 730,
-      "source": "SUPUESTO",
-      "justification": "Las citas pasadas caen en los últimos 730 días antes de as_of.",
-      "verified": false
-    },
-    "history_lead_range_days": {
-      "value": [
-        7,
-        90
-      ],
-      "source": "SUPUESTO",
-      "justification": "Anticipación de las citas pasadas ~ U{7..90}.",
+      "justification": "Desviación estándar de la fragilidad individual u_i; única fuente de correlación entre citas de un paciente.",
       "verified": false
     },
     "patient_link_retries": {
       "value": 5,
       "source": "SUPUESTO",
       "justification": "Reintentos para no repetir especialidad al asignar entradas adicionales a un paciente.",
+      "verified": false
+    },
+    "pediatric_age_mix": {
+      "value": {
+        "0_14": 0.9,
+        "15_19": 0.1,
+        "20_44": 0.0,
+        "45_64": 0.0,
+        "65_plus": 0.0
+      },
+      "source": "SUPUESTO",
+      "justification": "Especialidades pediátricas (nombre con PEDIATR/INFANTIL/DEL NINO/ADOLESCENTE). Pendiente: extender la ingesta con la tabla de edad de la Glosa.",
+      "verified": false
+    },
+    "priority_mix_cne": {
+      "value": {
+        "p1": 0.05,
+        "p2": 0.15,
+        "p3": 0.4,
+        "p4": 0.4
+      },
+      "source": "SUPUESTO",
+      "justification": "Dato de entrada sintético; el sistema nunca infiere la prioridad. Independiente de la espera.",
+      "verified": false
+    },
+    "priority_mix_ges_oncologic": {
+      "value": {
+        "p1": 0.4,
+        "p2": 0.4,
+        "p3": 0.2,
+        "p4": 0.0
+      },
+      "source": "SUPUESTO",
+      "justification": "Dato de entrada sintético para problemas GES oncológicos.",
+      "verified": false
+    },
+    "priority_mix_iq": {
+      "value": {
+        "p1": 0.08,
+        "p2": 0.22,
+        "p3": 0.4,
+        "p4": 0.3
+      },
+      "source": "SUPUESTO",
+      "justification": "Dato de entrada sintético; independiente de la espera. También se usa para GES no oncológico.",
+      "verified": false
+    },
+    "timezone": {
+      "value": "America/Santiago",
+      "source": "SUPUESTO",
+      "justification": "Zona horaria de las sesiones (zoneinfo).",
+      "verified": false
+    },
+    "wait_clip_days": {
+      "value": [
+        1,
+        3650
+      ],
+      "source": "SUPUESTO",
+      "justification": "Se acota la espera a [1 día, 10 años] para evitar colas absurdas de la lognormal.",
       "verified": false
     }
   },

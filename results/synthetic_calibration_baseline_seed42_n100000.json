@@ -1,6 +1,6 @@
 {
-  "run_id": "556f890b-b92c-57d2-b632-7adf7a0a449c",
-  "digest": "f40219d413d585476574f0e28089d98c0ab4680014701e35a8f76a7f265b765b",
+  "run_id": "32c9e349-74f9-5c85-bf4b-990796b47323",
+  "digest": "6ef9a83e7b146304e59c854e2910fef53dd902a12e46d78c04dcd5cea106b6fe",
   "checks": [
     {
       "name": "C1.tipo",

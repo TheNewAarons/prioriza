@@ -90,3 +90,12 @@ def test_reconstruir_targets_da_json_identico():
     rebuilt = build_targets(PROCESSED)
     on_disk = json.loads(TARGETS_JSON.read_text(encoding="utf-8"))
     assert json.loads(canonical_json(rebuilt)) == on_disk
+
+
+def test_proxy_de_prevision_figura_como_no_verificado(assumptions, ds1k):
+    """A1: el proxy de previsión de la lista de espera es un supuesto no verificado y
+    aparece en ``Assumptions.unverified()`` y en ``run.params``; los conteos APS sí están
+    verificados."""
+    assert "insurance_waitlist_proxy" in assumptions.unverified()
+    assert "insurance_aps_counts" not in assumptions.unverified()
+    assert "insurance_waitlist_proxy" in ds1k.run["params"]["unverified_assumptions"]

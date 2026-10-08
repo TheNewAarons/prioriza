@@ -178,3 +178,12 @@ def test_informe_no_oculta_resultados_blandos(ds20k, targets, assumptions):
     """Los chequeos blandos (C9) se incluyen en el informe aunque no fallen."""
     rep = calibration_report(ds20k, targets, assumptions)
     assert any(c.group == "C9" for c in rep.checks)
+
+
+def test_c8_metrica_independiente_del_generador():
+    """M2: el objetivo de C8 se recalcula en synthetic_metrics.py sin importar el generador."""
+    from pathlib import Path
+
+    src = (Path(__file__).with_name("synthetic_metrics.py")).read_text(encoding="utf-8")
+    assert "capacity_targets" not in src
+    assert "from synthetic" not in src and "import synthetic" not in src

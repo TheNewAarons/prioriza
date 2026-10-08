@@ -99,6 +99,13 @@ def generate_cmd(
     replace: Annotated[
         bool, typer.Option("--replace", help="Reemplaza la corrida si existe.")
     ] = False,
+    drop_downstream: Annotated[
+        bool,
+        typer.Option(
+            "--drop-downstream",
+            help="Con --replace, permite borrar planes, citas de planes y resultados derivados.",
+        ),
+    ] = False,
     out: Annotated[Path, typer.Option("--out", help="Directorio de salida.")] = Path(
         "data/synthetic"
     ),
@@ -115,7 +122,7 @@ def generate_cmd(
     t_val = time.perf_counter() - t0 - t_gen
     run_dir = write_parquet(ds, out, report)
     report_dir.mkdir(parents=True, exist_ok=True)
-    report_path = report_dir / f"synthetic_calibration_seed{seed}_n{size}.json"
+    report_path = report_dir / f"synthetic_calibration_{scenario.value}_seed{seed}_n{size}.json"
     report_path.write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
     typer.echo(f"run_id={ds.run['id']}")
     typer.echo(f"digest={ds.digest}")
@@ -133,7 +140,7 @@ def generate_cmd(
         engine = get_engine()
         t1 = time.perf_counter()
         try:
-            load_dataset(ds, engine, replace=replace)
+            load_dataset(ds, engine, replace=replace, drop_downstream=drop_downstream)
         except LoadError as exc:
             typer.echo(f"Error: {exc}", err=True)
             raise typer.Exit(code=1) from exc

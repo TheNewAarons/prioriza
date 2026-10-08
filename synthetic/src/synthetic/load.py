@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from pathlib import Path
+from importlib import resources
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 import polars as pl
-from alembic.config import Config
 from alembic.script import ScriptDirectory
+from psycopg import Error as PsycopgError
 from shared.db import models
 from shared.db.enums import NoShowScenario, RunStatus
 from sqlalchemy import Connection, Engine, delete, select, text
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import OperationalError, ProgrammingError
+from sqlalchemy.exc import DBAPIError, OperationalError, ProgrammingError, SQLAlchemyError
 
 if TYPE_CHECKING:
     from synthetic.pipeline import SyntheticDataset
@@ -46,23 +46,19 @@ class LoadError(RuntimeError):
     """Error de carga con un mensaje accionable."""
 
 
-def _find_alembic_ini() -> Path | None:
-    for base in (Path.cwd(), *Path.cwd().parents):
-        candidate = base / "alembic.ini"
-        if candidate.exists():
-            return candidate
-    return None
-
-
-def _expected_head() -> str | None:
-    ini = _find_alembic_ini()
-    if ini is None:
-        return None
-    cfg = Config(str(ini))
-    cfg.set_main_option(
-        "script_location", str(ini.parent / cfg.get_main_option("script_location", ""))
-    )
-    return ScriptDirectory.from_config(cfg).get_current_head()
+def _expected_head() -> str:
+    """Última revisión de Alembic, leída del paquete ``shared`` (no depende del cwd)."""
+    try:
+        location = resources.files("shared") / "db" / "migrations"
+        with resources.as_file(location) as path:
+            head = ScriptDirectory(str(path)).get_current_head()
+    except Exception as exc:
+        raise LoadError(
+            f"No se pudo determinar la última migración desde shared.db.migrations: {exc}"
+        ) from exc
+    if head is None:
+        raise LoadError("shared.db.migrations no tiene revisiones; no se puede verificar la base.")
+    return head
 
 
 def check_database(engine: Engine) -> None:
@@ -75,7 +71,7 @@ def check_database(engine: Engine) -> None:
     except ProgrammingError as exc:
         raise LoadError(f"La base no tiene migraciones aplicadas: {HINT}.") from exc
     head = _expected_head()
-    if version is None or (head is not None and version != head):
+    if version is None or version != head:
         raise LoadError(f"La base está en la revisión {version!r} y la última es {head!r}: {HINT}.")
 
 
@@ -103,16 +99,55 @@ def _copy_frame(cursor: Any, table: str, frame: pl.DataFrame) -> None:
             copy.write(data.encode("utf-8"))
 
 
-def load_dataset(ds: SyntheticDataset, engine: Engine, replace: bool = False) -> None:
+DOWNSTREAM_SQL = {
+    "schedule_run": "SELECT count(*) FROM schedule_run WHERE run_id = :r",
+    "appointment (origen scheduler/simulation)": (
+        "SELECT count(*) FROM appointment WHERE run_id = :r AND origin <> 'history'"
+    ),
+    "policy_result": "SELECT count(*) FROM policy_result WHERE run_id = :r",
+}
+
+
+def _downstream_counts(conn: Connection, run_id: UUID) -> dict[str, int]:
+    """Filas derivadas (planes, citas de planes/simulación, resultados) de una corrida."""
+    return {
+        name: int(conn.execute(text(sql), {"r": run_id}).scalar_one())
+        for name, sql in DOWNSTREAM_SQL.items()
+    }
+
+
+def load_dataset(
+    ds: SyntheticDataset,
+    engine: Engine,
+    replace: bool = False,
+    drop_downstream: bool = False,
+) -> None:
     """Carga catálogos y tablas de la corrida a PostgreSQL, de forma atómica.
 
     Todo ocurre en UNA transacción: (con ``replace``) borrado en cascada de la corrida previa,
     upsert de catálogos, inserción de la corrida en ``loading``, COPY de todas las tablas y
     paso a ``ready``. Si algo falla, rollback total y la corrida anterior queda intacta. Sin
-    ``replace``, falla si la corrida ya existe.
+    ``replace``, falla si la corrida ya existe. Si la corrida previa tiene planes, citas de
+    planes o simulación, o resultados de políticas, ``replace`` aborta salvo que se pase
+    ``drop_downstream``. Los errores de la base se informan como ``LoadError``.
     """
     check_database(engine)
     run_id = UUID(str(ds.run["id"]))
+    try:
+        _load(ds, engine, run_id, replace, drop_downstream)
+    except LoadError:
+        raise
+    except (SQLAlchemyError, PsycopgError) as exc:
+        detail = str(exc.orig) if isinstance(exc, DBAPIError) else str(exc)
+        raise LoadError(
+            f"La carga falló y se revirtió por completo (la corrida previa queda intacta): "
+            f"{detail.strip().splitlines()[0] if detail.strip() else type(exc).__name__}"
+        ) from exc
+
+
+def _load(
+    ds: SyntheticDataset, engine: Engine, run_id: UUID, replace: bool, drop_downstream: bool
+) -> None:
     with engine.begin() as conn:
         exists = conn.execute(
             select(models.SyntheticRun.id).where(models.SyntheticRun.id == run_id)
@@ -121,6 +156,13 @@ def load_dataset(ds: SyntheticDataset, engine: Engine, replace: bool = False) ->
             if not replace:
                 raise LoadError(
                     f"La corrida {run_id} ya existe en la base; usa --replace para reemplazarla."
+                )
+            downstream = _downstream_counts(conn, run_id)
+            if any(downstream.values()) and not drop_downstream:
+                detail = ", ".join(f"{k}: {v}" for k, v in downstream.items())
+                raise LoadError(
+                    f"--replace borraría datos derivados de la corrida {run_id} ({detail}). "
+                    "Usa --drop-downstream para borrarlos explícitamente."
                 )
             conn.execute(delete(models.SyntheticRun).where(models.SyntheticRun.id == run_id))
         upsert_catalogs(conn, ds.catalogs)
@@ -146,7 +188,8 @@ def load_dataset(ds: SyntheticDataset, engine: Engine, replace: bool = False) ->
             ],
         )
         raw = conn.connection.driver_connection
-        assert raw is not None
+        if raw is None:
+            raise LoadError("No se pudo obtener la conexión psycopg para COPY.")
         with raw.cursor() as cursor:
             for name in RUN_TABLE_ORDER:
                 _copy_frame(cursor, name, ds.tables[name])

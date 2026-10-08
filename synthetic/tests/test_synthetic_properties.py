@@ -6,7 +6,6 @@ import math
 from statistics import NormalDist
 
 import numpy as np
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from synthetic.allocation import hamilton, labels
@@ -110,12 +109,10 @@ def test_norm_ppf_coincide_con_normaldist(u):
     np.testing.assert_allclose(got, ref, atol=1e-8, rtol=1e-8)
 
 
-@pytest.mark.xfail(strict=False, reason="bug: hamilton con pesos denormales produce nan")
 def test_hamilton_pesos_denormales_no_producen_nan():
     """Caso límite: pesos denormales (5e-324) hacen total/suma = inf e inf*0 = nan.
 
-    Documenta un fallo de robustez en ``hamilton`` (no ocurre con datos reales). Se marca
-    como fallo esperado para no ocultarlo: si se corrige, el test pasará (XPASS).
+    Regresión de robustez en ``hamilton`` (ya corregida).
     """
     import warnings
 

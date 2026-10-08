@@ -9,6 +9,8 @@ import polars as pl
 def dataset_digest(tables: Mapping[str, pl.DataFrame]) -> str:
     """sha256 de (nombre de tabla + CSV ordenado por la primera columna) por tabla.
 
+    El pipeline incluye también los catálogos (con prefijo ``catalog_``).
+
     Los flotantes se serializan con 6 decimales y no se incluyen marcas de creación.
     """
     h = hashlib.sha256()

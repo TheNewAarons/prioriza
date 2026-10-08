@@ -87,7 +87,8 @@ def generate(
         "appointment": appointment,
         "appointment_truth": truth,
     }
-    digest = dataset_digest(tables)
+    catalogs = build_catalogs(t, a)
+    digest = dataset_digest({**tables, **{f"catalog_{k}": v for k, v in catalogs.items()}})
     uni = build_universe(t, a)
     run_params: dict[str, Any] = {
         "noshow": params.to_json(),
@@ -110,4 +111,4 @@ def generate(
         "params": run_params,
         "status": "ready",
     }
-    return SyntheticDataset(run=run, catalogs=build_catalogs(t, a), tables=tables, digest=digest)
+    return SyntheticDataset(run=run, catalogs=catalogs, tables=tables, digest=digest)

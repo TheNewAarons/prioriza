@@ -266,7 +266,7 @@ class Assumptions(BaseModel):
 
     def insurance_mix(self) -> dict[str, float]:
         """Proporciones de previsión, calculadas de los conteos de la población inscrita en APS."""
-        counts: dict[str, int] = self.value("insurance")["counts"]
+        counts: dict[str, int] = self.value("insurance_aps_counts")["counts"]
         total = sum(counts.values())
         return {k: v / total for k, v in counts.items()}
 

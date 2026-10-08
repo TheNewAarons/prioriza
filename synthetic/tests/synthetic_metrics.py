@@ -163,7 +163,7 @@ def c1_checks(ds, t, a) -> dict[str, tuple[float, float]]:
     ):
         sub = ep.filter(pl.col("specialty_code").is_in(sorted(ped)) == is_ped)
         add(f"edad|{label}", sub["age_group"].to_list(), normalize(dict(a.value(key))), k=5)
-    ins = a.value("insurance")["counts"]
+    ins = a.value("insurance_aps_counts")["counts"]
     add("previsión", patient["insurance"].to_list(), normalize(dict(ins)))
     return out
 
