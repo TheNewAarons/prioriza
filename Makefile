@@ -1,4 +1,4 @@
-.PHONY: up down migrate ingest synth train-noshow schedule simulate report dashboard test lint typecheck format sync help
+.PHONY: up down migrate ingest synth train-noshow schedule simulate report dashboard test lint typecheck format sync hooks help
 
 up:
 	@[ -f .env ] || cp .env.example .env
@@ -50,6 +50,9 @@ format:
 sync:
 	uv sync --all-packages
 
+hooks:
+	uv run pre-commit install
+
 help:
 	@echo "Prioriza - Sistema de gestión de listas de espera hospitalarias"
 	@echo ""
@@ -69,4 +72,5 @@ help:
 	@echo "  typecheck          Corre mypy"
 	@echo "  format             Formatea código con ruff"
 	@echo "  sync               Sincroniza dependencias de uv"
+	@echo "  hooks              Instala los hooks de git (pre-commit y pre-push)"
 	@echo "  help               Muestra esta ayuda"

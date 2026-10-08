@@ -1,3 +1,7 @@
+# Hooks locales (sin repos remotos). `make hooks` instala ambos tipos.
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
 repos:
   - repo: local
     hooks:
@@ -19,3 +23,12 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      # Sustituye a CI mientras GitHub Actions no esté disponible: mismos chequeos
+      # que .github/workflows/ci.yml, sin red, antes de cada git push.
+      - id: ci-local
+        name: lint, typecheck y tests (equivalente a CI)
+        entry: env UV_OFFLINE=1 make lint typecheck test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

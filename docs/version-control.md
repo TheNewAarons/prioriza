@@ -51,6 +51,14 @@ Ejemplo: `feat(priority): agrega puntaje por plazo de garantía GES`.
 - No se permiten *force push* ni borrado de `main`.
 - GitHub borra automáticamente la rama remota al integrar un PR (`delete_branch_on_merge`). La copia local se borra a mano: `git switch main && git pull --ff-only && git fetch --prune`, luego confirmar que el PR está integrado (`gh pr view <rama> --json state`) y `git branch -D <rama>`. Se usa `-D` porque con *squash* o *rebase* los commits de la rama no quedan en `main` con el mismo hash y `git branch -d` los rechaza como no integrados.
 
+## Hooks locales y CI
+
+- `make hooks` instala dos hooks de git con pre-commit:
+  - `pre-commit`: ruff (check y format) y mypy sobre los archivos del commit.
+  - `pre-push`: `make lint typecheck test` sin red (`UV_OFFLINE=1`), los mismos chequeos que `.github/workflows/ci.yml`. Si algo falla, el push se cancela.
+- Mientras GitHub Actions no esté disponible (cuenta bloqueada por facturación), el hook `pre-push` reemplaza a CI. Limitaciones: solo protege los pushes desde máquinas donde se instaló el hook, se puede saltar con `git push --no-verify` (no hacerlo), y verifica el árbol de trabajo, no solo los commits que se suben: conviene hacer push con el árbol limpio.
+- Como el check `checks` de CI no se ejecuta, integrar un PR requiere saltarse la protección de `main` (`gh pr merge --admin`), siempre con autorización explícita y con el hook `pre-push` en verde.
+
 ## Flujo de trabajo con subagentes
 
 La sesión principal es la única que hace commits y pushes: revisa el trabajo de cada subagente, corre `make lint typecheck test` y recién entonces commitea. Tras cada módulo importante, `reviewer` revisa la rama antes de abrir el PR.

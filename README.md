@@ -54,6 +54,9 @@ git clone <repo> && cd Prioriza
 # Sincronizar dependencias
 make sync
 
+# Instala los hooks de git (pre-commit; pre-push corre lint, typecheck y tests)
+make hooks
+
 # Levanta PostgreSQL, API y estructura de servicios
 make up
 
