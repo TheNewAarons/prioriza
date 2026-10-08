@@ -108,5 +108,39 @@ Resultado de `make ingest` (2026-10-03): glosa06_2025q3 274 filas, glosa06_2025q
 
 ---
 
+## 6. Población sintética y modelo de datos
+
+**Fecha**: 2026-10-08
+
+Diseño completo en [design/synthetic-plan.md](design/synthetic-plan.md); supuestos y calibración en [synthetic-data.md](synthetic-data.md).
+
+**Dependencias agregadas**:
+- `numpy>=2.0` (synthetic): `Generator`/`SeedSequence` con streams independientes por componente y muestreo vectorizado. No se agrega scipy: Φ⁻¹ (AS241) y la calibración por bisección son implementaciones propias.
+- `synthetic` declara además `polars`, `psycopg[binary]`, `pydantic` y `typer`, que ya estaban en el lock.
+
+**Decisiones del usuario** (2026-10-08):
+1. Edad y previsión se generan con supuestos marcados `verified` en `assumptions.json`. La previsión usa los conteos de población inscrita en APS por tramo (FONASA, Cuenta Pública 2025, Tabla N°11), con el supuesto de que la lista de espera replica esa composición. Queda pendiente ingerir las tablas de edad y previsión de la Glosa 06.
+2. Alcance GES: 20 problemas mapeados a especialidad, que cubren el 68 % de las garantías retrasadas. Los plazos del Decreto 29 (2025) siguen sin verificar.
+3. Previsión en el generador de inasistencias: `baseline` sin efecto de previsión; `ses_gradient` solo como análisis de sensibilidad; `neutral` como control obligatorio en todo informe.
+
+**Modelo de datos**:
+- Enums como VARCHAR + CHECK (`native_enum=False`), más fáciles de migrar que tipos nativos de PostgreSQL.
+- Cada población es una fila de `synthetic_run` con id uuid5 determinista (seed, tamaño, escenario, horizonte, fecha de referencia, hashes de objetivos y parámetros). Varias poblaciones conviven; `--replace` reemplaza una corrida en una sola transacción (si falla, la anterior queda intacta).
+- La verdad sintética (`patient_latent`, `appointment_truth`) vive en tablas separadas y está prohibida como variable de cualquier modelo.
+- Índices en todas las columnas FK (migración 0003): sin ellos el borrado en cascada de una corrida de 100.000 entradas no terminaba en minutos; con ellos tarda ~2 s.
+- `appointment.specialty_code` (migración 0004) para que el historial sintético registre la especialidad atendida.
+
+**Calibración**: los objetivos se derivan de `data/processed` y se versionan en `synthetic/src/synthetic/targets/calibration_targets.json` con su procedencia (sha256), para que los tests no dependan de red ni de los parquet. Métrica categórica: distancia de variación total con la cota de redondeo del método de Hamilton (los márgenes son deterministas, por eso no se usa chi-cuadrado). Tolerancias en `synthetic-data.md`.
+
+**Decisiones diferidas a P4 (modelo de inasistencias)**, según la revisión de ml-engineer ([design/synthetic-noshow-review.md](design/synthetic-noshow-review.md)):
+- Techo práctico de AUC ~0,63-0,65 con variables observables frente a 0,74 del oráculo: casi toda la señal está en la fragilidad latente y el historial (Poisson λ = 1,5) aporta poco. Decidir si se sube λ o se amplía la ventana, y reportar el techo.
+- El historial no tiene término de espera (no hay episodios pasados); el efecto de la espera no se puede aprender desde el historial.
+- Separación técnica de la verdad sintética (lista de tablas permitidas y test en `noshow/`).
+- Si el modelo puede usar `age_group`; por defecto se excluyen comuna y previsión y el servicio se permite como efecto fijo.
+- El proceso es estacionario: un split temporal no prueba robustez a deriva; evaluar un parámetro de deriva.
+- Para medir equidad por comuna se necesita N ≥ 100.000, un n mínimo por comuna y estimadores con contracción; el generador no tiene efecto propio de comuna.
+
+---
+
 ## Referencias
 - [CLAUDE.md](../CLAUDE.md): Stack y convenciones del proyecto.
