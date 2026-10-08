@@ -1,0 +1,465 @@
+{
+  "run_id": "556f890b-b92c-57d2-b632-7adf7a0a449c",
+  "digest": "f40219d413d585476574f0e28089d98c0ab4680014701e35a8f76a7f265b765b",
+  "checks": [
+    {
+      "name": "C1.tipo",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 6.24776141892186e-6,
+      "target": 0.0,
+      "tolerance": 0.000015001000000000001,
+      "n": 100000,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: tipo"
+      ]
+    },
+    {
+      "name": "C1.servicio|cne",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 0.00003568091978562631,
+      "target": 0.0,
+      "tolerance": 0.0001803223450728747,
+      "n": 80412,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: cne"
+      ]
+    },
+    {
+      "name": "C1.servicio|iq",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 0.00024246718448875685,
+      "target": 0.0,
+      "tolerance": 0.0011125614235402439,
+      "n": 13033,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: iq"
+      ]
+    },
+    {
+      "name": "C1.especialidad|cne_medical",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 0.00014823630462706613,
+      "target": 0.0,
+      "tolerance": 0.001030800025426376,
+      "n": 64028,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: cne_medical"
+      ]
+    },
+    {
+      "name": "C1.especialidad|cne_dental",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 0.00007604960770575577,
+      "target": 0.0,
+      "tolerance": 0.0008544931875,
+      "n": 16384,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: cne_dental"
+      ]
+    },
+    {
+      "name": "C1.especialidad|iq",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 0.00010281983539582075,
+      "target": 0.0,
+      "tolerance": 0.0004603708304304458,
+      "n": 13033,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: iq"
+      ]
+    },
+    {
+      "name": "C1.problema|ges",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 0.0004455490261364532,
+      "target": 0.0,
+      "tolerance": 0.0030511070259344013,
+      "n": 6555,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: ges"
+      ]
+    },
+    {
+      "name": "C1.servicio|ges",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 0.0005529002488865425,
+      "target": 0.0,
+      "tolerance": 0.002212052868802441,
+      "n": 6555,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: ges"
+      ]
+    },
+    {
+      "name": "C1.comuna|servicio",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 0.0016825092722227986,
+      "target": 0.0,
+      "tolerance": 0.005035247727089628,
+      "n": 85083,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: servicio 33"
+      ]
+    },
+    {
+      "name": "C1.edad|clase",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 8.161707882151786e-6,
+      "target": 0.0,
+      "tolerance": 0.00002650005133396224,
+      "n": 100000,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: general"
+      ]
+    },
+    {
+      "name": "C1.previsión",
+      "group": "C1",
+      "metric": "tvd",
+      "observed": 6.214891205030826e-6,
+      "target": 0.0,
+      "tolerance": 0.00002938407299930656,
+      "n": 85083,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: pacientes"
+      ]
+    },
+    {
+      "name": "C2.mediana",
+      "group": "C2",
+      "metric": "max|obs-obj| días",
+      "observed": 0.0,
+      "target": 0.0,
+      "tolerance": null,
+      "n": 58,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "todas dentro de ±max(2 %, 1 día)"
+      ]
+    },
+    {
+      "name": "C2.media",
+      "group": "C2",
+      "metric": "max error relativo",
+      "observed": 0.00014771412393214578,
+      "target": 0.0,
+      "tolerance": 0.03,
+      "n": 58,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "todas dentro de ±3 %"
+      ]
+    },
+    {
+      "name": "C3.cne.mediana",
+      "group": "C3",
+      "metric": "mediana",
+      "observed": 247.0,
+      "target": 242.0,
+      "tolerance": 12.100000000000001,
+      "n": 80412,
+      "passed": true,
+      "severity": "strict",
+      "detail": []
+    },
+    {
+      "name": "C3.cne.media",
+      "group": "C3",
+      "metric": "media",
+      "observed": 340.47802566781075,
+      "target": 341.0,
+      "tolerance": 17.05,
+      "n": 80412,
+      "passed": true,
+      "severity": "strict",
+      "detail": []
+    },
+    {
+      "name": "C3.iq.mediana",
+      "group": "C3",
+      "metric": "mediana",
+      "observed": 271.0,
+      "target": 264.0,
+      "tolerance": 13.200000000000001,
+      "n": 13033,
+      "passed": true,
+      "severity": "strict",
+      "detail": []
+    },
+    {
+      "name": "C3.iq.media",
+      "group": "C3",
+      "metric": "media",
+      "observed": 393.83879383104426,
+      "target": 394.0,
+      "tolerance": 19.700000000000003,
+      "n": 13033,
+      "passed": true,
+      "severity": "strict",
+      "detail": []
+    },
+    {
+      "name": "C4.registros/personas",
+      "group": "C4",
+      "metric": "max|razón-obj|",
+      "observed": 0.004865459256172322,
+      "target": 0.0,
+      "tolerance": null,
+      "n": 58,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "peor grupo: 25/surgery"
+      ]
+    },
+    {
+      "name": "C5.problemas",
+      "group": "C5",
+      "metric": "grupos con n>=30",
+      "observed": 13.0,
+      "target": null,
+      "tolerance": null,
+      "n": 13,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "dentro de tolerancia"
+      ]
+    },
+    {
+      "name": "C5.nacional.media(mapeados)",
+      "group": "C5",
+      "metric": "media de retraso",
+      "observed": 132.95894428152494,
+      "target": 132.9614076246334,
+      "tolerance": 6.648070381231671,
+      "n": 1705,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "objetivo = mezcla de los problemas mapeados"
+      ]
+    },
+    {
+      "name": "C5.nacional.media(total)",
+      "group": "C5",
+      "metric": "media de retraso",
+      "observed": 132.95894428152494,
+      "target": 136.0,
+      "tolerance": 6.800000000000001,
+      "n": 1705,
+      "passed": true,
+      "severity": "soft",
+      "detail": [
+        "el nacional incluye problemas no mapeados; se informa sin fallar"
+      ]
+    },
+    {
+      "name": "C5.nacional.mediana(total)",
+      "group": "C5",
+      "metric": "mediana de retraso",
+      "observed": 76.0,
+      "target": 71.0,
+      "tolerance": 3.5500000000000003,
+      "n": 1705,
+      "passed": false,
+      "severity": "soft",
+      "detail": [
+        "el nacional incluye problemas no mapeados; se informa sin fallar"
+      ]
+    },
+    {
+      "name": "C6.media_p",
+      "group": "C6",
+      "metric": "max|media p - tasa| (verifica la bisección, no la independencia)",
+      "observed": 8.326672684688674e-17,
+      "target": 0.0,
+      "tolerance": 0.0001,
+      "n": 58,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "calibrado"
+      ]
+    },
+    {
+      "name": "C6.media_p.independiente",
+      "group": "C6",
+      "metric": "max|media p (u independiente) - tasa|",
+      "observed": 0.008842995046084517,
+      "target": 0.0,
+      "tolerance": null,
+      "n": 53,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "dentro de ±(3·sigma_p/raíz(n) + 0,5 pp); 5 grupos omitidos"
+      ]
+    },
+    {
+      "name": "C6.historial.global",
+      "group": "C6",
+      "metric": "tasa realizada vs E[p historial]",
+      "observed": 0.1475724805320075,
+      "target": 0.14664240499130088,
+      "tolerance": 0.00797188861107919,
+      "n": 127517,
+      "passed": true,
+      "severity": "strict",
+      "detail": []
+    },
+    {
+      "name": "C6.historial.servicios",
+      "group": "C6",
+      "metric": "tasa realizada vs E[p historial]",
+      "observed": 29.0,
+      "target": null,
+      "tolerance": null,
+      "n": 29,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "dentro de ±(3·EE + 0,5 pp)"
+      ]
+    },
+    {
+      "name": "C6.historial.vs_tasa_objetivo.cne",
+      "group": "C6",
+      "metric": "tasa realizada vs tasa objetivo del tipo",
+      "observed": 0.1641048324671016,
+      "target": 0.1565,
+      "tolerance": 0.01,
+      "n": 108516,
+      "passed": true,
+      "severity": "soft",
+      "detail": [
+        "el historial usa anticipación U{7..90} y sin término de espera; difiere de la referencia"
+      ]
+    },
+    {
+      "name": "C6.historial.vs_tasa_objetivo.iq",
+      "group": "C6",
+      "metric": "tasa realizada vs tasa objetivo del tipo",
+      "observed": 0.05315509710015262,
+      "target": 0.05,
+      "tolerance": 0.01,
+      "n": 19001,
+      "passed": true,
+      "severity": "soft",
+      "detail": [
+        "el historial usa anticipación U{7..90} y sin término de espera; difiere de la referencia"
+      ]
+    },
+    {
+      "name": "C7.iq_mayor",
+      "group": "C7",
+      "metric": "participación",
+      "observed": 0.7234711885214455,
+      "target": 0.723470343255237,
+      "tolerance": 0.03,
+      "n": 13033,
+      "passed": true,
+      "severity": "strict",
+      "detail": []
+    },
+    {
+      "name": "C8.minutos_programados",
+      "group": "C8",
+      "metric": "max|min/sem - objetivo|",
+      "observed": 6.364104177078161,
+      "target": 0.0,
+      "tolerance": null,
+      "n": 58,
+      "passed": true,
+      "severity": "strict",
+      "detail": [
+        "dentro de ±max(5 %, 1 sesión/H)"
+      ]
+    },
+    {
+      "name": "C9.E[p2]_cne",
+      "group": "C9",
+      "metric": "E[p²] CNE",
+      "observed": 0.038280257632635366,
+      "target": 0.0304,
+      "tolerance": 0.015,
+      "n": 80412,
+      "passed": true,
+      "severity": "soft",
+      "detail": []
+    },
+    {
+      "name": "C9.cobertura_ges",
+      "group": "C9",
+      "metric": "cobertura sobre retrasadas",
+      "observed": 0.6820999225213067,
+      "target": 1.0,
+      "tolerance": null,
+      "n": 54583,
+      "passed": true,
+      "severity": "soft",
+      "detail": [
+        "54583 de 80022 garantías retrasadas; 20 problemas mapeados"
+      ]
+    },
+    {
+      "name": "C9.cramer_v_servicio_x_especialidad",
+      "group": "C9",
+      "metric": "V de Cramér",
+      "observed": 0.030717385056582825,
+      "target": null,
+      "tolerance": null,
+      "n": 80412,
+      "passed": true,
+      "severity": "soft",
+      "detail": [
+        "solo informe; el cruce se asume aproximadamente independiente"
+      ]
+    }
+  ],
+  "passed": true,
+  "summary": {
+    "strict_passed": 26,
+    "strict_failed": 0,
+    "soft_failed": 1,
+    "skipped": 0
+  },
+  "notes": [
+    "Celdas (servicio, especialidad) con entradas pero sin sesiones: 613 de 2216",
+    "Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional."
+  ]
+}

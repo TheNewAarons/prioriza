@@ -9,7 +9,15 @@ description = "Generación de población sintética calibrada para Prioriza."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "shared",
+    "numpy>=2.0",
+    "polars>=1.0",
+    "pydantic>=2.0",
+    "psycopg[binary]>=3.2",
+    "typer>=0.12",
 ]
+
+[project.scripts]
+prioriza-synth = "synthetic.cli:main"
 
 [tool.uv.sources]
 shared = {workspace = true}

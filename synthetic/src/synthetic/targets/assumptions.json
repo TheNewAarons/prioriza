@@ -1,0 +1,754 @@
+{
+  "schema_version": 1,
+  "parameters": {
+    "as_of": {
+      "value": "2025-09-30",
+      "source": "Corte de la Glosa 06 III-2025 (glosa06_2025q3)",
+      "justification": "Fecha de referencia: todas las fechas se calculan relativas a ella.",
+      "verified": true
+    },
+    "wait_clip_days": {
+      "value": [
+        1,
+        3650
+      ],
+      "source": "SUPUESTO",
+      "justification": "Se acota la espera a [1 día, 10 años] para evitar colas absurdas de la lognormal.",
+      "verified": false
+    },
+    "lognormal_sigma_floor": {
+      "value": 0.1,
+      "source": "SUPUESTO",
+      "justification": "Piso de sigma cuando media <= 1,001·mediana (la lognormal no ajusta); se avisa en el informe.",
+      "verified": false
+    },
+    "ges_in_plazo_factor": {
+      "value": 0.5,
+      "source": "SUPUESTO",
+      "justification": "Ley de Little con resolución uniforme dentro del plazo: tiempo medio en lista = plazo/2. L_en_plazo = casos nuevos FONASA 2025 · plazo/365 · factor.",
+      "verified": false
+    },
+    "ges_in_plazo_wait": {
+      "value": "uniform_0_deadline",
+      "source": "SUPUESTO",
+      "justification": "Espera de garantías GES dentro de plazo ~ U(0, plazo); no hay datos de stock GES en plazo.",
+      "verified": false
+    },
+    "ges_service_share_in_deadline": {
+      "value": "same_as_delayed",
+      "source": "SUPUESTO",
+      "justification": "Las garantías en plazo se distribuyen entre servicios como las retrasadas (ges_delayed_by_service).",
+      "verified": false
+    },
+    "iq_major_share": {
+      "value": "from_targets",
+      "source": "Glosa III-2025, noges_national_by_subtype",
+      "justification": "Participación de cirugía mayor (302.093/417.561 = 72,3 %), exacta por asignación de Hamilton; cada entrada recibe un procedimiento del subtipo asignado.",
+      "verified": true
+    },
+    "pediatric_age_mix": {
+      "value": {
+        "0_14": 0.9,
+        "15_19": 0.1,
+        "20_44": 0.0,
+        "45_64": 0.0,
+        "65_plus": 0.0
+      },
+      "source": "SUPUESTO",
+      "justification": "Especialidades pediátricas (nombre con PEDIATR/INFANTIL/DEL NINO/ADOLESCENTE). Pendiente: extender la ingesta con la tabla de edad de la Glosa.",
+      "verified": false
+    },
+    "general_age_mix": {
+      "value": {
+        "0_14": 0.06,
+        "15_19": 0.04,
+        "20_44": 0.25,
+        "45_64": 0.33,
+        "65_plus": 0.32
+      },
+      "source": "SUPUESTO",
+      "justification": "Mezcla etaria adulta provisoria; pendiente: tabla de edad de la Glosa 06.",
+      "verified": false
+    },
+    "insurance": {
+      "value": {
+        "counts": {
+          "fonasa_a": 2625130,
+          "fonasa_b": 5584750,
+          "fonasa_c": 2152647,
+          "fonasa_d": 3068242,
+          "other": 862688
+        },
+        "categories": {
+          "fonasa_a": "Tramo A",
+          "fonasa_b": "Tramo B",
+          "fonasa_c": "Tramo C",
+          "fonasa_d": "Tramo D",
+          "other": "PRAIS/Otra previsión + Sin previsión"
+        }
+      },
+      "source": "FONASA, Cuenta Pública 2025, Tabla N°11 (pág. 21), https://nuevo.fonasa.gob.cl/wp-content/uploads/2025/09/Cuenta-Puiblica-Fonasa-20225-IXrev.pdf, sha256 6fd0f77a5481f498e84232a6da375f921e347aa380cd49ea105472e9435dc35b (población inscrita en APS a dic-2023; total 14.293.457)",
+      "justification": "Conteos verificados en fuente primaria. Las derivaciones a especialidad provienen de APS; se asume que la lista de espera replica la composición de la población inscrita en APS (SUPUESTO de proxy). La independencia respecto de la edad también es SUPUESTO.",
+      "verified": true
+    },
+    "priority_mix_cne": {
+      "value": {
+        "p1": 0.05,
+        "p2": 0.15,
+        "p3": 0.4,
+        "p4": 0.4
+      },
+      "source": "SUPUESTO",
+      "justification": "Dato de entrada sintético; el sistema nunca infiere la prioridad. Independiente de la espera.",
+      "verified": false
+    },
+    "priority_mix_iq": {
+      "value": {
+        "p1": 0.08,
+        "p2": 0.22,
+        "p3": 0.4,
+        "p4": 0.3
+      },
+      "source": "SUPUESTO",
+      "justification": "Dato de entrada sintético; independiente de la espera. También se usa para GES no oncológico.",
+      "verified": false
+    },
+    "priority_mix_ges_oncologic": {
+      "value": {
+        "p1": 0.4,
+        "p2": 0.4,
+        "p3": 0.2,
+        "p4": 0.0
+      },
+      "source": "SUPUESTO",
+      "justification": "Dato de entrada sintético para problemas GES oncológicos.",
+      "verified": false
+    },
+    "commune_facility_weights": {
+      "value": {
+        "cesfam_like": 1.0,
+        "cecosf": 0.5,
+        "psr": 0.1
+      },
+      "source": "SUPUESTO",
+      "justification": "Proxy de población inscrita por comuna: CESFAM/CGU/CGR ×1, CECOSF ×0,5, PSR ×0,1 (solo SNSS operativos).",
+      "verified": false
+    },
+    "hospital_complexity_weights": {
+      "value": {
+        "Alta Complejidad": 2.0,
+        "Mediana Complejidad": 1.0,
+        "Baja Complejidad": 0.5
+      },
+      "source": "SUPUESTO",
+      "justification": "Alta=2 y mediana=1 según el plan; baja=0,5 es añadido del implementador (el plan no define el peso).",
+      "verified": false
+    },
+    "consult_min": {
+      "value": {
+        "default": 20,
+        "overrides": {}
+      },
+      "source": "SUPUESTO",
+      "justification": "Duración de una consulta nueva de especialidad (minutos); sin dato público por especialidad.",
+      "verified": false
+    },
+    "cne_session_min": {
+      "value": 240,
+      "source": "SUPUESTO",
+      "justification": "Sesión de consulta de 4 h (08:30-12:30 o 14:00-18:00).",
+      "verified": false
+    },
+    "cne_session_starts": {
+      "value": [
+        "08:30",
+        "14:00"
+      ],
+      "source": "SUPUESTO",
+      "justification": "Horas de inicio locales de las sesiones CNE.",
+      "verified": false
+    },
+    "iq_block_min": {
+      "value": 360,
+      "source": "SUPUESTO",
+      "justification": "Bloque de pabellón de 6 h (08:00-14:00), lunes a viernes.",
+      "verified": false
+    },
+    "iq_block_start": {
+      "value": "08:00",
+      "source": "SUPUESTO",
+      "justification": "Hora de inicio local del bloque de pabellón.",
+      "verified": false
+    },
+    "iq_turnover_min": {
+      "value": 30,
+      "source": "SUPUESTO",
+      "justification": "Recambio de pabellón entre cirugías (minutos).",
+      "verified": false
+    },
+    "iq_utilization": {
+      "value": 0.85,
+      "source": "SUPUESTO",
+      "justification": "Utilización objetivo del pabellón.",
+      "verified": false
+    },
+    "capacity_multiplier": {
+      "value": 1.0,
+      "source": "SUPUESTO",
+      "justification": "Multiplicador de oferta respecto de la ley de Little; palanca de sensibilidad.",
+      "verified": false
+    },
+    "timezone": {
+      "value": "America/Santiago",
+      "source": "SUPUESTO",
+      "justification": "Zona horaria de las sesiones (zoneinfo).",
+      "verified": false
+    },
+    "noshow_sigma_u": {
+      "value": 0.8,
+      "source": "SUPUESTO",
+      "justification": "Desviación estándar de la fragilidad individual u_i; única fuente de correlación entre citas de un paciente.",
+      "verified": false
+    },
+    "noshow_rate_cne_national": {
+      "value": 0.1565,
+      "source": "Tesis, Repositorio U. de Chile, https://repositorio.uchile.cl/handle/2250/203932 (resumen); 1.185.393/7.575.359 citas 2022",
+      "justification": "Tasa nacional de inasistencia a consulta nueva de especialidad.",
+      "verified": true
+    },
+    "noshow_rate_overrides": {
+      "value": {
+        "1": 0.22,
+        "2": 0.21
+      },
+      "source": "Tesis, Repositorio U. de Chile, https://repositorio.uchile.cl/handle/2250/203932 (resumen)",
+      "justification": "Arica y Parinacota 22 %, Iquique 21 % (verificados en el resumen). La tabla de los otros 27 servicios no está disponible (PDF bloqueado): el resto usa una tasa común k tal que el promedio ponderado por L dé la tasa nacional.",
+      "verified": true
+    },
+    "noshow_rate_others_rule": {
+      "value": "common_scale_k",
+      "source": "SUPUESTO",
+      "justification": "Resto de servicios con tasa común escalada para cuadrar el promedio nacional; sin dato por servicio.",
+      "verified": false
+    },
+    "noshow_rate_iq": {
+      "value": 0.05,
+      "source": "SUPUESTO",
+      "justification": "Inasistencia a cirugía; la suspensión de cirugías es 6,4-12,9 % (~50 % por causas del paciente).",
+      "verified": false
+    },
+    "noshow_ref_lead_days": {
+      "value": 28,
+      "source": "SUPUESTO",
+      "justification": "Anticipación de referencia para calibrar los interceptos.",
+      "verified": false
+    },
+    "noshow_scenarios": {
+      "value": {
+        "neutral": {
+          "beta_age": {
+            "0_14": 0.0,
+            "15_19": 0.0,
+            "20_44": 0.0,
+            "45_64": 0.0,
+            "65_plus": 0.0
+          },
+          "beta_ins": {
+            "fonasa_a": 0.0,
+            "fonasa_b": 0.0,
+            "fonasa_c": 0.0,
+            "fonasa_d": 0.0,
+            "other": 0.0
+          },
+          "gamma_sd": 0.0,
+          "beta_wait": 0.15,
+          "beta_lead": 0.1
+        },
+        "baseline": {
+          "beta_age": {
+            "0_14": 0.1,
+            "15_19": 0.35,
+            "20_44": 0.3,
+            "45_64": 0.0,
+            "65_plus": -0.2
+          },
+          "beta_ins": {
+            "fonasa_a": 0.0,
+            "fonasa_b": 0.0,
+            "fonasa_c": 0.0,
+            "fonasa_d": 0.0,
+            "other": 0.0
+          },
+          "gamma_sd": 0.3,
+          "beta_wait": 0.15,
+          "beta_lead": 0.1
+        },
+        "ses_gradient": {
+          "beta_age": {
+            "0_14": 0.1,
+            "15_19": 0.35,
+            "20_44": 0.3,
+            "45_64": 0.0,
+            "65_plus": -0.2
+          },
+          "beta_ins": {
+            "fonasa_a": 0.2,
+            "fonasa_b": 0.1,
+            "fonasa_c": 0.0,
+            "fonasa_d": -0.1,
+            "other": 0.0
+          },
+          "gamma_sd": 0.3,
+          "beta_wait": 0.15,
+          "beta_lead": 0.1
+        }
+      },
+      "source": "SUPUESTO",
+      "justification": "baseline sin efecto de previsión; ses_gradient solo para análisis de sensibilidad; neutral es el control obligatorio. beta_wait y beta_lead se mantienen en neutral (no son atributos protegidos).",
+      "verified": false
+    },
+    "noshow_e_p2_cne_target": {
+      "value": {
+        "value": 0.0304,
+        "tolerance": 0.015
+      },
+      "source": "Glosa: 82.420/2.707.426 egresos por 'dos inasistencias'",
+      "justification": "Chequeo blando de E[p²] en CNE.",
+      "verified": false
+    },
+    "history_poisson_lambda": {
+      "value": 1.5,
+      "source": "SUPUESTO",
+      "justification": "Citas pasadas por paciente ~ Poisson(1,5).",
+      "verified": false
+    },
+    "history_max_appointments": {
+      "value": 6,
+      "source": "SUPUESTO",
+      "justification": "Máximo de citas pasadas por paciente.",
+      "verified": false
+    },
+    "history_window_days": {
+      "value": 730,
+      "source": "SUPUESTO",
+      "justification": "Las citas pasadas caen en los últimos 730 días antes de as_of.",
+      "verified": false
+    },
+    "history_lead_range_days": {
+      "value": [
+        7,
+        90
+      ],
+      "source": "SUPUESTO",
+      "justification": "Anticipación de las citas pasadas ~ U{7..90}.",
+      "verified": false
+    },
+    "patient_link_retries": {
+      "value": 5,
+      "source": "SUPUESTO",
+      "justification": "Reintentos para no repetir especialidad al asignar entradas adicionales a un paciente.",
+      "verified": false
+    }
+  },
+  "ges_problem_map": [
+    {
+      "code": 11,
+      "group": "iq",
+      "specialty": "OFTALMOLOGIA",
+      "deadline_days": 90,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 26,
+      "group": "iq",
+      "specialty": "CIRUGIA DIGESTIVA",
+      "deadline_days": 90,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 12,
+      "group": "iq",
+      "specialty": "TRAUMATOLOGIA",
+      "deadline_days": 180,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 35,
+      "group": "iq",
+      "specialty": "UROLOGIA Y NEFROLOGIA",
+      "deadline_days": 180,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 10,
+      "group": "iq",
+      "specialty": "TRAUMATOLOGIA",
+      "deadline_days": 90,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 44,
+      "group": "iq",
+      "specialty": "NEUROCIRUGIA",
+      "deadline_days": 90,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 43,
+      "group": "iq",
+      "specialty": "NEUROCIRUGIA",
+      "deadline_days": 30,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 30,
+      "group": "iq",
+      "specialty": "OFTALMOLOGIA",
+      "deadline_days": 90,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 25,
+      "group": "iq",
+      "specialty": "CIRUGIA CARDIOVASCULAR",
+      "deadline_days": 90,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 8,
+      "group": "cne_medical",
+      "specialty": "CIRUGIA DE MAMA",
+      "deadline_days": 45,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 70,
+      "group": "cne_medical",
+      "specialty": "COLOPROCTOLOGIA",
+      "deadline_days": 30,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 3,
+      "group": "cne_medical",
+      "specialty": "GINECOLOGIA ONCOLOGICA",
+      "deadline_days": 30,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 27,
+      "group": "cne_medical",
+      "specialty": "CIRUGIA DIGESTIVA",
+      "deadline_days": 30,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 28,
+      "group": "cne_medical",
+      "specialty": "UROLOGIA",
+      "deadline_days": 30,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 81,
+      "group": "cne_medical",
+      "specialty": "ENFERMEDADES RESPIRATORIAS DEL ADULTO (BRONCOPULMONAR)",
+      "deadline_days": 30,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 16,
+      "group": "cne_medical",
+      "specialty": "UROLOGIA",
+      "deadline_days": 30,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 17,
+      "group": "cne_medical",
+      "specialty": "HEMATOLOGIA",
+      "deadline_days": 30,
+      "oncologic": true,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 31,
+      "group": "cne_medical",
+      "specialty": "OFTALMOLOGIA",
+      "deadline_days": 60,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 29,
+      "group": "cne_medical",
+      "specialty": "OFTALMOLOGIA",
+      "deadline_days": 180,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    },
+    {
+      "code": 56,
+      "group": "cne_medical",
+      "specialty": "OTORRINOLARINGOLOGIA",
+      "deadline_days": 90,
+      "oncologic": false,
+      "source": "pendiente: valor provisorio; pendiente: Decreto Supremo 29 (2025), Diario Oficial 4-dic-2025",
+      "justification": "Mapeo SUPUESTO del problema a la especialidad en que se resuelve; plazo provisorio. ",
+      "verified": false
+    }
+  ],
+  "iq_procedures": [
+    {
+      "specialty": "CIRUGIA CARDIOVASCULAR",
+      "name": "Cirugía mayor genérica A - CIRUGIA CARDIOVASCULAR",
+      "care_subtype": "major",
+      "duration_min": 240,
+      "weight": 2.0
+    },
+    {
+      "specialty": "CIRUGIA CARDIOVASCULAR",
+      "name": "Cirugía menor genérica A - CIRUGIA CARDIOVASCULAR",
+      "care_subtype": "minor",
+      "duration_min": 90,
+      "weight": 2.0
+    },
+    {
+      "specialty": "CIRUGIA DE CABEZA Y CUELLO",
+      "name": "Cirugía mayor genérica A - CIRUGIA DE CABEZA Y CUELLO",
+      "care_subtype": "major",
+      "duration_min": 150,
+      "weight": 2.0
+    },
+    {
+      "specialty": "CIRUGIA DE CABEZA Y CUELLO",
+      "name": "Cirugía menor genérica A - CIRUGIA DE CABEZA Y CUELLO",
+      "care_subtype": "minor",
+      "duration_min": 60,
+      "weight": 2.0
+    },
+    {
+      "specialty": "CIRUGIA DIGESTIVA",
+      "name": "Cirugía mayor genérica A - CIRUGIA DIGESTIVA",
+      "care_subtype": "major",
+      "duration_min": 120,
+      "weight": 2.0
+    },
+    {
+      "specialty": "CIRUGIA DIGESTIVA",
+      "name": "Cirugía menor genérica A - CIRUGIA DIGESTIVA",
+      "care_subtype": "minor",
+      "duration_min": 60,
+      "weight": 2.0
+    },
+    {
+      "specialty": "CIRUGIA DIGESTIVA",
+      "name": "Cirugía mayor genérica B - CIRUGIA DIGESTIVA",
+      "care_subtype": "major",
+      "duration_min": 180,
+      "weight": 1.0
+    },
+    {
+      "specialty": "DERMATOLOGIA",
+      "name": "Cirugía mayor genérica A - DERMATOLOGIA",
+      "care_subtype": "major",
+      "duration_min": 90,
+      "weight": 2.0
+    },
+    {
+      "specialty": "DERMATOLOGIA",
+      "name": "Cirugía menor genérica A - DERMATOLOGIA",
+      "care_subtype": "minor",
+      "duration_min": 30,
+      "weight": 2.0
+    },
+    {
+      "specialty": "GINECOLOGIA Y OBSTETRICIA",
+      "name": "Cirugía mayor genérica A - GINECOLOGIA Y OBSTETRICIA",
+      "care_subtype": "major",
+      "duration_min": 120,
+      "weight": 2.0
+    },
+    {
+      "specialty": "GINECOLOGIA Y OBSTETRICIA",
+      "name": "Cirugía menor genérica A - GINECOLOGIA Y OBSTETRICIA",
+      "care_subtype": "minor",
+      "duration_min": 60,
+      "weight": 2.0
+    },
+    {
+      "specialty": "NEUROCIRUGIA",
+      "name": "Cirugía mayor genérica A - NEUROCIRUGIA",
+      "care_subtype": "major",
+      "duration_min": 240,
+      "weight": 2.0
+    },
+    {
+      "specialty": "NEUROCIRUGIA",
+      "name": "Cirugía menor genérica A - NEUROCIRUGIA",
+      "care_subtype": "minor",
+      "duration_min": 90,
+      "weight": 2.0
+    },
+    {
+      "specialty": "ODONTOLOGIA",
+      "name": "Cirugía mayor genérica A - ODONTOLOGIA",
+      "care_subtype": "major",
+      "duration_min": 90,
+      "weight": 2.0
+    },
+    {
+      "specialty": "ODONTOLOGIA",
+      "name": "Cirugía menor genérica A - ODONTOLOGIA",
+      "care_subtype": "minor",
+      "duration_min": 45,
+      "weight": 2.0
+    },
+    {
+      "specialty": "OFTALMOLOGIA",
+      "name": "Cirugía mayor genérica A - OFTALMOLOGIA",
+      "care_subtype": "major",
+      "duration_min": 60,
+      "weight": 2.0
+    },
+    {
+      "specialty": "OFTALMOLOGIA",
+      "name": "Cirugía menor genérica A - OFTALMOLOGIA",
+      "care_subtype": "minor",
+      "duration_min": 30,
+      "weight": 2.0
+    },
+    {
+      "specialty": "OFTALMOLOGIA",
+      "name": "Cirugía menor genérica B - OFTALMOLOGIA",
+      "care_subtype": "minor",
+      "duration_min": 20,
+      "weight": 1.0
+    },
+    {
+      "specialty": "OTORRINOLARINGOLOGIA",
+      "name": "Cirugía mayor genérica A - OTORRINOLARINGOLOGIA",
+      "care_subtype": "major",
+      "duration_min": 90,
+      "weight": 2.0
+    },
+    {
+      "specialty": "OTORRINOLARINGOLOGIA",
+      "name": "Cirugía menor genérica A - OTORRINOLARINGOLOGIA",
+      "care_subtype": "minor",
+      "duration_min": 45,
+      "weight": 2.0
+    },
+    {
+      "specialty": "PLASTICA Y REPARADORA",
+      "name": "Cirugía mayor genérica A - PLASTICA Y REPARADORA",
+      "care_subtype": "major",
+      "duration_min": 150,
+      "weight": 2.0
+    },
+    {
+      "specialty": "PLASTICA Y REPARADORA",
+      "name": "Cirugía menor genérica A - PLASTICA Y REPARADORA",
+      "care_subtype": "minor",
+      "duration_min": 60,
+      "weight": 2.0
+    },
+    {
+      "specialty": "TRAUMATOLOGIA",
+      "name": "Cirugía mayor genérica A - TRAUMATOLOGIA",
+      "care_subtype": "major",
+      "duration_min": 150,
+      "weight": 2.0
+    },
+    {
+      "specialty": "TRAUMATOLOGIA",
+      "name": "Cirugía menor genérica A - TRAUMATOLOGIA",
+      "care_subtype": "minor",
+      "duration_min": 60,
+      "weight": 2.0
+    },
+    {
+      "specialty": "TRAUMATOLOGIA",
+      "name": "Cirugía mayor genérica B - TRAUMATOLOGIA",
+      "care_subtype": "major",
+      "duration_min": 210,
+      "weight": 1.0
+    },
+    {
+      "specialty": "UROLOGIA Y NEFROLOGIA",
+      "name": "Cirugía mayor genérica A - UROLOGIA Y NEFROLOGIA",
+      "care_subtype": "major",
+      "duration_min": 120,
+      "weight": 2.0
+    },
+    {
+      "specialty": "UROLOGIA Y NEFROLOGIA",
+      "name": "Cirugía menor genérica A - UROLOGIA Y NEFROLOGIA",
+      "care_subtype": "minor",
+      "duration_min": 45,
+      "weight": 2.0
+    },
+    {
+      "specialty": "UROLOGIA Y NEFROLOGIA",
+      "name": "Cirugía mayor genérica B - UROLOGIA Y NEFROLOGIA",
+      "care_subtype": "major",
+      "duration_min": 180,
+      "weight": 1.0
+    }
+  ],
+  "iq_procedures_source": "SUPUESTO: procedimientos genéricos por especialidad; no hay catálogo público de procedimientos en los datos agregados."
+}

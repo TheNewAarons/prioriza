@@ -70,3 +70,6 @@ logs/
 
 # Claude Code: configuración local por usuario
 .claude/settings.local.json
+
+# Población sintética generada (reproducible con make synth)
+data/synthetic/
