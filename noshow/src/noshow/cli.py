@@ -55,16 +55,10 @@ def train_cmd(
     typer.echo(DISCLAIMER)
     if run_dir is None:
         try:
-            run_dir, candidates = find_run_dir(data_dir, seed, size, scenario.value)
-        except FileNotFoundError as exc:
+            run_dir = find_run_dir(data_dir, seed, size, scenario.value, current_generator_shas())
+        except (FileNotFoundError, FileExistsError) as exc:
             typer.echo(f"Error: {exc}", err=True)
             raise typer.Exit(code=1) from exc
-        if len(candidates) > 1:
-            typer.echo(
-                f"aviso: {len(candidates)} corridas coinciden; se usa la más reciente "
-                f"({run_dir.name}). Usa --run-dir para fijar otra.",
-                err=True,
-            )
     config = TrainConfig(seed=seed, test_days=test_days, calibration_days=calibration_days)
     t0 = time.perf_counter()
     output = train(load_run(run_dir), config)
@@ -86,6 +80,16 @@ def train_cmd(
         f"(IC95 {cmp_['ci95_low']:+.5f} a {cmp_['ci95_high']:+.5f})"
     )
     typer.echo(f"artefacto={artifact} informe={results} ({time.perf_counter() - t0:.1f} s)")
+
+
+def current_generator_shas() -> dict[str, str]:
+    """Huellas de los objetivos y supuestos vigentes del generador sintético."""
+    from synthetic.targets import load_assumptions, load_targets, sha256_text
+
+    return {
+        "targets_sha256": sha256_text(load_targets()),
+        "params_sha256": sha256_text(load_assumptions()),
+    }
 
 
 def main() -> None:

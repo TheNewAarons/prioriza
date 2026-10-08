@@ -1,282 +1,211 @@
-# Model Card: Modelo de Inasistencias (noshow)
+# Model card: modelo de inasistencias (`noshow`)
 
 > Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.
 
-## Advertencia: limitaciones del modelo en datos sintéticos
+## Advertencia: qué validan estas métricas
 
-**Con datos sintéticos, estas métricas validan el pipeline de ingesta, características y entrenamiento (que el modelo aprende la estructura que el generador introdujo), pero NO prueban desempeño en pacientes reales.** El modelo solo puede recuperar la estructura que existe en los datos de entrenamiento. En particular:
+**Con datos sintéticos, estas métricas validan el pipeline (que el modelo aprende la estructura que el generador puso), no el desempeño en pacientes reales.** El modelo solo puede recuperar lo que el generador sintético introdujo. En particular:
 
-- La fragilidad latente individual (u_i) es invisible para cualquier modelo; el techo de AUC está en ~0,65 incluso con variables observables.
+- La fragilidad latente de cada paciente (u_i) no es observable. Con ~1,5 citas previas por paciente, el techo práctico de AUC con variables observables es ~0,63-0,65, frente a 0,74 del oráculo (hallazgo A3 de `docs/design/synthetic-noshow-review.md`).
 - El historial sintético no tiene término de espera (vale 0 en el generador), así que el modelo no puede aprender el efecto de la espera que sí tendrán las citas futuras (hallazgo A2).
-- El modelo no ve servicio de salud, comuna ni edad (excluidos por equidad), así que no distingue que Arica (22 %) e Iquique (21 %) tienen tasas base más altas ni el efecto de la edad que el generador sí usa. Las brechas resultantes se reportan en la sección Equidad.
+- El modelo no ve servicio de salud, comuna ni edad (excluidos por equidad), así que no distingue que Arica (22 %) e Iquique (21 %) tienen tasas base más altas ni el efecto de la edad que el generador sí usa. Las brechas resultantes están en la sección Equidad.
 
 ## Resumen
 
-El modelo predice la probabilidad de inasistencia (no presentarse a la cita programada o cirugía) por paciente-cita, basándose en historial previo de asistencia, anticipación (días entre agendamiento y cita), especialidad y día de la semana.
+Estima la probabilidad de que un paciente no se presente a una cita (consulta nueva de especialidad o cirugía), a partir de su historial previo de asistencia, la anticipación del agendamiento, la especialidad, el tipo de atención y el día de la semana.
 
-**Uso previsto:** Insumo para el sobreagendamiento controlado en `scheduler/`, que ajusta el número de pacientes asignados a cada cupo sabiendo que una fracción no se presentará. El sistema apoya la decisión del planificador, no la toma: todo plan generado requiere revisión humana antes de implementarse.
+**Uso previsto:** insumo para el sobreagendamiento controlado en `scheduler/`. Las citas propuestas se puntúan con `build_candidate_features` + `predict_noshow`. El sistema apoya, no decide: todo plan generado requiere revisión humana.
 
-**Usos fuera de alcance:**
-- Excluir o sancionar pacientes con alta probabilidad predicha.
-- Inferir características clínicas del paciente (edad, sexo, condición de salud).
-- Predecir sobre datos reales sin recalibración en servicio de salud real.
-- Tomar decisiones sobre asignación de recursos o cambios de política sin validación institucional.
+**Fuera de alcance:**
+- Excluir, sancionar o postergar pacientes por su probabilidad predicha.
+- Inferir características clínicas o personales del paciente.
+- Usarlo con datos reales sin reentrenar, recalibrar y auditar la equidad en la institución.
 
 ## Datos
-
-### Corrida
 
 | Parámetro | Valor |
 |---|---|
 | `run_id` | `32c9e349-74f9-5c85-bf4b-990796b47323` |
-| Semilla (`seed`) | 42 |
-| Tamaño de la corrida (`size`) | 100.000 entradas en lista de espera (85.083 pacientes; 127.517 citas de historial) |
-| Escenario | `baseline` (edad sí, previsión no, especialidad aleatoria con σ=0,3) |
-| Fecha de referencia (`as_of`) | 2025-09-30 |
-| Hash dataset sintético (`dataset_sha256`) | `6ef9a83e7b146304e59c854e2910fef53dd902a12e46d78c04dcd5cea106b6fe` |
-| Versión del generador | 0.1.0 |
+| Semilla | 42 |
+| Tamaño (`size`) | 100.000 entradas en lista de espera (85.083 pacientes; 127.517 citas de historial) |
+| Escenario | `baseline` (efecto de edad, sin efecto de previsión, efecto aleatorio por especialidad) |
+| `as_of` | 2025-09-30 |
+| `dataset_sha256` | `6ef9a83e7b146304e59c854e2910fef53dd902a12e46d78c04dcd5cea106b6fe` |
+| Generador | 0.1.0 (`params_sha256` `a8e042e2…`, `targets_sha256` `22f5a727…`) |
 
 ### Split temporal
 
-| Bloque | Período | n | Tasa de inasistencia |
+| Bloque | Periodo | n | Tasa de inasistencia |
 |---|---|---|---|
-| **Entrenamiento** | 2023-10-01 a 2024-12-02 | 75.181 | 14,76 % |
-| **Calibración** | 2024-12-03 a 2025-04-01 | 20.714 | 15,22 % |
-| **Prueba** | 2025-04-02 a 2025-09-29 | 31.622 | 14,46 % |
+| Entrenamiento | 2023-10-01 a 2024-12-02 | 75.181 | 14,76 % |
+| Calibración | 2024-12-03 a 2025-04-01 | 20.714 | 15,22 % |
+| Prueba | 2025-04-02 a 2025-09-29 | 31.622 | 14,46 % |
 
-Split temporal en tres bloques disjuntos (no aleatorio): prueba = últimos 180 días, calibración = 120 días previos, entrenamiento = el resto. Los hiperparámetros son fijos (sin búsqueda). El conjunto de calibración se usa para ajustar el calibrador y elegir el modelo principal; el conjunto de prueba no participa en ninguna elección.
+Tres bloques disjuntos y consecutivos (sin mezcla aleatoria): prueba = últimos 180 días, calibración = 120 días previos, entrenamiento = el resto. Los hiperparámetros son fijos. El bloque de calibración ajusta el calibrador y elige el modelo principal; el de prueba no participa en ninguna elección.
 
 ## Variables usadas
 
-### Características (features)
+| Variable | Tipo | Descripción |
+|---|---|---|
+| `specialty_code` | Categórica | Especialidad de la cita |
+| `care_type` | Categórica | `consultation` (CNE) o `surgery` (IQ) |
+| `weekday` | Categórica | Día de la semana en hora de Santiago (1 = lunes) |
+| `lead_days` | Numérica | Días entre el agendamiento y la cita |
+| `prior_attended` | Numérica | Citas previas del paciente a las que asistió, conocidas al agendar |
+| `prior_no_show` | Numérica | Citas previas del paciente a las que no asistió, conocidas al agendar |
 
-| Variable | Tipo | Origen | Descripción |
-|---|---|---|---|
-| `lead_days` | Numérica | Cita | Días entre agendamiento y la cita programada |
-| `prior_attended` | Numérica | Historial | Conteo de citas previas a las que el paciente asistió (al agendar esta cita) |
-| `prior_no_show` | Numérica | Historial | Conteo de citas previas en las que el paciente no se presentó (al agendar esta cita) |
-| `specialty_code` | Categórica | Especialidad | Código de la especialidad de la cita (ej: `cne_medical:cardiologia`, `iq:cirugia_digestiva`) |
-| `care_type` | Categórica | Catálogo | `consultation` (CNE) o `surgery` (IQ) |
-| `weekday` | Categórica | Cita | Día de la semana (1–7, lunes a domingo) |
+**Historial sin fuga:** los conteos previos solo usan citas con `scheduled_start` estrictamente anterior a la fecha de agendamiento (`scheduled_start - lead_days`). Un test verifica que cambiar el resultado de una cita ocurrida entre el agendamiento y la fecha de otra no cambia las variables de esta última.
 
-**Regla de historial previo:** `prior_attended` y `prior_no_show` cuentan solo citas del mismo paciente con fecha de cita (`scheduled_start`) **estrictamente anterior** a la fecha de agendamiento (`scheduled_start - lead_days`), para que ninguna variable use información posterior a la decisión.
+**Descartada por constante:** `time_band` (mañana/tarde, hora local de Santiago). En el historial sintético todas las citas son a las 12:00 UTC.
 
-**Variable constante descartada:** `time_band` (mañana/tarde) era constante en el historial sintético (todas las citas a las 12:00 UTC) y se descartó automáticamente.
+### Riesgo de proxy en variables permitidas
+
+La especialidad está en la lista permitida, pero actúa en parte como proxy de edad: las especialidades pediátricas delatan el grupo 0-14 años. V de Cramér en entrenamiento (sin corrección de sesgo):
+
+| Variable | Grupo etario | Previsión | Servicio | Comuna |
+|---|---|---|---|---|
+| `specialty_code` | 0,317 | 0,046 | 0,055 | 0,090 |
+| `care_type` | 0,063 | 0,010 | 0,119 | 0,147 |
+| `weekday` | 0,011 | 0,009 | 0,020 | 0,068 |
+
+Con datos reales, ginecología y obstetricia, urología y mama delatarían el sexo. Alternativa no adoptada (cambia la lista de variables permitidas): unificar las variantes pediátricas y adultas de cada especialidad.
 
 ## Variables excluidas
 
 | Variable | Motivo |
 |---|---|
-| `sex` (sexo) | Atributo protegido (CLAUDE.md). No existe en los datos sintéticos. |
-| `ethnicity` (etnia) | Atributo protegido (CLAUDE.md). No existe en los datos sintéticos. |
-| `nationality` (nacionalidad) | Atributo protegido (CLAUDE.md). No existe en los datos sintéticos. |
-| `age_group` (grupo etario) | No está en la lista de variables permitidas. Aunque el generador la usa, incluirla concentraría el sobreagendamiento en 15–44 años (hallazgo M3 de la revisión del generador). Se usa solo para medir equidad. |
-| `insurance` (previsión) | Proxy evidente de nivel socioeconómico. Se usa solo para medir equidad. |
-| `commune_code` (comuna) | Proxy geográfico de nivel socioeconómico, etnia y nacionalidad. Se usa solo para medir equidad. |
-| `health_service_code` (servicio de salud) | Determinado por la comuna (V de Cramér = 1,0 en el sintético): mismo proxy geográfico. Costo: el modelo no ve que Arica e Iquique tienen tasas más altas (~22 % y 21 %). |
-| `distance_km` (distancia) | Permitida si existe, pero no hay coordenadas ni establecimiento en las citas del historial; usarla exigiría la comuna del paciente, que es un proxy excluido. |
-| `duration_min` (duración) | En consultas vale siempre 20 min y en cirugías delata el procedimiento (hallazgo B2); redundante con la especialidad y con un sesgo asimétrico entre tipos de atención. |
-| `wait_days` (días de espera) | Permitida, pero las citas del historial no tienen entrada asociada (`entry_id` nulo) y el generador fija el término de espera en 0 (hallazgo A2 de la revisión). Se incluye automáticamente solo si tiene valores en el período de entrenamiento. |
-| `clinical_priority` (prioridad clínica) | No existe en el historial (sin entrada asociada). Además, el sistema no debe aprender de la prioridad clínica para decidir sobreagendamiento. |
-| `noshow_frailty`, `true_noshow_prob` (verdad sintética) | Verdad generadora: prohibida como variable de cualquier modelo. |
+| `sex`, `ethnicity`, `nationality` | Atributos protegidos (CLAUDE.md). No existen en los datos sintéticos. |
+| `age_group` | No está en la lista permitida. Incluirla concentraría el sobreagendamiento en 15-44 años (hallazgo M3). Solo se usa para medir equidad. |
+| `insurance` (previsión) | Proxy evidente de nivel socioeconómico. Solo para medir equidad. |
+| `commune_code` | Proxy geográfico de nivel socioeconómico, etnia y nacionalidad. Solo para medir equidad. |
+| `health_service_code` | Determinado por la comuna (V de Cramér = 1 en el sintético): mismo proxy geográfico. Costo: el modelo no ve las tasas más altas de Arica e Iquique. |
+| `distance_km` | Permitida si existe, pero no hay coordenadas ni establecimiento en las citas del historial; calcularla exigiría la comuna del paciente. |
+| `wait_days` | Permitida, pero las citas del historial no tienen entrada asociada y el generador fija el término de espera en 0 (A2). Entra automáticamente cuando tenga valores en entrenamiento. |
+| `duration_min` | En consultas siempre vale 20 min y en cirugías delata el procedimiento (B2); redundante con la especialidad. |
+| `clinical_priority` | No existe en el historial. Además, el sobreagendamiento no debe aprender de la prioridad clínica. |
+| `noshow_frailty`, `true_noshow_prob` | Verdad sintética del generador: prohibida. Solo se lee `appointment_truth` para la referencia del oráculo. |
 
-## Modelos y calibración
+## Modelos, calibración y selección
 
-### Modelos candidatos
+- **Baseline:** tasa histórica por especialidad en entrenamiento, contraída hacia la tasa global (m = 20); especialidades no vistas reciben la tasa global.
+- **Regresión logística:** one-hot de categóricas; imputación por mediana, `log1p` y estandarización de numéricas; L2 con C = 1.
+- **Gradient boosting:** `HistGradientBoostingClassifier` con categóricas nativas, 300 iteraciones, sin early stopping (usaría una validación aleatoria).
 
-Se evaluaron:
-- **Baseline**: tasa histórica por especialidad, suavizada hacia la media global (suavizado m=20).
-- **Regresión logística** (modelo principal).
-- **Gradient Boosting** (`HistGradientBoostingClassifier`).
+**Calibración:** isotónica si la clase minoritaria del bloque de calibración tiene 1.000 casos o más; sigmoide si no. Aquí hubo 3.152 inasistencias, así que se usó isotónica.
 
-### Regla de calibración
+**Selección del principal:** menor Brier en el bloque de calibración entre cuatro candidatos. Los modelos sin calibrar no vieron ese bloque al entrenar, así que su Brier ahí es honesto; los calibrados se miden con predicciones fuera de pliegue (5 bloques contiguos).
 
-**Isotónica si n_minoria >= 1000 en calibración; Sigmoide si no.**
-
-En esta corrida: 3.152 eventos de inasistencia en calibración (clase minoritaria); se aplica calibración isotónica.
-
-### Selección del modelo principal
-
-**Criterio**: Brier fuera de pliegue (5 bloques contiguos) en el conjunto de calibración, con el modelo ya calibrado.
-
-| Modelo | Brier OOF |
+| Candidato | Brier en calibración |
 |---|---|
-| Logistic regression (calibrado) | 0,125976 |
-| Gradient boosting (calibrado) | 0,126566 |
+| Regresión logística, sin calibrar | **0,125951** |
+| Regresión logística, calibrada | 0,125976 |
+| Gradient boosting, calibrado | 0,126566 |
+| Gradient boosting, sin calibrar | 0,126732 |
 
-**Modelo elegido**: Regresión logística. Coeficientes (top 10 por valor absoluto) en `results/noshow.json`.
-
-### Nota sobre calibración
-
-La calibración isotónica empeoró **levemente** el Brier de la regresión sin calibrar:
-- Sin calibrar: Brier = 0,120548
-- Calibrada (isotónica): Brier = 0,120621
-
-También empeoraron levemente ECE (0,006438 → 0,007222) y log loss (0,400131 → 0,400252). Causa probable: la isotónica se ajusta en el bloque de calibración, cuya tasa observada (15,22 %) es mayor que la de prueba (14,46 %), y sube la probabilidad media predicha de 0,1459 a 0,1517. Como el proceso sintético es estacionario, esa diferencia de tasas entre bloques es variación muestral, no deriva. Se reporta tal cual: la regla de calibración se fijó antes de mirar el conjunto de prueba y no se cambia a posteriori. La logística ya venía bien calibrada; con datos reales, que sí tienen deriva, conviene recalibrar con el periodo más reciente.
+**Principal: regresión logística sin calibrar.** La calibración isotónica no mejoró a la logística, que ya venía bien calibrada. En prueba también la empeoró levemente (Brier 0,120548 → 0,120621; ECE 0,0064 → 0,0072): la isotónica absorbe la tasa del bloque de calibración (15,22 %), mayor que la de prueba (14,46 %), y sube la media predicha de 0,1459 a 0,1517. Como el proceso sintético es estacionario, esa diferencia es variación muestral, no deriva. Al boosting sí lo mejoró (ECE 0,0176 → 0,0092). Con datos reales, que sí tienen deriva, la selección puede preferir el modelo calibrado con el periodo más reciente; la regla es la misma.
 
 ## Métricas en prueba
 
-### Modelos comparados
-
-| Modelo | AUC | Brier | Log Loss | ECE | Predicha (media) | Observada |
+| Modelo | AUC | Brier | Log loss | ECE | Media predicha | Observada |
 |---|---|---|---|---|---|---|
-| Baseline (especialidad) | 0,6022 | 0,1215 | 0,4035 | 0,0087 | 0,1474 | 0,1446 |
-| Gradient Boosting, sin calibrar | 0,6105 | 0,1218 | 0,4052 | 0,0176 | 0,1443 | 0,1446 |
-| Gradient Boosting, calibrado | 0,6095 | 0,1215 | 0,4037 | 0,0092 | 0,1507 | 0,1446 |
-| Regresión logística, sin calibrar | 0,6248 | 0,1205 | 0,4001 | 0,0064 | 0,1459 | 0,1446 |
-| Regresión logística, calibrada (PRINCIPAL) | 0,6239 | 0,1206 | 0,4003 | 0,0072 | 0,1517 | 0,1446 |
-| Oráculo (verdad sintética) | 0,7370 | 0,1110 | 0,3660 | 0,0037 | 0,1459 | 0,1446 |
+| Baseline (especialidad) | 0,6022 | 0,12151 | 0,4035 | 0,0087 | 0,1474 | 0,1446 |
+| Gradient boosting, sin calibrar | 0,6105 | 0,12180 | 0,4052 | 0,0176 | 0,1443 | 0,1446 |
+| Gradient boosting, calibrado | 0,6095 | 0,12149 | 0,4037 | 0,0092 | 0,1507 | 0,1446 |
+| **Regresión logística, sin calibrar (principal)** | **0,6248** | **0,12055** | **0,4001** | **0,0064** | 0,1459 | 0,1446 |
+| Regresión logística, calibrada | 0,6239 | 0,12062 | 0,4003 | 0,0072 | 0,1517 | 0,1446 |
+| Oráculo (verdad sintética) | 0,7370 | 0,11098 | 0,3660 | 0,0037 | 0,1459 | 0,1446 |
 
-### Comparación: Modelo principal vs. Baseline
+ECE con 10 bins de igual frecuencia; la curva de calibración completa de cada modelo está en `results/noshow.json` (`test_metrics.*.calibration_curve`).
 
-| Métrica | Valor | Rango 95 % |
-|---|---|---|
-| Δ Brier | −0,000885 | [−0,001189; −0,000577] |
-| Significancia (α=0,05) | **Sí (p<0,05)** | — |
-| Unidad de remuestreo | Paciente (n=1.000 resamples) | — |
+### Principal frente al baseline
 
-El modelo principal **supera al baseline en Brier** y el IC 95 % no incluye 0. La mejora es pequeña en términos absolutos (0,0009 sobre un Brier de 0,1215, ~0,7 %), coherente con el techo de AUC descrito en Limitaciones. El remuestreo es por paciente porque las citas de un mismo paciente comparten la fragilidad latente.
+| | Valor |
+|---|---|
+| Δ Brier (principal − baseline) | −0,000958 |
+| IC 95 % | [−0,001227; −0,000683] |
+| Remuestreo | Bootstrap de pacientes, 1.000 réplicas |
 
-### Brecha frente al oráculo
+**El modelo principal supera al baseline en Brier** y el IC 95 % no incluye 0. La mejora es pequeña (~0,8 % del Brier del baseline), coherente con el techo descrito arriba. Se remuestrean pacientes porque sus citas comparten la fragilidad latente.
 
-| Métrica | Modelo | Oráculo | Brecha |
-|---|---|---|---|
-| AUC | 0,6239 | 0,7370 | −0,1131 |
-| Brier | 0,1206 | 0,1110 | +0,0096 |
+### Brecha con el oráculo
 
-La brecha en AUC (0,11 puntos) reflejaría la fragilidad latente no observada (u_i) y el efecto de la espera en el historial, ambos invisibles para el modelo.
+AUC 0,6248 frente a 0,7370 (−0,112) y Brier 0,12055 frente a 0,11098. Casi toda la brecha es la fragilidad latente no observable; el resto, los efectos de servicio y edad que el modelo no ve por diseño.
 
 ## Equidad
 
-### Por grupo etario
+Probabilidad media predicha por el modelo principal frente a la tasa observada y a la probabilidad verdadera media, en prueba. Ninguna de estas variables entra al modelo. Solo grupos con n ≥ 200.
 
-| Grupo | Predicha | Verdadera | Observada | Gap (pred−verdad) | n |
+### Grupo etario
+
+| Grupo | Predicha | Verdadera | Observada | Brecha (pred − verdad) | n |
 |---|---|---|---|---|---|
-| 0–14 años | 0,1825 | 0,1743 | 0,1784 | +0,0082 | 3.391 |
-| 15–19 años | 0,1597 | 0,1861 | 0,1672 | −0,0264 | 1.364 |
-| 20–44 años | 0,1498 | 0,1755 | 0,1707 | −0,0257 | 7.281 |
-| 45–64 años | 0,1472 | 0,1367 | 0,1373 | +0,0105 | 9.965 |
-| 65+ años | 0,1457 | 0,1173 | 0,1172 | +0,0285 | 9.621 |
+| 0-14 | 0,1761 | 0,1743 | 0,1784 | +0,0018 | 3.391 |
+| 15-19 | 0,1541 | 0,1861 | 0,1672 | −0,0321 | 1.364 |
+| 20-44 | 0,1442 | 0,1755 | 0,1707 | −0,0313 | 7.281 |
+| 45-64 | 0,1414 | 0,1367 | 0,1373 | +0,0046 | 9.965 |
+| 65+ | 0,1399 | 0,1173 | 0,1172 | +0,0227 | 9.621 |
 
-**Máxima brecha**: 2,85 pp en 65+ (sobreestimación; el modelo predice 14,57 % cuando la verdad es 11,73 %).
+El modelo sobreestima la inasistencia de 65+ en 2,3 pp y subestima la de 15-44 en ~3,2 pp. Consecuencia esperada en el programador: más sobreagendamiento sobre cupos de personas mayores, que sí asisten (más colisiones para ellas), y menos sobre jóvenes. Es el costo de excluir la edad; 0-14 queda bien porque la especialidad pediátrica actúa como proxy (ver Riesgo de proxy).
 
-**Impacto en sobreagendamiento**: Excluir `age_group` como feature implica que el modelo no puede ajustar tasas por edad. La brecha en 65+ (+2,85 pp) significa que el sobreagendamiento se concentrará sobre adultos mayores. Inversamente, los grupos 15–44 serán subestimados. Esto es un costo aceptado para evitar que el modelo distorsione automáticamente la demanda por edad.
+### Tipo de atención
 
-### Por tipo de atención
-
-| Tipo | Predicha | Verdadera | Observada | Gap | n |
+| Tipo | Predicha | Verdadera | Observada | Brecha | n |
 |---|---|---|---|---|---|
-| Consulta (CNE) | 0,1679 | 0,1621 | 0,1602 | +0,0058 | 26.900 |
-| Cirugía (IQ) | 0,0591 | 0,0535 | 0,0557 | +0,0056 | 4.722 |
+| Consulta | 0,1630 | 0,1621 | 0,1602 | +0,0009 | 26.900 |
+| Cirugía | 0,0481 | 0,0535 | 0,0557 | −0,0054 | 4.722 |
 
-**Máxima brecha**: 0,58 pp. Muy bien calibrada.
+### Previsión
 
-### Por previsión
-
-| Previsión | Predicha | Verdadera | Gap | n |
+| Previsión | Predicha | Verdadera | Brecha | n |
 |---|---|---|---|---|
-| FONASA A | 0,1513 | 0,1432 | +0,0081 | 5.867 |
-| FONASA B | 0,1518 | 0,1462 | +0,0056 | 12.378 |
-| FONASA C | 0,1524 | 0,1472 | +0,0052 | 4.702 |
-| FONASA D | 0,1512 | 0,1470 | +0,0042 | 6.811 |
-| Otro | 0,1520 | 0,1449 | +0,0072 | 1.864 |
+| FONASA A | 0,1455 | 0,1432 | +0,0023 | 5.867 |
+| FONASA B | 0,1460 | 0,1462 | −0,0002 | 12.378 |
+| FONASA C | 0,1465 | 0,1472 | −0,0007 | 4.702 |
+| FONASA D | 0,1454 | 0,1470 | −0,0016 | 6.811 |
+| Otra | 0,1458 | 0,1449 | +0,0009 | 1.864 |
 
-**Máxima brecha**: 0,81 pp en FONASA A. Las brechas son parejas entre grupos (+0,4 a +0,8 pp): reflejan la sobrepredicción global del modelo calibrado en prueba (0,1517 frente a 0,1446 observado; ver Nota sobre calibración), no un efecto de la previsión. En el escenario `baseline` el generador no usa la previsión (β_ins = 0), así que aquí no se puede detectar daño por previsión; para eso está el escenario `ses_gradient`.
+Brechas menores a 0,25 pp. En el escenario `baseline` el generador no usa la previsión, así que este análisis no puede detectar daño por previsión; para eso está el escenario `ses_gradient`.
 
-### Por servicio de salud
+### Servicio de salud
 
-**29 servicios evaluados** (n ≥ 200 cada uno). Los dos con mayor brecha frente a la verdad:
+29 servicios con n ≥ 200. Los de mayor brecha:
 
-| Servicio | Predicha | Verdadera | Observada | Gap (pred−verdad) | n |
+| Servicio | Predicha | Verdadera | Observada | Brecha | n |
 |---|---|---|---|---|---|
-| 1 (Arica) | 0,1534 | 0,1976 | 0,2037 | −0,0442 | 427 |
-| 2 (Iquique) | 0,1607 | 0,1979 | 0,2080 | −0,0371 | 678 |
+| 1 (Arica) | 0,1482 | 0,1976 | 0,2037 | −0,0494 | 427 |
+| 2 (Iquique) | 0,1550 | 0,1979 | 0,2080 | −0,0429 | 678 |
 
-**Máxima brecha**: −4,42 pp en Arica (subestimación; la verdad es 19,76 %, el modelo predice 15,34 %). Iquique: −3,71 pp. Efecto sobre el sobreagendamiento: en Arica e Iquique se sobreagendaría menos de lo que la inasistencia real justificaría, con más cupos perdidos.
+El modelo subestima Arica en 4,9 pp e Iquique en 4,3 pp porque no ve el servicio. En esos servicios se sobreagendaría menos de lo que la inasistencia real justifica, con más cupos perdidos.
 
-**Explicación**: El modelo excluye `health_service_code` por ser proxy de geografia. En datos sintéticos, el servicio está completamente determinado por la comuna (V de Cramér = 1,0). Sin acceso al servicio, el modelo no puede aprender que Arica e Iquique tienen tasas base más altas (~22 % y 21 % vs 15,65 % nacional). Este es un costo aceptado del enfoque de equidad: se prefiere no usar proxies que compensar a posteriori en el plan.
+### Comuna
 
-### Por comuna
-
-**338 comunas** en el dataset de prueba; 31.622 citas.
-
-| Métrica | Valor |
-|---|---|
-| Comunas con n ≥ 200 | 44 / 338 |
-| Máxima brecha (gap_vs_truth) | −0,0460 (comuna 15101, servicio de Arica: predicha 0,1551, verdadera 0,2011, n = 374) |
-| Análisis | El generador no tiene efecto propio de comuna (solo vía servicio), así que las brechas por comuna reproducen las del servicio. La mayoría de las comunas no llega a n = 200 en prueba; un análisis por comuna con poder suficiente necesita estimadores agrupados o con contracción (hallazgo M3). |
-
-**Nota**: En datos reales, la comuna sí podría tener efecto causal (acceso a transporte, calidad de comunicación, etc.). Este análisis sintético no detectaría ese daño incluso si existiera.
+44 de 338 comunas llegan a n ≥ 200. Brecha máxima: −0,0511 (comuna 15101, servicio de Arica; predicha 0,1500, verdadera 0,2011, n = 374). El generador no tiene efecto propio de comuna (solo vía servicio), así que las brechas por comuna reproducen las del servicio y este análisis no puede detectar daño por comuna aunque exista en la realidad. Un análisis con poder suficiente necesita estimadores agrupados o con contracción (M3).
 
 ## Limitaciones
 
-### 1. Brecha con el oráculo y techo de AUC
-
-La brecha de AUC frente al oráculo (0,11 puntos) es casi toda explicada por la fragilidad latente individual (u_i ~ N(0, 0,8²)) que ningún modelo con variables observables puede recuperar. Con el historial sintético tan escaso (k ~ Poisson(1,5) citas/paciente en 730 días), incluso agregando todas las variables disponibles se llega a AUC ~0,63–0,65, frente a 0,74 del oráculo. **Es el techo práctico**: no es un fallo del modelo, sino una limitación de los datos.
-
-### 2. Espera no aprendible desde el historial
-
-El generador fija el término de espera en 0 para todas las citas del historial (hallazgo A2 de la revisión). Las citas futuras sí dependen de la espera (β_wait = 0,15), pero el modelo entrenado en historial no puede aprender ese efecto. Sesgo predicho al aplicar a citas futuras:
-- Por especialidad: brecha de ±2,1 pp en promedio (rango −8,7 a +7,4 pp).
-- Por quintil de espera: −2,6 pp en el quintil de mayor espera, +2,7 pp en el de menor espera.
-
-Estas cifras son de la revisión del generador (N = 20.000), no de esta corrida.
-
-**Impacto**: El sobreagendamiento recaerá más sobre pacientes que esperan poco y menos sobre quienes esperan mucho (y en GES). Hoy no hay mitigación implementada; queda pendiente para cuando el historial sintético tenga término de espera.
-
-### 3. Proceso estacionario
-
-El historial sintético no tiene deriva temporal ni estacionalidad (sin parámetro de deriva). Un split temporal equivale estadísticamente a uno aleatorio en un proceso estacionario y no prueba robustez a cambios de política o cambios demográficos en el tiempo real.
-
-### 4. Franja horaria constante
-
-En el historial sintético, todas las citas están a las 12:00 UTC (franja horaria constante). La variable `time_band` se descartó automáticamente. En datos reales, la hora de la cita sí importa; el modelo será insensible a este efecto.
-
-### 5. Persistencia con joblib
-
-El modelo se persiste con joblib, que usa pickle. **Solo se cargan artefactos producidos por el pipeline de Prioriza.** No se carga código externo desde el modelo.
-
-### 6. Proxies en datos reales
-
-Aunque el sintético excluye correctamente sexo, etnia y nacionalidad, en datos reales habría proxies:
-- La especialidad delata el sexo (ej: ginecología, urología, mama).
-- El servicio y la comuna delatan etnia y nacionalidad (ej: Arica, Iquique, Araucanía).
-- Las especialidades pediátricas determinan la edad (correlación alta con edad < 18).
-
-Si el modelo se aplica a datos reales sin recalibración, estos proxies pueden reintroducir sesgos protegidos. Se requiere auditoría de equidad en servicio.
+1. **Techo de AUC (A3).** La señal individual está en u_i y el historial (k ~ Poisson(1,5) en 730 días) aporta poco. No se cambió λ en esta fase.
+2. **Espera no aprendible (A2).** Según la revisión del generador (N = 20.000, no esta corrida), un modelo entrenado en el historial y aplicado a citas futuras sobreestima ~2,7 pp en el quintil de menor espera y subestima ~2,6 pp en el de mayor espera. El sobreagendamiento recaería sobre quienes esperan poco. No hay mitigación implementada.
+3. **Proceso estacionario (M4).** Sin deriva ni estacionalidad, el split temporal equivale estadísticamente a uno aleatorio y no prueba robustez ante cambios en el tiempo.
+4. **Franja horaria constante** en el historial: el modelo no aprende efectos de la hora.
+5. **Proxies:** la especialidad delata la edad en pediatría (V = 0,32) y delataría el sexo con datos reales; servicio y comuna delatarían etnia y nacionalidad.
+6. **Persistencia con joblib (pickle):** solo cargar artefactos propios.
 
 ## Reproducción
 
-### Generar población sintética y entrenar modelo
-
 ```bash
-# Generar población sintética (100.000 pacientes, seed 42, escenario baseline)
-make synth
-# (carga a PostgreSQL; sin base de datos basta con escribir los parquet:)
+make synth            # carga a PostgreSQL; sin base de datos:
 # uv run --package synthetic prioriza-synth generate --size 100000 --seed 42 --no-load
-
-# Entrenar modelo de inasistencias
-make train-noshow
-# Equivalente a:
-# uv run --package noshow prioriza-noshow train --seed 42 --size 100000 --scenario baseline
-# (--run-dir data/synthetic/<run_id> fija una corrida si hay varias con esos parámetros)
+make train-noshow     # = uv run --package noshow prioriza-noshow train --seed 42 --size 100000 --scenario baseline
 ```
 
-### Artefactos generados
+`prioriza-noshow train` usa la única corrida de `data/synthetic/` con esa semilla, tamaño y escenario generada con los supuestos vigentes del generador (`targets_sha256` y `params_sha256`); si hay varias, falla y pide `--run-dir`.
 
 | Ruta | Contenido |
 |---|---|
-| `models/noshow/<run_id>/noshow_model.joblib` | Bundle con los tres modelos (logística y boosting calibrados, baseline), el nombre del principal y las columnas de entrada. No se versiona en git. |
-| `models/noshow/<run_id>/metadata.json` | Versión del modelo, versión de datos (run_id, dataset_sha256), configuración, límites del split, método de calibración y versiones de librerías. |
-| `results/noshow.json` | Métricas completas, coeficientes, calibración, equidad, split, todas las decisiones. |
+| `models/noshow/<run_id>/noshow_model.joblib` | Bundle con los candidatos (logística y boosting, con y sin calibrar) y el baseline, el nombre del principal y las columnas de entrada. No se versiona en git. |
+| `models/noshow/<run_id>/metadata.json` | Versión del modelo (huella de configuración, columnas e hiperparámetros + `dataset_sha256`), versión de datos, límites del split, método de calibración y versiones de librerías. |
+| `results/noshow.json` | Métricas, curvas de calibración, selección, equidad, fuerza de proxies, coeficientes de la logística y política de variables. |
 
-### Archivos de referencia
+Referencias: `docs/decisions.md` §9, `docs/design/synthetic-noshow-review.md`, `noshow/src/noshow/features.py`, `docs/synthetic-data.md` §4.
 
-- `docs/decisions.md` § 9: decisiones de diseño del modelo.
-- `docs/design/synthetic-noshow-review.md`: revisión técnica por ml-engineer, hallazgos A1–A3, M1–M4, B1–B4.
-- `noshow/src/noshow/features.py`: política de variables, lista de excluidas con motivos.
-- `docs/synthetic-data.md` § 4: cómo se generan las inasistencias sintéticas, parámetros, escenarios.
-
----
-
-**Última actualización**: 2026-10-08. **Modelo**: noshow-1124d9b7-6ef9a83e. **Disclaimer**: Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.
+Modelo `noshow-4f0429cd-6ef9a83e`, 2026-10-08.

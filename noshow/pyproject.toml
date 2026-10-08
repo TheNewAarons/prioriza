@@ -13,6 +13,7 @@ dependencies = [
     "polars>=1.0",
     "scikit-learn>=1.6",
     "shared",
+    "synthetic",
     "typer>=0.12",
 ]
 
@@ -21,3 +22,4 @@ prioriza-noshow = "noshow.cli:main"
 
 [tool.uv.sources]
 shared = {workspace = true}
+synthetic = {workspace = true}

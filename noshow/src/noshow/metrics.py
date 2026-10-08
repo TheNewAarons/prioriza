@@ -129,3 +129,23 @@ def group_calibration(
             item["gap_vs_truth"] = _r(row["mean_predicted"] - row["mean_true_prob"])
         out.append(item)
     return out
+
+
+def cramers_v(frame: pl.DataFrame, a: str, b: str) -> float:
+    """V de Cramér (sin corrección de sesgo) entre dos columnas categóricas; nulos excluidos."""
+    pairs = frame.select(pl.col(a).cast(pl.String), pl.col(b).cast(pl.String)).drop_nulls()
+    n = pairs.height
+    if n == 0:
+        return 0.0
+    counts = pairs.group_by(a, b).len()
+    ra = pairs.group_by(a).len().rename({"len": "na"})
+    rb = pairs.group_by(b).len().rename({"len": "nb"})
+    k = min(ra.height, rb.height)
+    if k < 2:
+        return 0.0
+    observed = counts.join(ra, on=a).join(rb, on=b)
+    expected = observed["na"].to_numpy() * observed["nb"].to_numpy() / n
+    obs = observed["len"].to_numpy()
+    # celdas con conteo 0: aportan su esperado completo al chi-cuadrado
+    chi2 = float(((obs - expected) ** 2 / expected).sum() + (n - expected.sum()))
+    return float(np.sqrt(chi2 / (n * (k - 1))))

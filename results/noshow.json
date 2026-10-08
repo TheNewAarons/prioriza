@@ -32,476 +32,476 @@
     "age_group": {
       "groups": [
         {
-          "gap": 0.004124,
-          "gap_vs_truth": 0.008217,
+          "gap": -0.002268,
+          "gap_vs_truth": 0.001824,
           "group": "0_14",
-          "mean_predicted": 0.182538,
+          "mean_predicted": 0.176145,
           "mean_true_prob": 0.174321,
           "n": 3391,
           "observed_rate": 0.178413
         },
         {
-          "gap": -0.007447,
-          "gap_vs_truth": -0.026422,
+          "gap": -0.013094,
+          "gap_vs_truth": -0.03207,
           "group": "15_19",
-          "mean_predicted": 0.159709,
+          "mean_predicted": 0.154061,
           "mean_true_prob": 0.186131,
           "n": 1364,
           "observed_rate": 0.167155
         },
         {
-          "gap": -0.020939,
-          "gap_vs_truth": -0.025738,
+          "gap": -0.026497,
+          "gap_vs_truth": -0.031296,
           "group": "20_44",
-          "mean_predicted": 0.149779,
+          "mean_predicted": 0.144221,
           "mean_true_prob": 0.175517,
           "n": 7281,
           "observed_rate": 0.170718
         },
         {
-          "gap": 0.009917,
-          "gap_vs_truth": 0.010485,
+          "gap": 0.004078,
+          "gap_vs_truth": 0.004646,
           "group": "45_64",
-          "mean_predicted": 0.147197,
+          "mean_predicted": 0.141359,
           "mean_true_prob": 0.136712,
           "n": 9965,
           "observed_rate": 0.13728
         },
         {
-          "gap": 0.02849,
-          "gap_vs_truth": 0.028476,
+          "gap": 0.022693,
+          "gap_vs_truth": 0.02268,
           "group": "65_plus",
-          "mean_predicted": 0.145733,
+          "mean_predicted": 0.139937,
           "mean_true_prob": 0.117257,
           "n": 9621,
           "observed_rate": 0.117244
         }
       ],
-      "max_abs_gap_vs_truth": 0.028476
+      "max_abs_gap_vs_truth": 0.03207
     },
     "care_type": {
       "groups": [
         {
-          "gap": 0.007746,
-          "gap_vs_truth": 0.005818,
+          "gap": 0.002838,
+          "gap_vs_truth": 0.00091,
           "group": "consultation",
-          "mean_predicted": 0.167932,
+          "mean_predicted": 0.163024,
           "mean_true_prob": 0.162113,
           "n": 26900,
           "observed_rate": 0.160186
         },
         {
-          "gap": 0.003373,
-          "gap_vs_truth": 0.005582,
+          "gap": -0.00759,
+          "gap_vs_truth": -0.005381,
           "group": "surgery",
-          "mean_predicted": 0.05907,
+          "mean_predicted": 0.048107,
           "mean_true_prob": 0.053488,
           "n": 4722,
           "observed_rate": 0.055697
         }
       ],
-      "max_abs_gap_vs_truth": 0.005818
+      "max_abs_gap_vs_truth": 0.005381
     },
     "commune_code": {
       "groups": [
         {
-          "gap": 0.005256,
-          "gap_vs_truth": 0.005971,
+          "gap": 0.000731,
+          "gap_vs_truth": 0.001446,
           "group": "02101",
-          "mean_predicted": 0.163151,
+          "mean_predicted": 0.158626,
           "mean_true_prob": 0.15718,
           "n": 456,
           "observed_rate": 0.157895
         },
         {
-          "gap": -0.004792,
-          "gap_vs_truth": 0.007598,
+          "gap": -0.008828,
+          "gap_vs_truth": 0.003562,
           "group": "02201",
-          "mean_predicted": 0.157546,
+          "mean_predicted": 0.15351,
           "mean_true_prob": 0.149948,
           "n": 308,
           "observed_rate": 0.162338
         },
         {
-          "gap": 0.0212,
-          "gap_vs_truth": 0.005418,
+          "gap": 0.017177,
+          "gap_vs_truth": 0.001396,
           "group": "04101",
-          "mean_predicted": 0.157122,
+          "mean_predicted": 0.1531,
           "mean_true_prob": 0.151704,
           "n": 309,
           "observed_rate": 0.135922
         },
         {
-          "gap": 0.038998,
-          "gap_vs_truth": 0.011062,
+          "gap": 0.03404,
+          "gap_vs_truth": 0.006103,
           "group": "04102",
-          "mean_predicted": 0.153456,
+          "mean_predicted": 0.148497,
           "mean_true_prob": 0.142394,
           "n": 332,
           "observed_rate": 0.114458
         },
         {
-          "gap": -0.007349,
-          "gap_vs_truth": -0.004594,
+          "gap": -0.013018,
+          "gap_vs_truth": -0.010262,
           "group": "04301",
-          "mean_predicted": 0.147256,
+          "mean_predicted": 0.141588,
           "mean_true_prob": 0.15185,
           "n": 304,
           "observed_rate": 0.154605
         },
         {
-          "gap": -0.005263,
-          "gap_vs_truth": 0.018839,
+          "gap": -0.011487,
+          "gap_vs_truth": 0.012615,
           "group": "04303",
-          "mean_predicted": 0.150077,
+          "mean_predicted": 0.143853,
           "mean_true_prob": 0.131238,
           "n": 206,
           "observed_rate": 0.15534
         },
         {
-          "gap": 0.017726,
-          "gap_vs_truth": -0.000949,
+          "gap": 0.012108,
+          "gap_vs_truth": -0.006566,
           "group": "05101",
-          "mean_predicted": 0.150753,
+          "mean_predicted": 0.145136,
           "mean_true_prob": 0.151702,
           "n": 436,
           "observed_rate": 0.133028
         },
         {
-          "gap": 0.025609,
-          "gap_vs_truth": 0.009439,
+          "gap": 0.019238,
+          "gap_vs_truth": 0.003068,
           "group": "05109",
-          "mean_predicted": 0.156976,
+          "mean_predicted": 0.150605,
           "mean_true_prob": 0.147537,
           "n": 373,
           "observed_rate": 0.131367
         },
         {
-          "gap": 0.008563,
-          "gap_vs_truth": 0.014535,
+          "gap": 0.003131,
+          "gap_vs_truth": 0.009102,
           "group": "05501",
-          "mean_predicted": 0.147867,
+          "mean_predicted": 0.142434,
           "mean_true_prob": 0.133332,
           "n": 201,
           "observed_rate": 0.139303
         },
         {
-          "gap": -0.034631,
-          "gap_vs_truth": -0.00654,
+          "gap": -0.04222,
+          "gap_vs_truth": -0.014129,
           "group": "05801",
-          "mean_predicted": 0.154423,
+          "mean_predicted": 0.146835,
           "mean_true_prob": 0.160964,
           "n": 201,
           "observed_rate": 0.189055
         },
         {
-          "gap": 0.014456,
-          "gap_vs_truth": 0.012239,
+          "gap": 0.007449,
+          "gap_vs_truth": 0.005233,
           "group": "06101",
-          "mean_predicted": 0.145542,
+          "mean_predicted": 0.138536,
           "mean_true_prob": 0.133303,
           "n": 267,
           "observed_rate": 0.131086
         },
         {
-          "gap": 0.019708,
-          "gap_vs_truth": 0.007617,
+          "gap": 0.015409,
+          "gap_vs_truth": 0.003318,
           "group": "07101",
-          "mean_predicted": 0.144708,
+          "mean_predicted": 0.140409,
           "mean_true_prob": 0.137091,
           "n": 280,
           "observed_rate": 0.125
         },
         {
-          "gap": -0.02338,
-          "gap_vs_truth": 0.004469,
+          "gap": -0.028277,
+          "gap_vs_truth": -0.000428,
           "group": "07301",
-          "mean_predicted": 0.16162,
+          "mean_predicted": 0.156723,
           "mean_true_prob": 0.157151,
           "n": 200,
           "observed_rate": 0.185
         },
         {
-          "gap": -0.02501,
-          "gap_vs_truth": 0.009908,
+          "gap": -0.032166,
+          "gap_vs_truth": 0.002752,
           "group": "08101",
-          "mean_predicted": 0.146339,
+          "mean_predicted": 0.139182,
           "mean_true_prob": 0.13643,
           "n": 356,
           "observed_rate": 0.171348
         },
         {
-          "gap": -0.007946,
-          "gap_vs_truth": 0.000671,
+          "gap": -0.015122,
+          "gap_vs_truth": -0.006505,
           "group": "08102",
-          "mean_predicted": 0.146643,
+          "mean_predicted": 0.139468,
           "mean_true_prob": 0.145973,
           "n": 207,
           "observed_rate": 0.154589
         },
         {
-          "gap": 0.015162,
-          "gap_vs_truth": 0.015456,
+          "gap": 0.00905,
+          "gap_vs_truth": 0.009343,
           "group": "08108",
-          "mean_predicted": 0.146003,
+          "mean_predicted": 0.139891,
           "mean_true_prob": 0.130547,
           "n": 214,
           "observed_rate": 0.130841
         },
         {
-          "gap": 0.015856,
-          "gap_vs_truth": 0.018045,
+          "gap": 0.010187,
+          "gap_vs_truth": 0.012377,
           "group": "08110",
-          "mean_predicted": 0.153787,
+          "mean_predicted": 0.148118,
           "mean_true_prob": 0.135742,
           "n": 203,
           "observed_rate": 0.137931
         },
         {
-          "gap": 0.009417,
-          "gap_vs_truth": 0.007,
+          "gap": 0.003174,
+          "gap_vs_truth": 0.000757,
           "group": "08301",
-          "mean_predicted": 0.141629,
+          "mean_predicted": 0.135386,
           "mean_true_prob": 0.134629,
           "n": 416,
           "observed_rate": 0.132212
         },
         {
-          "gap": -0.010184,
-          "gap_vs_truth": 0.000149,
+          "gap": -0.016384,
+          "gap_vs_truth": -0.006051,
           "group": "09101",
-          "mean_predicted": 0.148546,
+          "mean_predicted": 0.142346,
           "mean_true_prob": 0.148397,
           "n": 504,
           "observed_rate": 0.15873
         },
         {
-          "gap": -0.004013,
-          "gap_vs_truth": 0.002831,
+          "gap": -0.010754,
+          "gap_vs_truth": -0.003911,
           "group": "10101",
-          "mean_predicted": 0.151089,
+          "mean_predicted": 0.144348,
           "mean_true_prob": 0.148259,
           "n": 490,
           "observed_rate": 0.155102
         },
         {
-          "gap": 0.009505,
-          "gap_vs_truth": 0.002601,
+          "gap": 0.003334,
+          "gap_vs_truth": -0.003571,
           "group": "12101",
-          "mean_predicted": 0.150223,
+          "mean_predicted": 0.144052,
           "mean_true_prob": 0.147623,
           "n": 334,
           "observed_rate": 0.140719
         },
         {
-          "gap": -0.002995,
-          "gap_vs_truth": 0.012891,
+          "gap": -0.009806,
+          "gap_vs_truth": 0.00608,
           "group": "13101",
-          "mean_predicted": 0.163149,
+          "mean_predicted": 0.156338,
           "mean_true_prob": 0.150258,
           "n": 319,
           "observed_rate": 0.166144
         },
         {
-          "gap": 0.037107,
-          "gap_vs_truth": 0.006848,
+          "gap": 0.032609,
+          "gap_vs_truth": 0.00235,
           "group": "13104",
-          "mean_predicted": 0.158215,
+          "mean_predicted": 0.153717,
           "mean_true_prob": 0.151367,
           "n": 289,
           "observed_rate": 0.121107
         },
         {
-          "gap": 0.032001,
-          "gap_vs_truth": 0.010007,
+          "gap": 0.025098,
+          "gap_vs_truth": 0.003105,
           "group": "13105",
-          "mean_predicted": 0.148565,
+          "mean_predicted": 0.141662,
           "mean_true_prob": 0.138558,
           "n": 326,
           "observed_rate": 0.116564
         },
         {
-          "gap": 0.034874,
-          "gap_vs_truth": -0.01677,
+          "gap": 0.02922,
+          "gap_vs_truth": -0.022424,
           "group": "13107",
-          "mean_predicted": 0.154565,
+          "mean_predicted": 0.148912,
           "mean_true_prob": 0.171335,
           "n": 259,
           "observed_rate": 0.119691
         },
         {
-          "gap": 0.011327,
-          "gap_vs_truth": 0.005293,
+          "gap": 0.005349,
+          "gap_vs_truth": -0.000685,
           "group": "13110",
-          "mean_predicted": 0.15335,
+          "mean_predicted": 0.147372,
           "mean_true_prob": 0.148057,
           "n": 514,
           "observed_rate": 0.142023
         },
         {
-          "gap": 0.039022,
-          "gap_vs_truth": 0.014709,
+          "gap": 0.033418,
+          "gap_vs_truth": 0.009105,
           "group": "13111",
-          "mean_predicted": 0.154248,
+          "mean_predicted": 0.148644,
           "mean_true_prob": 0.139539,
           "n": 243,
           "observed_rate": 0.115226
         },
         {
-          "gap": 0.016104,
-          "gap_vs_truth": -0.000734,
+          "gap": 0.010397,
+          "gap_vs_truth": -0.006441,
           "group": "13112",
-          "mean_predicted": 0.145516,
+          "mean_predicted": 0.139809,
           "mean_true_prob": 0.146249,
           "n": 340,
           "observed_rate": 0.129412
         },
         {
-          "gap": -0.007988,
-          "gap_vs_truth": 0.00589,
+          "gap": -0.013788,
+          "gap_vs_truth": 9e-05,
           "group": "13119",
-          "mean_predicted": 0.154951,
+          "mean_predicted": 0.149151,
           "mean_true_prob": 0.149061,
           "n": 626,
           "observed_rate": 0.162939
         },
         {
-          "gap": 0.040365,
-          "gap_vs_truth": 0.012989,
+          "gap": 0.033611,
+          "gap_vs_truth": 0.006235,
           "group": "13121",
-          "mean_predicted": 0.159413,
+          "mean_predicted": 0.152659,
           "mean_true_prob": 0.146424,
           "n": 252,
           "observed_rate": 0.119048
         },
         {
-          "gap": 0.039493,
-          "gap_vs_truth": 0.013765,
+          "gap": 0.033306,
+          "gap_vs_truth": 0.007578,
           "group": "13122",
-          "mean_predicted": 0.152033,
+          "mean_predicted": 0.145846,
           "mean_true_prob": 0.138268,
           "n": 311,
           "observed_rate": 0.11254
         },
         {
-          "gap": -0.025463,
-          "gap_vs_truth": 0.00284,
+          "gap": -0.030519,
+          "gap_vs_truth": -0.002217,
           "group": "13124",
-          "mean_predicted": 0.159153,
+          "mean_predicted": 0.154096,
           "mean_true_prob": 0.156313,
           "n": 325,
           "observed_rate": 0.184615
         },
         {
-          "gap": 0.016068,
-          "gap_vs_truth": 0.003884,
+          "gap": 0.011457,
+          "gap_vs_truth": -0.000728,
           "group": "13125",
-          "mean_predicted": 0.14963,
+          "mean_predicted": 0.145018,
           "mean_true_prob": 0.145746,
           "n": 292,
           "observed_rate": 0.133562
         },
         {
-          "gap": -0.031702,
-          "gap_vs_truth": 0.004283,
+          "gap": -0.036139,
+          "gap_vs_truth": -0.000154,
           "group": "13127",
-          "mean_predicted": 0.16089,
+          "mean_predicted": 0.156453,
           "mean_true_prob": 0.156607,
           "n": 270,
           "observed_rate": 0.192593
         },
         {
-          "gap": 0.051586,
-          "gap_vs_truth": 0.011245,
+          "gap": 0.046573,
+          "gap_vs_truth": 0.006232,
           "group": "13128",
-          "mean_predicted": 0.152463,
+          "mean_predicted": 0.14745,
           "mean_true_prob": 0.141218,
           "n": 228,
           "observed_rate": 0.100877
         },
         {
-          "gap": -0.003602,
-          "gap_vs_truth": 0.005494,
+          "gap": -0.009511,
+          "gap_vs_truth": -0.000414,
           "group": "13129",
-          "mean_predicted": 0.155489,
+          "mean_predicted": 0.14958,
           "mean_true_prob": 0.149994,
           "n": 264,
           "observed_rate": 0.159091
         },
         {
-          "gap": 0.017907,
-          "gap_vs_truth": 0.010925,
+          "gap": 0.011078,
+          "gap_vs_truth": 0.004096,
           "group": "13201",
-          "mean_predicted": 0.149907,
+          "mean_predicted": 0.143078,
           "mean_true_prob": 0.138982,
           "n": 500,
           "observed_rate": 0.132
         },
         {
-          "gap": 0.036364,
-          "gap_vs_truth": 0.011922,
+          "gap": 0.030546,
+          "gap_vs_truth": 0.006104,
           "group": "13301",
-          "mean_predicted": 0.145817,
+          "mean_predicted": 0.139999,
           "mean_true_prob": 0.133895,
           "n": 201,
           "observed_rate": 0.109453
         },
         {
-          "gap": 0.002602,
-          "gap_vs_truth": 0.003766,
+          "gap": -0.003558,
+          "gap_vs_truth": -0.002394,
           "group": "13302",
-          "mean_predicted": 0.146571,
+          "mean_predicted": 0.140411,
           "mean_true_prob": 0.142805,
           "n": 257,
           "observed_rate": 0.143969
         },
         {
-          "gap": -0.010478,
-          "gap_vs_truth": 0.01287,
+          "gap": -0.016769,
+          "gap_vs_truth": 0.006579,
           "group": "13401",
-          "mean_predicted": 0.151684,
+          "mean_predicted": 0.145393,
           "mean_true_prob": 0.138814,
           "n": 407,
           "observed_rate": 0.162162
         },
         {
-          "gap": 0.02099,
-          "gap_vs_truth": 0.007611,
+          "gap": 0.016474,
+          "gap_vs_truth": 0.003095,
           "group": "13501",
-          "mean_predicted": 0.154819,
+          "mean_predicted": 0.150303,
           "mean_true_prob": 0.147208,
           "n": 269,
           "observed_rate": 0.133829
         },
         {
-          "gap": 0.027791,
-          "gap_vs_truth": 0.016077,
+          "gap": 0.022941,
+          "gap_vs_truth": 0.011226,
           "group": "14101",
-          "mean_predicted": 0.153239,
+          "mean_predicted": 0.148389,
           "mean_true_prob": 0.137162,
           "n": 279,
           "observed_rate": 0.125448
         },
         {
-          "gap": -0.061462,
-          "gap_vs_truth": -0.045985,
+          "gap": -0.06662,
+          "gap_vs_truth": -0.051143,
           "group": "15101",
-          "mean_predicted": 0.155116,
+          "mean_predicted": 0.149958,
           "mean_true_prob": 0.201101,
           "n": 374,
           "observed_rate": 0.216578
         },
         {
-          "gap": 0.059645,
-          "gap_vs_truth": 0.015062,
+          "gap": 0.055042,
+          "gap_vs_truth": 0.010459,
           "group": "16101",
-          "mean_predicted": 0.146111,
+          "mean_predicted": 0.141508,
           "mean_true_prob": 0.131049,
           "n": 266,
           "observed_rate": 0.086466
         }
       ],
-      "max_abs_gap_vs_truth": 0.045985,
+      "max_abs_gap_vs_truth": 0.051143,
       "n_groups_total": 338,
       "note": "En el sintético la comuna no tiene efecto propio (solo vía servicio), así que este análisis no puede detectar daño por comuna aunque exista en la realidad."
     },
@@ -509,318 +509,318 @@
     "health_service_code": {
       "groups": [
         {
-          "gap": -0.050304,
-          "gap_vs_truth": -0.044163,
+          "gap": -0.055547,
+          "gap_vs_truth": -0.049405,
           "group": "1",
-          "mean_predicted": 0.153443,
+          "mean_predicted": 0.1482,
           "mean_true_prob": 0.197605,
           "n": 427,
           "observed_rate": 0.203747
         },
         {
-          "gap": -0.047219,
-          "gap_vs_truth": -0.037143,
+          "gap": -0.052967,
+          "gap_vs_truth": -0.042892,
           "group": "2",
-          "mean_predicted": 0.160746,
+          "mean_predicted": 0.154997,
           "mean_true_prob": 0.197889,
           "n": 678,
           "observed_rate": 0.207965
         },
         {
-          "gap": 0.007372,
-          "gap_vs_truth": 0.005158,
+          "gap": 0.002962,
+          "gap_vs_truth": 0.000748,
           "group": "3",
-          "mean_predicted": 0.160313,
+          "mean_predicted": 0.155903,
           "mean_true_prob": 0.155155,
           "n": 935,
           "observed_rate": 0.152941
         },
         {
-          "gap": -0.012357,
-          "gap_vs_truth": 0.014724,
+          "gap": -0.018024,
+          "gap_vs_truth": 0.009057,
           "group": "4",
-          "mean_predicted": 0.152376,
+          "mean_predicted": 0.146709,
           "mean_true_prob": 0.137652,
           "n": 431,
           "observed_rate": 0.164733
         },
         {
-          "gap": 0.021651,
-          "gap_vs_truth": 0.010983,
+          "gap": 0.015967,
+          "gap_vs_truth": 0.0053,
           "group": "5",
-          "mean_predicted": 0.152326,
+          "mean_predicted": 0.146643,
           "mean_true_prob": 0.141343,
           "n": 1806,
           "observed_rate": 0.130676
         },
         {
-          "gap": 0.020189,
-          "gap_vs_truth": 0.000531,
+          "gap": 0.013857,
+          "gap_vs_truth": -0.005801,
           "group": "6",
-          "mean_predicted": 0.147522,
+          "mean_predicted": 0.141189,
           "mean_true_prob": 0.146991,
           "n": 911,
           "observed_rate": 0.127333
         },
         {
-          "gap": 0.004445,
-          "gap_vs_truth": 0.007516,
+          "gap": -0.001717,
+          "gap_vs_truth": 0.001354,
           "group": "7",
-          "mean_predicted": 0.155721,
+          "mean_predicted": 0.149559,
           "mean_true_prob": 0.148205,
           "n": 1646,
           "observed_rate": 0.151276
         },
         {
-          "gap": -0.014125,
-          "gap_vs_truth": 0.005494,
+          "gap": -0.020633,
+          "gap_vs_truth": -0.001014,
           "group": "8",
-          "mean_predicted": 0.141864,
+          "mean_predicted": 0.135356,
           "mean_true_prob": 0.13637,
           "n": 359,
           "observed_rate": 0.155989
         },
         {
-          "gap": 0.014885,
-          "gap_vs_truth": 0.003865,
+          "gap": 0.009801,
+          "gap_vs_truth": -0.001219,
           "group": "9",
-          "mean_predicted": 0.153364,
+          "mean_predicted": 0.14828,
           "mean_true_prob": 0.149499,
           "n": 1762,
           "observed_rate": 0.138479
         },
         {
-          "gap": 0.014806,
-          "gap_vs_truth": 0.009615,
+          "gap": 0.009491,
+          "gap_vs_truth": 0.0043,
           "group": "10",
-          "mean_predicted": 0.15713,
+          "mean_predicted": 0.151815,
           "mean_true_prob": 0.147515,
           "n": 1876,
           "observed_rate": 0.142324
         },
         {
-          "gap": 0.004047,
-          "gap_vs_truth": 0.009444,
+          "gap": -0.002206,
+          "gap_vs_truth": 0.003191,
           "group": "11",
-          "mean_predicted": 0.157386,
+          "mean_predicted": 0.151132,
           "mean_true_prob": 0.147941,
           "n": 1213,
           "observed_rate": 0.153339
         },
         {
-          "gap": 0.019579,
-          "gap_vs_truth": 0.00921,
+          "gap": 0.014202,
+          "gap_vs_truth": 0.003833,
           "group": "12",
-          "mean_predicted": 0.147077,
+          "mean_predicted": 0.141699,
           "mean_true_prob": 0.137867,
           "n": 1051,
           "observed_rate": 0.127498
         },
         {
-          "gap": 0.007034,
-          "gap_vs_truth": 0.008302,
+          "gap": 0.001195,
+          "gap_vs_truth": 0.002463,
           "group": "13",
-          "mean_predicted": 0.154093,
+          "mean_predicted": 0.148254,
           "mean_true_prob": 0.145791,
           "n": 2074,
           "observed_rate": 0.147059
         },
         {
-          "gap": 0.012825,
-          "gap_vs_truth": 0.004936,
+          "gap": 0.0067,
+          "gap_vs_truth": -0.001189,
           "group": "14",
-          "mean_predicted": 0.151045,
+          "mean_predicted": 0.14492,
           "mean_true_prob": 0.146109,
           "n": 1910,
           "observed_rate": 0.13822
         },
         {
-          "gap": 0.012302,
-          "gap_vs_truth": 0.006954,
+          "gap": 0.005731,
+          "gap_vs_truth": 0.000383,
           "group": "15",
-          "mean_predicted": 0.144354,
+          "mean_predicted": 0.137784,
           "mean_true_prob": 0.137401,
           "n": 1666,
           "observed_rate": 0.132053
         },
         {
-          "gap": 0.007508,
-          "gap_vs_truth": 0.007652,
+          "gap": 0.001942,
+          "gap_vs_truth": 0.002085,
           "group": "16",
-          "mean_predicted": 0.149505,
+          "mean_predicted": 0.143939,
           "mean_true_prob": 0.141854,
           "n": 1993,
           "observed_rate": 0.141997
         },
         {
-          "gap": 0.034713,
-          "gap_vs_truth": 0.011202,
+          "gap": 0.028897,
+          "gap_vs_truth": 0.005386,
           "group": "17",
-          "mean_predicted": 0.151035,
+          "mean_predicted": 0.14522,
           "mean_true_prob": 0.139834,
           "n": 1066,
           "observed_rate": 0.116323
         },
         {
-          "gap": -0.001447,
-          "gap_vs_truth": 0.008936,
+          "gap": -0.008301,
+          "gap_vs_truth": 0.002082,
           "group": "18",
-          "mean_predicted": 0.145833,
+          "mean_predicted": 0.13898,
           "mean_true_prob": 0.136898,
           "n": 1195,
           "observed_rate": 0.14728
         },
         {
-          "gap": 0.016706,
-          "gap_vs_truth": 0.007574,
+          "gap": 0.011205,
+          "gap_vs_truth": 0.002072,
           "group": "19",
-          "mean_predicted": 0.151639,
+          "mean_predicted": 0.146137,
           "mean_true_prob": 0.144065,
           "n": 667,
           "observed_rate": 0.134933
         },
         {
-          "gap": -0.001069,
-          "gap_vs_truth": 0.00902,
+          "gap": -0.006399,
+          "gap_vs_truth": 0.003691,
           "group": "20",
-          "mean_predicted": 0.143306,
+          "mean_predicted": 0.137977,
           "mean_true_prob": 0.134286,
           "n": 1129,
           "observed_rate": 0.144376
         },
         {
-          "gap": 0.004147,
-          "gap_vs_truth": 0.003283,
+          "gap": -0.001429,
+          "gap_vs_truth": -0.002293,
           "group": "21",
-          "mean_predicted": 0.151845,
+          "mean_predicted": 0.146269,
           "mean_true_prob": 0.148562,
           "n": 2302,
           "observed_rate": 0.147698
         },
         {
-          "gap": 0.006451,
-          "gap_vs_truth": 0.007522,
+          "gap": 0.001205,
+          "gap_vs_truth": 0.002277,
           "group": "22",
-          "mean_predicted": 0.154989,
+          "mean_predicted": 0.149743,
           "mean_true_prob": 0.147466,
           "n": 855,
           "observed_rate": 0.148538
         },
         {
-          "gap": -0.013826,
-          "gap_vs_truth": 0.006993,
+          "gap": -0.019324,
+          "gap_vs_truth": 0.001495,
           "group": "23",
-          "mean_predicted": 0.138649,
+          "mean_predicted": 0.133152,
           "mean_true_prob": 0.131656,
           "n": 505,
           "observed_rate": 0.152475
         },
         {
-          "gap": -0.00207,
-          "gap_vs_truth": 0.00748,
+          "gap": -0.008866,
+          "gap_vs_truth": 0.000684,
           "group": "24",
-          "mean_predicted": 0.151111,
+          "mean_predicted": 0.144315,
           "mean_true_prob": 0.143631,
           "n": 1273,
           "observed_rate": 0.153181
         },
         {
-          "gap": -0.03012,
-          "gap_vs_truth": 0.017919,
+          "gap": -0.037027,
+          "gap_vs_truth": 0.011011,
           "group": "25",
-          "mean_predicted": 0.150436,
+          "mean_predicted": 0.143528,
           "mean_true_prob": 0.132517,
           "n": 216,
           "observed_rate": 0.180556
         },
         {
-          "gap": 0.011229,
-          "gap_vs_truth": 0.001555,
+          "gap": 0.005031,
+          "gap_vs_truth": -0.004644,
           "group": "26",
-          "mean_predicted": 0.151623,
+          "mean_predicted": 0.145425,
           "mean_true_prob": 0.150069,
           "n": 406,
           "observed_rate": 0.140394
         },
         {
-          "gap": 0.010253,
-          "gap_vs_truth": 0.013586,
+          "gap": 0.005025,
+          "gap_vs_truth": 0.008359,
           "group": "28",
-          "mean_predicted": 0.155458,
+          "mean_predicted": 0.150231,
           "mean_true_prob": 0.141872,
           "n": 365,
           "observed_rate": 0.145205
         },
         {
-          "gap": 0.00139,
-          "gap_vs_truth": 0.008416,
+          "gap": -0.005084,
+          "gap_vs_truth": 0.001941,
           "group": "29",
-          "mean_predicted": 0.16324,
+          "mean_predicted": 0.156765,
           "mean_true_prob": 0.154824,
           "n": 519,
           "observed_rate": 0.16185
         },
         {
-          "gap": 0.024025,
-          "gap_vs_truth": 0.007495,
+          "gap": 0.017637,
+          "gap_vs_truth": 0.001107,
           "group": "33",
-          "mean_predicted": 0.140605,
+          "mean_predicted": 0.134218,
           "mean_true_prob": 0.13311,
           "n": 386,
           "observed_rate": 0.11658
         }
       ],
-      "max_abs_gap_vs_truth": 0.044163
+      "max_abs_gap_vs_truth": 0.049405
     },
     "insurance": {
       "groups": [
         {
-          "gap": 0.011064,
-          "gap_vs_truth": 0.008149,
+          "gap": 0.005234,
+          "gap_vs_truth": 0.002319,
           "group": "fonasa_a",
-          "mean_predicted": 0.15134,
+          "mean_predicted": 0.14551,
           "mean_true_prob": 0.143191,
           "n": 5867,
           "observed_rate": 0.140276
         },
         {
-          "gap": 0.006593,
-          "gap_vs_truth": 0.005556,
+          "gap": 0.00085,
+          "gap_vs_truth": -0.000187,
           "group": "fonasa_b",
-          "mean_predicted": 0.15177,
+          "mean_predicted": 0.146027,
           "mean_true_prob": 0.146214,
           "n": 12378,
           "observed_rate": 0.145177
         },
         {
-          "gap": 0.006668,
-          "gap_vs_truth": 0.005189,
+          "gap": 0.000822,
+          "gap_vs_truth": -0.000657,
           "group": "fonasa_c",
-          "mean_predicted": 0.15235,
+          "mean_predicted": 0.146505,
           "mean_true_prob": 0.147162,
           "n": 4702,
           "observed_rate": 0.145683
         },
         {
-          "gap": 0.00558,
-          "gap_vs_truth": 0.004193,
+          "gap": -0.000203,
+          "gap_vs_truth": -0.00159,
           "group": "fonasa_d",
-          "mean_predicted": 0.151226,
+          "mean_predicted": 0.145443,
           "mean_true_prob": 0.147033,
           "n": 6811,
           "observed_rate": 0.145647
         },
         {
-          "gap": 0.004513,
-          "gap_vs_truth": 0.007152,
+          "gap": -0.001726,
+          "gap_vs_truth": 0.000913,
           "group": "other",
-          "mean_predicted": 0.152045,
+          "mean_predicted": 0.145807,
           "mean_true_prob": 0.144894,
           "n": 1864,
           "observed_rate": 0.147532
         }
       ],
-      "max_abs_gap_vs_truth": 0.008149
+      "max_abs_gap_vs_truth": 0.002319
     },
     "min_n": 200
   },
@@ -876,7 +876,30 @@
       "prior_attended",
       "prior_no_show"
     ],
-    "optional_used": []
+    "optional_used": [],
+    "proxy_risks": {
+      "specialty_code": "Las especialidades pediátricas delatan el grupo 0-14 años (y así reintroducen parte del efecto de edad excluido); en datos reales ginecología y obstetricia, urología y mama delatarían el sexo. Alternativa no adoptada: unificar variantes pediátricas y adultas."
+    },
+    "proxy_strength_train": {
+      "care_type": {
+        "age_group": 0.063,
+        "commune_code": 0.1469,
+        "health_service_code": 0.1193,
+        "insurance": 0.0103
+      },
+      "specialty_code": {
+        "age_group": 0.3165,
+        "commune_code": 0.0896,
+        "health_service_code": 0.0545,
+        "insurance": 0.0462
+      },
+      "weekday": {
+        "age_group": 0.0105,
+        "commune_code": 0.068,
+        "health_service_code": 0.0195,
+        "insurance": 0.0087
+      }
+    }
   },
   "logistic_coefficients": [
     {
@@ -1245,7 +1268,8 @@
     }
   ],
   "model_format_version": "1",
-  "model_version": "noshow-1124d9b7-6ef9a83e",
+  "model_spec_sha256": "4f0429cdc5906eac9965ff05e757675d759a13ed36548a7c3a254af43d5d8fbc",
+  "model_version": "noshow-4f0429cd-6ef9a83e",
   "oracle_reference": {
     "description": "Probabilidad verdadera del generador (verdad sintética, solo evaluación): techo de lo alcanzable.",
     "metrics": {
@@ -1311,20 +1335,23 @@
   },
   "primary_vs_baseline": {
     "beats_baseline_brier": true,
-    "brier_difference": -0.000885,
-    "ci95_high": -0.000577,
-    "ci95_low": -0.001189,
+    "brier_difference": -0.000958,
+    "ci95_high": -0.000683,
+    "ci95_low": -0.001227,
     "n_boot": 1000,
     "resampling_unit": "patient",
     "significant_at_95": true
   },
   "selection": {
-    "brier_out_of_fold": {
+    "brier_calibration_set": {
       "gradient_boosting": 0.126566,
-      "logistic_regression": 0.125976
+      "gradient_boosting_uncalibrated": 0.126732,
+      "logistic_regression": 0.125976,
+      "logistic_regression_uncalibrated": 0.125951
     },
-    "criterion": "Brier fuera de pliegue (KFold contiguo) del modelo calibrado en el conjunto de calibración; el conjunto de prueba no participa",
-    "primary": "logistic_regression"
+    "criterion": "Menor Brier en el conjunto de calibración entre los modelos sin calibrar (que no lo vieron al entrenar) y calibrados (predicciones fuera de pliegue, KFold contiguo). El conjunto de prueba no participa.",
+    "primary": "logistic_regression_uncalibrated",
+    "primary_is_calibrated": false
   },
   "split": {
     "calibration": {

@@ -22,6 +22,7 @@ from shared.disclaimer import DISCLAIMER
 
 from noshow import MODEL_FORMAT_VERSION
 from noshow.data import (
+    FAIRNESS_COLUMNS,
     FEATURE_TABLES,
     RunData,
     load_fairness_attributes,
@@ -33,11 +34,12 @@ from noshow.features import (
     FORBIDDEN_FEATURES,
     GROUP,
     LABEL,
+    PROXY_RISKS,
     build_features,
     model_columns,
     usable_optional,
 )
-from noshow.metrics import evaluate, group_calibration, paired_brier_bootstrap
+from noshow.metrics import cramers_v, evaluate, group_calibration, paired_brier_bootstrap
 from noshow.models import (
     SpecialtyRateBaseline,
     build_gradient_boosting,
@@ -48,7 +50,6 @@ from noshow.models import (
 )
 from noshow.split import TemporalSplit, temporal_split
 
-LEARNED_MODELS = ("logistic_regression", "gradient_boosting")
 SYNTHETIC_CAVEAT = (
     "Con datos sintéticos, estas métricas validan el pipeline (que aprende la estructura que el "
     "generador puso), no el desempeño en pacientes reales."
@@ -89,6 +90,36 @@ def _proba(model: Any, X: pl.DataFrame) -> np.ndarray:
     return np.asarray(model.predict_proba(X)[:, 1], dtype=np.float64)
 
 
+def _brier(y: np.ndarray, p: np.ndarray) -> float:
+    return round(float(np.mean((p - y) ** 2)), 6)
+
+
+def _model_spec_sha256(
+    config: TrainConfig, models: dict[str, Any], categorical: list[str], numeric: list[str]
+) -> str:
+    """Huella de configuración, columnas e hiperparámetros (cambia si cambia el código)."""
+    spec = {
+        "config": asdict(config),
+        "columns": [categorical, numeric],
+        "params": {n: m.get_params(deep=True) for n, m in sorted(models.items())},
+    }
+    text = json.dumps(spec, sort_keys=True, default=repr)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _proxy_strength(
+    run: RunData, train_frame: pl.DataFrame, categorical: list[str]
+) -> dict[str, dict[str, float]]:
+    """V de Cramér entre cada variable categórica del modelo y cada atributo de equidad."""
+    frame = train_frame.select(GROUP, *categorical).join(
+        load_fairness_attributes(run.run_dir), on=GROUP, how="left"
+    )
+    return {
+        feature: {attr: round(cramers_v(frame, feature, attr), 4) for attr in FAIRNESS_COLUMNS}
+        for feature in categorical
+    }
+
+
 def _logistic_coefficients(model: Any) -> list[dict[str, Any]]:
     names = model.named_steps["pre"].get_feature_names_out()
     coefs = model.named_steps["clf"].coef_[0]
@@ -119,21 +150,24 @@ def train(run: RunData, config: TrainConfig) -> TrainOutput:
     }
     method = choose_calibration_method(y_cal)
     selection: dict[str, float] = {}
-    calibrated: dict[str, Any] = {}
+    candidates: dict[str, Any] = {}
     for name, model in raw.items():
+        # sin calibrar: el modelo no vio el conjunto de calibración, su Brier ahí es honesto
+        selection[f"{name}_uncalibrated"] = _brier(y_cal, _proba(model, X_cal))
+        candidates[f"{name}_uncalibrated"] = model
         oof = out_of_fold_calibrated(model, X_cal, y_cal, method, config.calibration_folds)
-        selection[name] = round(float(np.mean((oof - y_cal) ** 2)), 6)
-        calibrated[name] = calibrate(model, X_cal, y_cal, method)
-    primary = min(LEARNED_MODELS, key=lambda n: (selection[n], n))
+        selection[name] = _brier(y_cal, oof)
+        candidates[name] = calibrate(model, X_cal, y_cal, method)
+    primary = min(selection, key=lambda n: (selection[n], n))
 
     preds = {"baseline_specialty_rate": _proba(baseline, X_te)}
-    for name in LEARNED_MODELS:
-        preds[f"{name}_uncalibrated"] = _proba(raw[name], X_te)
-        preds[name] = _proba(calibrated[name], X_te)
+    preds.update({name: _proba(model, X_te) for name, model in sorted(candidates.items())})
     test_metrics = {k: evaluate(y_te, v, config.ece_bins) for k, v in preds.items()}
 
     truth = load_truth_for_evaluation(run.run_dir)
-    test_eval = split.test.select("id", GROUP, LABEL).join(truth, on="id", how="left")
+    test_eval = split.test.select("id", GROUP, LABEL).join(
+        truth, on="id", how="left", maintain_order="left"
+    )
     p_true = test_eval["true_noshow_prob"].to_numpy()
     oracle = evaluate(y_te, p_true, config.ece_bins) if not np.isnan(p_true).any() else None
 
@@ -147,13 +181,16 @@ def train(run: RunData, config: TrainConfig) -> TrainOutput:
 
     fairness = _fairness(run, split, preds[primary], test_eval, config)
     data_version = run.data_version
-    model_version = f"noshow-{config.sha256()[:8]}-{str(data_version['dataset_sha256'])[:8]}"
+    code_sha = _model_spec_sha256(config, raw, categorical, numeric)
+    model_version = f"noshow-{code_sha[:8]}-{str(data_version['dataset_sha256'])[:8]}"
     feature_policy = {
         "categorical": categorical,
         "numeric": numeric,
         "optional_used": list(optional),
         "constant_in_train_dropped": constant,
         "forbidden": sorted(FORBIDDEN_FEATURES),
+        "proxy_risks": dict(sorted(PROXY_RISKS.items())),
+        "proxy_strength_train": _proxy_strength(run, split.train, categorical),
         "excluded": dict(sorted(EXCLUDED_FEATURES.items())),
         "feature_tables": sorted(FEATURE_TABLES),
         "history_rule": (
@@ -175,6 +212,7 @@ def train(run: RunData, config: TrainConfig) -> TrainOutput:
         "data_version": data_version,
         "config": asdict(config),
         "config_sha256": config.sha256(),
+        "model_spec_sha256": code_sha,
         "split": split.summary(),
         "features": feature_policy,
         "calibration": {
@@ -184,10 +222,12 @@ def train(run: RunData, config: TrainConfig) -> TrainOutput:
             "calibration_events": int(y_cal.sum()),
         },
         "selection": {
-            "criterion": "Brier fuera de pliegue (KFold contiguo) del modelo calibrado en el "
-            "conjunto de calibración; el conjunto de prueba no participa",
-            "brier_out_of_fold": selection,
+            "criterion": "Menor Brier en el conjunto de calibración entre los modelos sin "
+            "calibrar (que no lo vieron al entrenar) y calibrados (predicciones fuera de pliegue, "
+            "KFold contiguo). El conjunto de prueba no participa.",
+            "brier_calibration_set": selection,
             "primary": primary,
+            "primary_is_calibrated": not primary.endswith("_uncalibrated"),
         },
         "test_metrics": test_metrics,
         "oracle_reference": {
@@ -204,7 +244,7 @@ def train(run: RunData, config: TrainConfig) -> TrainOutput:
         "model_version": model_version,
         "model_format_version": MODEL_FORMAT_VERSION,
         "primary": primary,
-        "models": {**calibrated, "baseline_specialty_rate": baseline},
+        "models": {**candidates, "baseline_specialty_rate": baseline},
         "columns": {"categorical": categorical, "numeric": numeric},
         "data_version": data_version,
         "config": asdict(config),
@@ -286,7 +326,10 @@ def load_bundle(path: Path) -> dict[str, Any]:
 
 
 def predict_noshow(bundle: dict[str, Any], features: pl.DataFrame) -> np.ndarray:
-    """Probabilidad calibrada de inasistencia del modelo principal (filas de ``build_features``)."""
+    """Probabilidad de inasistencia del modelo principal.
+
+    ``features`` sale de ``build_candidate_features`` (citas a predecir) o de ``build_features``.
+    """
     cols = bundle["columns"]["categorical"] + bundle["columns"]["numeric"]
     return _proba(bundle["models"][bundle["primary"]], features.select(cols))
 

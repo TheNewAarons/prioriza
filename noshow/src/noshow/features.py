@@ -97,6 +97,16 @@ EXCLUDED_FEATURES: Final[dict[str, str]] = {
     "true_noshow_prob": "Verdad sintética del generador: prohibida como variable.",
 }
 
+# Variables permitidas que igual pueden actuar como proxy de un atributo de equidad. Se mantienen
+# porque están en la lista permitida; su fuerza como proxy se mide y se publica en results.
+PROXY_RISKS: Final[dict[str, str]] = {
+    "specialty_code": (
+        "Las especialidades pediátricas delatan el grupo 0-14 años (y así reintroducen parte del "
+        "efecto de edad excluido); en datos reales ginecología y obstetricia, urología y mama "
+        "delatarían el sexo. Alternativa no adoptada: unificar variantes pediátricas y adultas."
+    ),
+}
+
 OBSERVED_OUTCOMES: Final = ("attended", "no_show")
 
 
@@ -105,31 +115,54 @@ def build_features(
     specialties: pl.DataFrame,
     entries: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
-    """Matriz de features, etiqueta y columnas de control (fecha y paciente) por cita.
+    """Matriz de entrenamiento: features, etiqueta y columnas de control por cita observada.
 
     ``appointments`` necesita ``id``, ``patient_id``, ``status``, ``scheduled_start`` (UTC),
     ``lead_days`` y ``specialty_code``; ``specialties``, ``code`` y ``care_type``; ``entries``
-    (opcional), ``id`` y ``entry_date``. Solo se devuelven citas con resultado observado.
+    (opcional), ``id`` y ``entry_date``. Solo se devuelven citas con resultado observado, y
+    cada una usa como historial las demás citas observadas (ver ``build_candidate_features``).
+    """
+    observed = appointments.filter(pl.col("status").is_in(OBSERVED_OUTCOMES))
+    out = build_candidate_features(observed, observed, specialties, entries)
+    label = observed.select("id", (pl.col("status") == "no_show").cast(pl.Int8).alias(LABEL))
+    return out.join(label, on="id", how="left", maintain_order="left")
+
+
+def build_candidate_features(
+    candidates: pl.DataFrame,
+    history: pl.DataFrame,
+    specialties: pl.DataFrame,
+    entries: pl.DataFrame | None = None,
+) -> pl.DataFrame:
+    """Features de citas a predecir (por ejemplo, propuestas del programador), sin etiqueta.
+
+    ``candidates`` necesita ``id``, ``patient_id``, ``scheduled_start`` (UTC), ``lead_days`` (días
+    entre el agendamiento y la cita propuesta) y ``specialty_code``; ``entry_id`` es opcional.
+    ``history`` son citas pasadas con ``patient_id``, ``scheduled_start`` y ``status``; solo
+    cuentan las de resultado observado. Conserva el orden de ``candidates``.
 
     El historial previo cuenta solo citas cuyo resultado ya se conocía al momento de agendar
     (``scheduled_start`` anterior a ``scheduled_start - lead_days``, con desigualdad estricta),
     de modo que ninguna variable usa información posterior a la decisión.
     """
-    appts = appointments.filter(pl.col("status").is_in(OBSERVED_OUTCOMES)).with_columns(
+    targets = candidates.with_columns(
         pl.col(TIMESTAMP).dt.convert_time_zone("UTC"),
         pl.col("lead_days").cast(pl.Int64),
     )
-    appts = appts.with_columns(
+    targets = targets.with_columns(
         (pl.col(TIMESTAMP) - pl.duration(days=pl.col("lead_days"))).alias("booked_at")
     )
-    prior = _prior_history(appts)
+    observed = history.filter(pl.col("status").is_in(OBSERVED_OUTCOMES)).with_columns(
+        pl.col(TIMESTAMP).dt.convert_time_zone("UTC")
+    )
+    prior = _prior_history(targets, observed)
     local = pl.col(TIMESTAMP).dt.convert_time_zone(LOCAL_TZ)
     care = specialties.select(
         pl.col("code").alias("specialty_code"), pl.col("care_type").cast(pl.String)
     )
     out = (
-        appts.join(prior, on="id", how="left")
-        .join(care, on="specialty_code", how="left")
+        targets.join(prior, on="id", how="left", maintain_order="left")
+        .join(care, on="specialty_code", how="left", maintain_order="left")
         .with_columns(
             pl.col("prior_attended").fill_null(0),
             pl.col("prior_no_show").fill_null(0),
@@ -138,7 +171,6 @@ def build_features(
             .then(pl.lit("afternoon"))
             .otherwise(pl.lit("morning"))
             .alias("time_band"),
-            (pl.col("status") == "no_show").cast(pl.Int8).alias(LABEL),
         )
     )
     out = _with_wait_days(out, entries)
@@ -149,7 +181,6 @@ def build_features(
         *CATEGORICAL_FEATURES,
         *NUMERIC_FEATURES,
         *OPTIONAL_NUMERIC_FEATURES,
-        LABEL,
     ]
     return out.select(cols).with_columns(
         pl.col("lead_days").cast(pl.Float64),
@@ -160,10 +191,10 @@ def build_features(
     )
 
 
-def _prior_history(appts: pl.DataFrame) -> pl.DataFrame:
+def _prior_history(targets: pl.DataFrame, observed: pl.DataFrame) -> pl.DataFrame:
     """Conteo de asistencias e inasistencias del mismo paciente conocidas al agendar."""
-    left = appts.select("id", GROUP, "booked_at")
-    right = appts.select(
+    left = targets.select("id", GROUP, "booked_at")
+    right = observed.select(
         pl.col(GROUP), pl.col(TIMESTAMP).alias("prev_start"), pl.col("status").alias("prev_status")
     )
     return (
@@ -184,7 +215,7 @@ def _with_wait_days(appts: pl.DataFrame, entries: pl.DataFrame | None) -> pl.Dat
     dates = entries.select(pl.col("id").alias("entry_id"), "entry_date")
     local_day = pl.col(TIMESTAMP).dt.convert_time_zone(LOCAL_TZ).dt.date()
     return (
-        appts.join(dates, on="entry_id", how="left")
+        appts.join(dates, on="entry_id", how="left", maintain_order="left")
         .with_columns(
             (local_day - pl.col("entry_date")).dt.total_days().cast(pl.Float64).alias("wait_days")
         )

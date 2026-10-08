@@ -9,7 +9,8 @@ Rama: `feat/noshow-model`.
 - [x] P5-T0 (Asignada a: Tier 3 - Kimi) -> Hecha por Tier 1 (fallback: proxy Tier 3 caído, ver log)
 - [x] P5-T1 (Asignada a: Tier 1 - Claude) -> Hecha
 - [x] P5-T2 (Asignada a: Tier 3 - Qwen) -> Hecha por test-writer (fallback)
-- [x] P5-T3 (Asignada a: Tier 3 - Kimi) -> Hecha por docs-writer (fallback)
+- [x] P5-T3 (Asignada a: Tier 3 - Kimi) -> Hecha por docs-writer (fallback); reescrita por Tier 1 tras la revisión
+- [x] P5-R (reviewer, opus) -> Revisión de P5-T1 hecha; hallazgos 1-9 corregidos por Tier 1
 
 ### P5-T0: variables de cita e historial disponibles
 
@@ -54,3 +55,8 @@ No existen en los datos: sexo, etnia, nacionalidad, coordenadas ni distancia.
   `results/noshow.json` (brecha de Arica vs verdad −4,42 pp, no −5,02; 44 comunas con n ≥ 200, no 29; tamaño = entradas,
   no pacientes; hiperparámetros fijos; causa del empeoramiento por la isotónica; mitigaciones y cifras inventadas
   eliminadas; filas sin calibrar agregadas; comandos de reproducción).
+- 2026-10-08, Tier 1 (revisión de P5-T1 por `reviewer`): corregidos ALTO 1 (`build_candidate_features` para citas
+  futuras), MEDIO 2 (candidatos sin calibrar en la selección: el principal pasa a logística sin calibrar), MEDIO 3
+  (proxy pediátrico documentado + V de Cramér en results), MEDIO 4 (join con `maintain_order`), MEDIO 5 (corrida
+  elegida por huellas del generador, sin mtime), BAJO 6-9 (tests de historial intermedio, elección de modelo, franja
+  con horario de verano, versión del modelo con hiperparámetros). Model card reescrito con las cifras nuevas.

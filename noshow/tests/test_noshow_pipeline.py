@@ -67,7 +67,14 @@ def test_results_have_expected_keys(output: TrainOutput) -> None:
 
 def test_primary_and_calibration(output: TrainOutput) -> None:
     r = output.results
-    assert r["selection"]["primary"] in {"logistic_regression", "gradient_boosting"}
+    assert r["selection"]["primary"] in {
+        "logistic_regression",
+        "gradient_boosting",
+        "logistic_regression_uncalibrated",
+        "gradient_boosting_uncalibrated",
+    }
+    sel = r["selection"]["brier_calibration_set"]
+    assert sel[r["selection"]["primary"]] == min(sel.values())
     assert output.bundle["primary"] == r["selection"]["primary"]
     # Con pocos eventos en calibración se usa sigmoide, no isotónica.
     assert r["calibration"]["method"] == "sigmoid"

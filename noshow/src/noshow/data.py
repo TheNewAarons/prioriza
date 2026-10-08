@@ -91,21 +91,42 @@ def load_truth_for_evaluation(run_dir: Path) -> pl.DataFrame:
     return truth.select(pl.col("appointment_id").alias("id"), "true_noshow_prob")
 
 
-def find_run_dir(data_dir: Path, seed: int, size: int, scenario: str) -> tuple[Path, list[Path]]:
-    """Corrida en ``data_dir`` con esa semilla, tamaño y escenario.
+def find_run_dir(
+    data_dir: Path,
+    seed: int,
+    size: int,
+    scenario: str,
+    expected: dict[str, str] | None = None,
+) -> Path:
+    """Única corrida en ``data_dir`` con esa semilla, tamaño y escenario.
 
-    Si hay varias (por ejemplo, de versiones anteriores de los supuestos), elige la de
-    ``manifest.json`` más reciente y devuelve también la lista completa de candidatas.
+    ``expected`` (por ejemplo, ``targets_sha256`` y ``params_sha256`` vigentes del generador)
+    descarta corridas generadas con supuestos anteriores. Si no queda exactamente una, falla:
+    nunca se elige por fecha de archivo.
     """
-    matches: list[Path] = []
+    matches: list[tuple[Path, dict[str, Any]]] = []
     for manifest_path in sorted(data_dir.glob("*/manifest.json")):
         run = json.loads(manifest_path.read_text(encoding="utf-8"))["run"]
         if (run["seed"], run["size"], run["scenario"]) == (seed, size, scenario):
-            matches.append(manifest_path.parent)
+            matches.append((manifest_path.parent, run))
+    hint = "genérala con `make synth` o `prioriza-synth generate --no-load`"
     if not matches:
         raise FileNotFoundError(
             f"no hay corrida sintética con seed={seed}, size={size}, scenario={scenario} en "
-            f"{data_dir}; genérala con `make synth` o `prioriza-synth generate --no-load`"
+            f"{data_dir}; {hint}"
         )
-    newest = max(matches, key=lambda p: ((p / "manifest.json").stat().st_mtime, p.name))
-    return newest, matches
+    current = [
+        (path, run)
+        for path, run in matches
+        if all(run.get(k) == v for k, v in (expected or {}).items())
+    ]
+    if not current:
+        stale = ", ".join(p.name for p, _ in matches)
+        raise FileNotFoundError(
+            f"las corridas con seed={seed}, size={size}, scenario={scenario} ({stale}) se "
+            f"generaron con otros supuestos del generador; {hint}"
+        )
+    if len(current) > 1:
+        names = ", ".join(p.name for p, _ in current)
+        raise FileExistsError(f"varias corridas coinciden ({names}); fija una con --run-dir")
+    return current[0][0]

@@ -93,6 +93,8 @@ def test_test_labels_do_not_affect_fitted_models(run_dir: Path, small_config: Tr
     probe = feats.filter(pl.col(TIMESTAMP) < split.test_start)
     a = train(run, small_config).bundle
     b = train(_replace(run, appointment=flipped), small_config).bundle
+    assert a["primary"] == b["primary"]
+    assert a["calibration_method"] == b["calibration_method"]
     for name in a["models"]:
         cols = a["columns"]["categorical"] + a["columns"]["numeric"]
         pa = a["models"][name].predict_proba(probe.select(cols))[:, 1]
@@ -125,18 +127,38 @@ def test_prior_history_only_uses_outcomes_known_at_booking(run_dir: Path) -> Non
         assert row[2] == known.count("no_show")
 
 
-def test_future_outcome_does_not_change_past_features(run_dir: Path) -> None:
+def test_outcome_after_booking_does_not_change_features(run_dir: Path) -> None:
+    """Una cita que ocurre entre el agendamiento y la fecha de otra no entra a su historial."""
     run = load_run(run_dir)
-    last = run.appointment.sort(TIMESTAMP).tail(1)
+    appts = run.appointment.with_columns(
+        (pl.col(TIMESTAMP) - pl.duration(days=pl.col("lead_days"))).alias("booked_at")
+    )
+    pairs = (
+        appts.select("id", "patient_id", "booked_at", TIMESTAMP)
+        .join(
+            appts.select(
+                "patient_id", pl.col("id").alias("mid_id"), pl.col(TIMESTAMP).alias("mid")
+            ),
+            on="patient_id",
+        )
+        .filter((pl.col("mid") >= pl.col("booked_at")) & (pl.col("mid") < pl.col(TIMESTAMP)))
+    )
+    assert pairs.height > 0, "la fixture debe tener citas intermedias"
+    target, mid = pairs["id"][0], pairs["mid_id"][0]
     flipped = run.appointment.with_columns(
-        pl.when(pl.col("id") == last["id"][0])
-        .then(pl.lit("no_show" if last["status"][0] == "attended" else "attended"))
+        pl.when(pl.col("id") == mid)
+        .then(
+            pl.when(pl.col("status") == "no_show")
+            .then(pl.lit("attended"))
+            .otherwise(pl.lit("no_show"))
+        )
         .otherwise(pl.col("status"))
         .alias("status")
     )
-    a = build_features(run.appointment, run.catalog_specialty).drop("no_show")
-    b = build_features(flipped, run.catalog_specialty).drop("no_show")
-    assert a.sort("id").equals(b.sort("id"))
+    cols = ["prior_attended", "prior_no_show"]
+    a = build_features(run.appointment, run.catalog_specialty).filter(pl.col("id") == target)
+    b = build_features(flipped, run.catalog_specialty).filter(pl.col("id") == target)
+    assert a.select(cols).equals(b.select(cols))
 
 
 # --- variables prohibidas ----------------------------------------------------------------------

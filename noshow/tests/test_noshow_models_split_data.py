@@ -78,16 +78,37 @@ def test_find_run_dir_without_matches(tmp_path: Path) -> None:
         find_run_dir(tmp_path, seed=99, size=30, scenario="baseline")
 
 
-def test_find_run_dir_with_two_matches(tmp_path: Path) -> None:
+def _copy_run(src: Path, dst: Path, **run_changes: object) -> Path:
+    """Copia una corrida de juguete cambiando campos de ``manifest.json``."""
+    dst.mkdir()
+    for f in src.iterdir():
+        (dst / f.name).write_bytes(f.read_bytes())
+    manifest = json.loads((dst / "manifest.json").read_text(encoding="utf-8"))
+    manifest["run"].update(run_changes)
+    (dst / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return dst
+
+
+def test_find_run_dir_with_two_matches_fails(tmp_path: Path) -> None:
     first = make_run(tmp_path, n_patients=30, seed=2)
-    # Copia con otro id: misma semilla, tamaño y escenario.
-    second = tmp_path / "copy"
-    second.mkdir()
-    for f in first.iterdir():
-        (second / f.name).write_bytes(f.read_bytes())
-    best, matches = find_run_dir(tmp_path, seed=2, size=30, scenario="baseline")
-    assert set(matches) == {first, second}
-    assert best in matches
+    _copy_run(first, tmp_path / "copy")
+    with pytest.raises(FileExistsError):
+        find_run_dir(tmp_path, seed=2, size=30, scenario="baseline")
+
+
+def test_find_run_dir_filters_stale_generator_versions(tmp_path: Path) -> None:
+    first = make_run(tmp_path, n_patients=30, seed=2)
+    _copy_run(first, tmp_path / "stale", params_sha256="f" * 64)
+    expected = {"params_sha256": "0" * 64, "targets_sha256": "0" * 64}
+    assert find_run_dir(tmp_path, seed=2, size=30, scenario="baseline", expected=expected) == first
+
+
+def test_find_run_dir_only_stale_runs_fails(tmp_path: Path) -> None:
+    make_run(tmp_path, n_patients=30, seed=2)
+    with pytest.raises(FileNotFoundError, match="otros supuestos"):
+        find_run_dir(
+            tmp_path, seed=2, size=30, scenario="baseline", expected={"params_sha256": "x"}
+        )
 
 
 def test_data_version_renames_id() -> None:
