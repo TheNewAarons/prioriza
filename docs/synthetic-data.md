@@ -28,7 +28,7 @@ Cada variable tiene un origen: fuente de datos públicos verificados, o **SUPUES
 | `specialty` | Públicos: `cne_medical/dental_by_specialty`, `iq_by_specialty` | 80 especialidades CNE, 12 IQ | Distribución por Hamilton + barajado | ✓ Sí |
 | **Demográficas** |
 | `age_group` | **SUPUESTO** (verified: false) | Pediatría: {0_14: 0,9, 15_19: 0,1, ...}; General: {0_14: 0,06, 15_19: 0,04, 20_44: 0,25, 45_64: 0,33, 65_plus: 0,32} | No hay tabla de edad en Glosa III-2025; pendiente ingesta de edad de la Glosa | ✗ No verificado |
-| `insurance` | Públicos: FONASA Cuenta Pública 2025, Tabla N°11 | FONASA A: 2.625.130; B: 5.584.750; C: 2.152.647; D: 3.068.242; Other: 862.688 | Conteos de población inscrita en APS a dic-2023; se asume que la lista replica esta composición (proxy) | ✓ Sí (proxy asumido) |
+| `insurance` | Públicos: FONASA Cuenta Pública 2025, Tabla N°11 | FONASA A: 2.625.130; B: 5.584.750; C: 2.152.647; D: 3.068.242; Other: 862.688 | Conteos de población inscrita en APS a dic-2023 (verificados). **SUPUESTO**: la lista de espera replica esta composición (proxy) | Conteos ✓; proxy ✗ No verificado |
 | **Clínicas** |
 | `clinical_priority` | **SUPUESTO** (dato de entrada sintético) | CNE: {p1: 0,05, p2: 0,15, p3: 0,40, p4: 0,40}; IQ: {p1: 0,08, p2: 0,22, p3: 0,40, p4: 0,30}; GES oncológico: {p1: 0,40, p2: 0,40, p3: 0,20, p4: 0} | Distribuciones independientes de espera; el sistema nunca infiere ni sobreescribe prioridad | ✗ No verificado |
 | `is_ges` | Públicos: `ges_delayed_by_problem` | 20 problemas mapeados (cataratas, colecistectomía, etc.) | Solo problemas con mapeo a especialidad en `assumptions.json`; cobertura 68 % de las 80.022 retrasadas | ✗ No verificado (pendiente: plazos del Decreto 29) |
@@ -139,7 +139,7 @@ Distribución de sesiones/bloques entre especialidades: proporcional a entradas,
 
 ## 6. Calibración de la población (C1–C9)
 
-Se ejecuta con N=100.000, seed=42 (corrida canónica). El informe de calibración está en `results/synthetic_calibration_seed42_n100000.json`.
+Se ejecuta con N=100.000, seed=42 (corrida canónica). El informe de calibración está en `results/synthetic_calibration_baseline_seed42_n100000.json`.
 
 ### Criterios
 
@@ -149,7 +149,8 @@ Se ejecuta con N=100.000, seed=42 (corrida canónica). El informe de calibració
 | **C2** | Media y mediana de espera por (servicio, tipo) con n ≥ 30 | Mediana ±max(2 %, 1 día); media ±3 % | — | **Estricto** | ✓ 58 grupos, 0 fuera de tolerancia |
 | **C3** | Mezcla nacional CNE e IQ | Media y mediana ±5 % vs 341/242 (CNE) y 394/264 (IQ) | — | **Estricto** | ✓ Obs: CNE 340,5/247; IQ 393,8/271 |
 | **C4** | Razón registros/personas por (servicio, tipo) | |razón − objetivo| | ±(0,01 + 1/P) | **Estricto** | ✓ Peor: 0,0049 |
-| **C5** | Retraso GES por problema (n ≥ 30) y nacional | Media y mediana por problema; nacional ±5 % vs 136/71 | Como C2 | **Estricto** | ✓ 13 problemas con n ≥ 30; nacional mapeado 132,96/— (mezcla de 20 problemas) |
+| **C5** | Retraso GES por problema (n ≥ 30) y mezcla de los 20 problemas mapeados | Media y mediana por problema; media de la mezcla mapeada | Como C2 | **Estricto** | ✓ 13 problemas con n ≥ 30; mezcla mapeada 132,96 vs 132,96 |
+| **C5 nacional** | Retraso GES nacional vs Glosa (136 / 71 días) | Media y mediana | ±5 % | Blando | ✗ mediana 76 vs 71 (+7 %); media 132,96 vs 136 ✓. El nacional incluye problemas GES no mapeados |
 | **C6** | (a) Media de p verdadera por (servicio, tipo) en la muestra: verifica la bisección; (b) media de p con un sorteo independiente de la fragilidad u (no tautológico); (c) tasa realizada del historial global y por servicio | (a) error ≤ 1e-4; (b) ±(3·σ_p/√n + 0,5 pp), grupos con n ≥ 200; (c) ±(3·EE + 0,5 pp) | — | **Estricto** | ✓ (a) error 0; (b) desviación máxima 0,88 pp, 5 grupos omitidos; (c) 14,76 % vs 14,66 % esperado, 29 servicios dentro de banda |
 | **C7** | Participación IQ mayor | ±3 pp vs 72,347 % objetivo | — | **Estricto** | ✓ Obs: 72,347 % |
 | **C8** | Minutos programados/semana vs objetivo | ±max(5 %, 1 sesión/H) por (servicio, tipo) | — | **Estricto** | ✓ Peor: 6,36 min (< 1 sesión en horizonte 26 sem) |
@@ -161,6 +162,10 @@ Se ejecuta con N=100.000, seed=42 (corrida canónica). El informe de calibració
 - ✓ 26 chequeos estrictos pasan; 0 fallan.
 - ✓ 1 blando: mediana GES nacional (76 vs 71 días, fuera de la tolerancia de ±5 % = ±3,55 días); se informa sin fallar (el nacional incluye problemas no mapeados).
 - ✓ 613 celdas (servicio, especialidad) tienen entradas pero ninguna sesión en horizonte (especialidades raras o N pequeño).
+
+### Alcance de los chequeos estrictos
+
+La mayoría de los chequeos estrictos verifica lo que el generador impone por construcción: C1 (márgenes exactos por el método de Hamilton), C2 (la muestra estratificada se reescala para fijar media y mediana), C5 sobre la mezcla mapeada, C6 (a) (la bisección) y C6 (c) (tasa realizada frente a su propia E[p]). Sirven para detectar errores de implementación, no para validar la población contra la realidad. Los contrastes que no salen por construcción son C3 (mezcla nacional CNE e IQ), C6 (b) (sorteo independiente de la fragilidad) y los chequeos blandos nacionales de C5 y C6; de estos, la mediana GES nacional falla (76 vs 71 días) y la tasa del historial CNE queda 0,76 pp sobre el objetivo (16,41 % vs 15,65 %). C8 se recalcula en los tests directamente desde los objetivos y supuestos, sin usar la función del generador.
 
 ## 7. Determinismo, reproducibilidad y versionado
 
@@ -190,11 +195,11 @@ Determinista: mismo seed, size, scenario, as_of y configuración → mismo run_i
 
 ### Dataset digest
 
-`dataset_digest = sha256(tabla_1 + tabla_2 + ... + tabla_n)`, donde cada tabla es CSV ordenado por id, sin created_at, 6 decimales en floats.
+`dataset_digest = sha256(tabla_1 + tabla_2 + ... + tabla_n)`, donde cada tabla es CSV ordenado por id, sin created_at, 6 decimales en floats. Incluye las 7 tablas por corrida y los catálogos (prefijo `catalog_`). Un test fija el digest de N=3.000, seed 42, baseline y lo verifica también en un subproceso con otro `PYTHONHASHSEED`. El informe se nombra `synthetic_calibration_{escenario}_seed{S}_n{N}.json` para que `neutral` y `ses_gradient` no sobrescriban la corrida canónica.
 
 ### Reemplazo
 
-`--replace` borra la corrida existente (cascada) y carga nueva con mismo run_id.
+`--replace` borra la corrida existente (cascada) y carga la nueva con el mismo run_id, todo en una sola transacción: si algo falla, la corrida anterior queda intacta. Si la corrida ya tiene planes (`schedule_run`), citas del programador o la simulación, o resultados de políticas (`policy_result`), `--replace` aborta e informa cuántas filas hay; para borrarlas igual hay que pasar `--drop-downstream` (así no se pierden en silencio planes en revisión ni resultados, incluidos los negativos). La base exige que cada fila hija pertenezca a la misma corrida que su padre (FK compuestas por `run_id`).
 
 ## 8. Desviaciones de la implementación respecto del plan
 
@@ -204,7 +209,7 @@ Determinista: mismo seed, size, scenario, as_of y configuración → mismo run_i
 
 3. **C6 objetivo de historial:** el objetivo estricto es la media de p del propio historial (~14,66 %). La comparación con las tasas objetivo es blanda y separada por tipo: CNE 16,41 % vs 15,65 %, IQ 5,32 % vs 5 %; difieren porque el historial usa anticipación U{7..90} sin término de espera.
 
-4. **C1 especialidad|subtipo CNE:** Usa cota K/n (cota de redondeo de Hamilton), no chi-cuadrado.
+4. **C1 especialidad|subtipo CNE:** usa la cota K/n en lugar de K/(2n) del plan, porque el total de entradas de cada subtipo depende a su vez de otro reparto de Hamilton (dos redondeos encadenados).
 
 5. **Peso de hospitales de baja complejidad:** 0,5 (agregado en implementación; el plan define solo alta=2, mediana=1).
 
@@ -265,7 +270,8 @@ uv run --package synthetic prioriza-synth generate \
   --horizon-weeks 26 \
   --as-of 2025-09-30 \
   --load                      # Carga a PostgreSQL \
-  --replace                   # Reemplaza si existe \
+  --replace                   # Reemplaza si existe (aborta si hay planes o resultados) \
+  --drop-downstream           # Con --replace: borra también planes y resultados de la corrida \
   --out data/synthetic \
   --report-dir results
 ```
@@ -306,7 +312,7 @@ data/
       appointment_truth.parquet
       manifest.json            # config, hashes, informe resumido
 results/
-  synthetic_calibration_seed42_n100000.json  # informe completo
+  synthetic_calibration_baseline_seed42_n100000.json  # informe completo
 ```
 
 ---

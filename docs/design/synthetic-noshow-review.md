@@ -96,3 +96,16 @@ Solo u_i ya da AUC 0,696. Si se aumenta λ en la cota bayesiana, el AUC sube as�
   - El servicio y la comuna delatan etnia y nacionalidad: Arica, Iquique, Araucanía.
   - Las especialidades pediátricas determinan la edad.
 - Recomiendo excluir comuna y previsión, permitir el servicio solo como efecto fijo y documentarlo en `docs/decisions.md`.
+## Estado de los hallazgos (2026-10-08)
+
+| Hallazgo | Estado |
+|---|---|
+| A1 `generate_history` ignora targets/assumptions | Corregido, con test de regresión |
+| A2 historial sin especialidad ni espera | Parcial: `appointment.specialty_code` (migración 0004) se llena en el historial; el término de espera sigue en 0 (diferido a P4) |
+| A3 techo de AUC ~0,63-0,65 | Diferido a P4 (decisión sobre λ del historial y ventana) |
+| M1 separación técnica de la verdad sintética | Diferido a P4 (lista de tablas permitidas y test en `noshow/`) |
+| M2 C6 tautológico | Corregido: nuevo chequeo estricto con sorteo independiente de la fragilidad |
+| M3 poder estadístico por comuna; uso de `age_group` | Diferido a P4 |
+| M4 split temporal en proceso estacionario | Diferido a P4 |
+| B1 tasa del historial CNE+IQ vs objetivo CNE | Corregido: comparación separada por tipo |
+| B2, B3, B4 | Documentados; sin cambios |

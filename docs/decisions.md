@@ -119,7 +119,7 @@ Diseño completo en [design/synthetic-plan.md](design/synthetic-plan.md); supues
 - `synthetic` declara además `polars`, `psycopg[binary]`, `pydantic` y `typer`, que ya estaban en el lock.
 
 **Decisiones del usuario** (2026-10-08):
-1. Edad y previsión se generan con supuestos marcados `verified` en `assumptions.json`. La previsión usa los conteos de población inscrita en APS por tramo (FONASA, Cuenta Pública 2025, Tabla N°11), con el supuesto de que la lista de espera replica esa composición. Queda pendiente ingerir las tablas de edad y previsión de la Glosa 06.
+1. Edad y previsión son supuestos no verificados (`verified: false` en `assumptions.json`). La previsión usa los conteos verificados de población inscrita en APS por tramo (FONASA, Cuenta Pública 2025, Tabla N°11), pero que la lista de espera replique esa composición es un supuesto no verificado (`insurance_waitlist_proxy`). Queda pendiente ingerir las tablas de edad y previsión de la Glosa 06.
 2. Alcance GES: 20 problemas mapeados a especialidad, que cubren el 68 % de las garantías retrasadas. Los plazos del Decreto 29 (2025) siguen sin verificar.
 3. Previsión en el generador de inasistencias: `baseline` sin efecto de previsión; `ses_gradient` solo como análisis de sensibilidad; `neutral` como control obligatorio en todo informe.
 
@@ -130,7 +130,7 @@ Diseño completo en [design/synthetic-plan.md](design/synthetic-plan.md); supues
 - Índices en todas las columnas FK (migración 0003): sin ellos el borrado en cascada de una corrida de 100.000 entradas no terminaba en minutos; con ellos tarda ~2 s.
 - `appointment.specialty_code` (migración 0004) para que el historial sintético registre la especialidad atendida.
 
-**Calibración**: los objetivos se derivan de `data/processed` y se versionan en `synthetic/src/synthetic/targets/calibration_targets.json` con su procedencia (sha256), para que los tests no dependan de red ni de los parquet. Métrica categórica: distancia de variación total con la cota de redondeo del método de Hamilton (los márgenes son deterministas, por eso no se usa chi-cuadrado). Tolerancias en `synthetic-data.md`.
+**Calibración**: la muestra estratificada de esperas se reescala para fijar la media y la mediana por grupo, lo que deforma levemente la lognormal; por eso C2 se cumple por construcción y no valida la forma de la distribución. Los objetivos se derivan de `data/processed` y se versionan en `synthetic/src/synthetic/targets/calibration_targets.json` con su procedencia (sha256), para que los tests no dependan de red ni de los parquet. Métrica categórica: distancia de variación total con la cota de redondeo del método de Hamilton (los márgenes son deterministas, por eso no se usa chi-cuadrado). Tolerancias en `synthetic-data.md`.
 
 **Decisiones diferidas a P4 (modelo de inasistencias)**, según la revisión de ml-engineer ([design/synthetic-noshow-review.md](design/synthetic-noshow-review.md)):
 - Techo práctico de AUC ~0,63-0,65 con variables observables frente a 0,74 del oráculo: casi toda la señal está en la fragilidad latente y el historial (Poisson λ = 1,5) aporta poco. Decidir si se sube λ o se amplía la ventana, y reportar el techo.
