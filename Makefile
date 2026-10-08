@@ -13,8 +13,12 @@ migrate:
 ingest:
 	uv run --package ingestion prioriza-ingest all
 
+SIZE ?= 100000
+SEED ?= 42
+SYNTH_ARGS ?=
+
 synth:
-	@echo "synth: pendiente"
+	uv run --package synthetic prioriza-synth generate --size $(SIZE) --seed $(SEED) --load $(SYNTH_ARGS)
 
 train-noshow:
 	@echo "train-noshow: pendiente"
