@@ -1,0 +1,30 @@
+# Reglas de priorización por defecto de Prioriza.
+# Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de
+# gestión real sin validación institucional. Los pesos son una propuesta de ejemplo, no una
+# norma validada por profesionales.
+schema_version: 1
+rules_id: prioriza-default
+rules_version: "2026.10-1"
+description: >
+  Prioridad clínica declarada (50), días de espera lineal saturada en 730 días (35) y
+  cercanía al plazo GES con rampa de 60 días (15). Las entradas p1 van primero; luego las
+  garantías GES vencidas o que vencen en 14 días o menos (restricción dura), ordenadas por plazo.
+components:
+  - field: clinical_priority
+    label: Prioridad clínica declarada
+    weight: 50
+    mapping: {p1: 1.0, p2: 0.6, p3: 0.25, p4: 0.0}
+  - field: wait_days
+    label: Días de espera
+    weight: 35
+    transform: {type: linear_saturated, saturation_days: 730}
+  - field: days_to_ges_deadline
+    label: Cercanía al plazo GES
+    weight: 15
+    transform: {type: ramp_down, start_days: 60, end_days: 0}
+ges_strict:
+  enabled: true
+  due_soon_days: 14
+  order_within: deadline
+  # Decisión del usuario (2026-10-08): las entradas p1 van antes que las GES vencidas de p2-p4.
+  yield_to_priorities: [p1]

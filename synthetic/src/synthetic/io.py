@@ -9,15 +9,13 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import polars as pl
+from shared.disclaimer import DISCLAIMER
 
 if TYPE_CHECKING:
     from synthetic.pipeline import SyntheticDataset
     from synthetic.validate import CalibrationReport
 
-DISCLAIMER = (
-    "Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas "
-    "ni de gestión real sin validación institucional."
-)
+__all__ = ["DISCLAIMER", "write_parquet"]
 
 
 def write_parquet(

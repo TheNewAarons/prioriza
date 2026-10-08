@@ -142,5 +142,31 @@ Diseño completo en [design/synthetic-plan.md](design/synthetic-plan.md); supues
 
 ---
 
+## 7. Puntaje de priorización
+
+**Fecha**: 2026-10-08
+
+Diseño en [design/priority-plan.md](design/priority-plan.md); fórmula, reglas y ejemplos en [priority.md](priority.md).
+
+**Dependencias agregadas**:
+- `pyyaml>=6.0` (priority): reglas declarativas en YAML con `safe_load`; ya estaba en el lock como dependencia transitiva. Se usa un cargador que rechaza claves duplicadas, porque PyYAML las sobrescribe en silencio.
+- `types-PyYAML` (dev): stubs para `mypy --strict`.
+- Se descartó `ruamel.yaml` (solo aportaría preservar comentarios).
+
+**Decisiones**:
+- Puntaje determinista sin ML: suma ponderada de componentes normalizados a [0, 1], escalada a 0-100. Componentes por defecto: prioridad clínica declarada (50), días de espera lineal saturada en 730 días (35) y cercanía al plazo GES con rampa de 60 días (15). Los pesos son una propuesta de ejemplo, no una norma clínica validada.
+- La prioridad clínica es un dato de entrada: el módulo la lee y la devuelve sin modificarla.
+- Lista blanca de campos (`clinical_priority`, `wait_days`, `days_to_ges_deadline`). Sexo, etnia, nacionalidad, comuna, previsión, grupo etario, servicio, establecimiento, especialidad, procedimiento, problema GES y la probabilidad de inasistencia están prohibidos como factores, con el motivo en el mensaje de error. Comuna, previsión y grupo etario solo se usan para medir equidad. La entrada del cálculo (`PriorityInput`) no tiene esos campos.
+- El servicio, la especialidad y el tipo de atención solo definen la cola en la que compite cada entrada (partición), nunca el puntaje.
+- Regla dura GES (decisiones del usuario, 2026-10-08): las garantías vencidas y las que vencen en 14 días o menos van antes que el resto, ordenadas por plazo (EDF); los casos p1 van antes que todo (`yield_to_priorities: [p1]`). Configurable y desactivable en el YAML.
+- Orden total y estable: grupo de cesión, nivel estricto, plazo, puntaje, fecha de ingreso, id.
+- `yield_to_priorities` solo puede ser vacío o un prefijo contiguo de p1..p4, para que ninguna configuración anteponga una prioridad clínica a otra mejor; y solo puede no estar vacío con la regla GES activa (sin ella no hay nivel estricto al que ceder). Decisión de la sesión principal tras la revisión ([design/priority-review.md](design/priority-review.md)).
+- El cargador YAML rechaza claves duplicadas, merge keys y alias; los números son estrictos y los pesos tienen cota superior; las etiquetas no pueden nombrar atributos prohibidos.
+- Fecha de referencia `as_of` siempre explícita.
+- Cada conjunto de reglas tiene `rules_version` y un `digest` sha256, que se registran con cada ranking.
+- Riesgo conocido: la longitud del plazo GES depende del problema de salud y por eso se correlaciona con el sexo; no se puede quitar sin ignorar la garantía legal. Se mitiga no usando el problema como factor y reportando diferencias de puesto por grupo.
+
+---
+
 ## Referencias
 - [CLAUDE.md](../CLAUDE.md): Stack y convenciones del proyecto.
