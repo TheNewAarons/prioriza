@@ -1,0 +1,3714 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informe de resultados de Prioriza</title>
+<style>
+/* Tokens de docs/design.md §3, copiados en línea para que la página sea autocontenida. */
+:root {
+  --paper: #F6F8F7; --surface: #FFFFFF; --zone: #E9EFED;
+  --ink: #1C2B2E; --ink-muted: #4B5B5F; --rule: #C9D3D1;
+  --scrub: #17655F; --scrub-deep: #0E4743; --scrub-tint: #D7EAE7;
+  --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --strip-h: 40px;
+}
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 1rem; line-height: 1.5; }
+.strip { position: fixed; top: 0; left: 0; right: 0; min-height: var(--strip-h); display: flex; align-items: center;
+  padding: var(--s1) var(--s6); background: var(--ink); color: #FFFFFF; font-size: 0.8125rem; line-height: 1.45; font-weight: 600; z-index: 10; }
+main { max-width: 1280px; margin: 0; padding: calc(var(--strip-h) + var(--s7)) var(--s6) var(--s7); }
+main > * { max-width: 72ch; }
+main > .table-wrap { max-width: 100%; }
+h1 { font-size: 1.9375rem; line-height: 1.2; font-weight: 700; margin: 0 0 var(--s5); }
+h2 { font-size: 1.5625rem; line-height: 1.25; font-weight: 600; margin: var(--s7) 0 var(--s4); padding-top: var(--s4); border-top: 2px solid var(--rule); }
+h3 { font-size: 1.25rem; line-height: 1.3; font-weight: 600; margin: var(--s6) 0 var(--s3); }
+h4 { font-size: 1rem; line-height: 1.5; font-weight: 700; margin: var(--s5) 0 var(--s2); }
+p, li { margin: 0 0 var(--s3); }
+ul { padding-left: var(--s5); }
+a { color: var(--scrub); }
+a:hover, a:focus { color: var(--scrub-deep); }
+a:focus-visible { outline: 2px solid var(--scrub-deep); outline-offset: 2px; }
+blockquote { margin: 0 0 var(--s5); padding: var(--s3) var(--s4); background: var(--scrub-tint); border-left: 4px solid var(--scrub); }
+blockquote p { margin: 0; }
+code { background: var(--zone); padding: 0 var(--s1); border-radius: 4px; font-size: 0.9375em; overflow-wrap: anywhere; }
+pre { background: var(--surface); border: 1px solid var(--rule); padding: var(--s4); overflow-x: auto; max-width: 100%; }
+pre code { background: none; padding: 0; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.8125rem; overflow-wrap: normal; }
+.table-wrap { overflow-x: auto; margin: 0 0 var(--s5); border: 1px solid var(--rule); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 0.875rem; line-height: 1.45; }
+th, td { padding: var(--s2) var(--s3); border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { background: var(--zone); font-weight: 600; text-align: left; }
+th[style*="right"], td[style*="right"] { text-align: right; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+@media (max-width: 576px) {
+  main { padding: calc(var(--strip-h) + var(--s7)) var(--s4) var(--s6); }
+  .strip { padding: var(--s1) var(--s4); }
+}
+@media print { .strip { position: static; } main { padding-top: var(--s4); } }
+</style>
+</head>
+<body>
+<div class="strip" role="note">Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.</div>
+<main>
+<h1>Informe de resultados de Prioriza</h1>
+<blockquote>
+<p><strong>Aviso.</strong> Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.</p>
+</blockquote>
+<h2>Qué es este informe</h2>
+<p>Este informe compara cuatro políticas de atención para la corrida sintética <code>32c9e349-74f9-5c85-bf4b-990796b47323</code>: orden de llegada (línea de base), solo prioridad clínica, programación optimizada respetando la capacidad y los plazos, y programación optimizada con sobrecupo controlado. El sistema apoya la decisión pero no la toma: cada plan se genera bajo demanda y permanece pendiente de revisión humana antes de cualquier uso. Todas las cifras provienen de <code>results/</code> sin escritura manual.</p>
+<p>Las corridas que alimentan el informe no tienen el mismo tamaño:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Resultado</th>
+<th style="text-align:right">Entradas de la corrida</th>
+<th>Corrida</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>synthetic_calibration_baseline_seed42_n100000.json</td>
+<td style="text-align:right">100.000</td>
+<td>32c9e349</td>
+</tr>
+<tr>
+<td>noshow.json</td>
+<td style="text-align:right">100.000</td>
+<td>32c9e349</td>
+</tr>
+<tr>
+<td>schedule_32c9e349-74f9-5c85-bf4b-990796b47323_4w.json</td>
+<td style="text-align:right">100.000</td>
+<td>32c9e349</td>
+</tr>
+<tr>
+<td>scheduler-benchmark.json</td>
+<td style="text-align:right">1.000, 10.000, 50.000</td>
+<td>01f43e87, 062f5290, 08c2871c, 7dc0d40f, 9fedfa46, e0e261f1</td>
+</tr>
+<tr>
+<td>simulation.json</td>
+<td style="text-align:right">10.000</td>
+<td>a0386f24</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Atención.</strong> La simulación corrió con una población de 10.000 entradas y el plan canónico usa 100.000. Las cifras absolutas de la simulación no son comparables con las del plan canónico; solo se comparan entre las políticas de la misma simulación.</p>
+<h2>Contexto y fuentes</h2>
+<p>Al momento de corte de la Glosa 06 (30-09-2025), el sistema público de Chile registraba las entradas en espera, las garantías GES retrasadas y las medianas de espera que muestra la tabla de esta sección. La población de esta corrida es sintética: generada de forma controlada con semilla fija y calibrada a partir de datos públicos agregados para reproducir el tamaño, composición y tiempos de espera observados. Los chequeos de calibración muestran si el simulador replica fielmente estos agregados; cuando alguno falla (especialmente si es informativo y no estricto), indica una limitación en la reproducción que debe interpretarse al examinar los resultados. Fuentes de calibración: <code>glosa06_2025q3</code> (30-09-2025), <code>glosa06_2025q4</code> (31-12-2025), <code>glosa06_2026q1</code> (31-03-2026), <code>sis_ges_cases_2026q1</code> (31-03-2026), <code>minsal_establishments</code>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Lista</th>
+<th style="text-align:right">Registros</th>
+<th style="text-align:right">Personas</th>
+<th style="text-align:right">Espera media (días)</th>
+<th style="text-align:right">Mediana de espera (días)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Consulta nueva de especialidad</td>
+<td style="text-align:right">2.576.371</td>
+<td style="text-align:right">2.134.364</td>
+<td style="text-align:right">341</td>
+<td style="text-align:right">242</td>
+</tr>
+<tr>
+<td>Intervención quirúrgica</td>
+<td style="text-align:right">417.561</td>
+<td style="text-align:right">365.781</td>
+<td style="text-align:right">394</td>
+<td style="text-align:right">264</td>
+</tr>
+<tr>
+<td>Garantías GES retrasadas</td>
+<td style="text-align:right">80.022</td>
+<td style="text-align:right">sin dato</td>
+<td style="text-align:right">136</td>
+<td style="text-align:right">71</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Calibración de la población sintética</h3>
+<p>La población de la corrida <code>32c9e349-74f9-5c85-bf4b-990796b47323</code> (100.000 entradas, semilla 42, escenario <code>baseline</code>) se contrastó con los objetivos públicos. Chequeos estrictos que pasan: 26; estrictos que fallan: 0; informativos que fallan: 1; omitidos: 0. Resultado global: pasa.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Chequeos</th>
+<th style="text-align:right">Pasan</th>
+<th style="text-align:right">Estrictos que fallan</th>
+<th style="text-align:right">Informativos que fallan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1</td>
+<td style="text-align:right">11</td>
+<td style="text-align:right">11</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>C2</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>C3</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>C4</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>C5</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>C6</td>
+<td style="text-align:right">6</td>
+<td style="text-align:right">6</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>C7</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>C8</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>C9</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+</tr>
+</tbody>
+</table></div>
+<p>Chequeos que no pasan (se muestran tal cual):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Chequeo</th>
+<th>Severidad</th>
+<th>Métrica</th>
+<th style="text-align:right">Observado</th>
+<th style="text-align:right">Objetivo</th>
+<th style="text-align:right">Tolerancia</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C5.nacional.mediana(total)</td>
+<td>soft</td>
+<td>mediana de retraso</td>
+<td style="text-align:right">76</td>
+<td style="text-align:right">71</td>
+<td style="text-align:right">3,55</td>
+<td>el nacional incluye problemas no mapeados; se informa sin fallar</td>
+</tr>
+</tbody>
+</table></div>
+<p>Detalle de todos los chequeos:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Chequeo</th>
+<th>Severidad</th>
+<th>Métrica</th>
+<th style="text-align:right">Observado</th>
+<th style="text-align:right">Objetivo</th>
+<th style="text-align:right">Tolerancia</th>
+<th>Pasa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1.tipo</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,00000625</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,0000150</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.servicio|cne</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,0000357</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,000180</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.servicio|iq</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,000242</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,00111</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.especialidad|cne_medical</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,000148</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,00103</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.especialidad|cne_dental</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,0000760</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,000854</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.especialidad|iq</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,000103</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,000460</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.problema|ges</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,000446</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,00305</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.servicio|ges</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,000553</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,00221</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.comuna|servicio</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,00168</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,00504</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.edad|clase</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,00000816</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,0000265</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C1.previsión</td>
+<td>strict</td>
+<td>tvd</td>
+<td style="text-align:right">0,00000621</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,0000294</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C2.mediana</td>
+<td>strict</td>
+<td>max|obs-obj| días</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">sin dato</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C2.media</td>
+<td>strict</td>
+<td>max error relativo</td>
+<td style="text-align:right">0,000148</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,0300</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C3.cne.mediana</td>
+<td>strict</td>
+<td>mediana</td>
+<td style="text-align:right">247</td>
+<td style="text-align:right">242</td>
+<td style="text-align:right">12,1</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C3.cne.media</td>
+<td>strict</td>
+<td>media</td>
+<td style="text-align:right">340</td>
+<td style="text-align:right">341</td>
+<td style="text-align:right">17,1</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C3.iq.mediana</td>
+<td>strict</td>
+<td>mediana</td>
+<td style="text-align:right">271</td>
+<td style="text-align:right">264</td>
+<td style="text-align:right">13,2</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C3.iq.media</td>
+<td>strict</td>
+<td>media</td>
+<td style="text-align:right">394</td>
+<td style="text-align:right">394</td>
+<td style="text-align:right">19,7</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C4.registros/personas</td>
+<td>strict</td>
+<td>max|razón-obj|</td>
+<td style="text-align:right">0,00487</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">sin dato</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C5.problemas</td>
+<td>strict</td>
+<td>grupos con n&gt;=30</td>
+<td style="text-align:right">13</td>
+<td style="text-align:right">sin dato</td>
+<td style="text-align:right">sin dato</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C5.nacional.media(mapeados)</td>
+<td>strict</td>
+<td>media de retraso</td>
+<td style="text-align:right">133</td>
+<td style="text-align:right">133</td>
+<td style="text-align:right">6,65</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C5.nacional.media(total)</td>
+<td>soft</td>
+<td>media de retraso</td>
+<td style="text-align:right">133</td>
+<td style="text-align:right">136</td>
+<td style="text-align:right">6,80</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C5.nacional.mediana(total)</td>
+<td>soft</td>
+<td>mediana de retraso</td>
+<td style="text-align:right">76</td>
+<td style="text-align:right">71</td>
+<td style="text-align:right">3,55</td>
+<td>no</td>
+</tr>
+<tr>
+<td>C6.media_p</td>
+<td>strict</td>
+<td>max|media p - tasa| (verifica la bisección, no la independencia)</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0,000100</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C6.media_p.independiente</td>
+<td>strict</td>
+<td>max|media p (u independiente) - tasa|</td>
+<td style="text-align:right">0,00884</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">sin dato</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C6.historial.global</td>
+<td>strict</td>
+<td>tasa realizada vs E[p historial]</td>
+<td style="text-align:right">0,148</td>
+<td style="text-align:right">0,147</td>
+<td style="text-align:right">0,00797</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C6.historial.servicios</td>
+<td>strict</td>
+<td>tasa realizada vs E[p historial]</td>
+<td style="text-align:right">29</td>
+<td style="text-align:right">sin dato</td>
+<td style="text-align:right">sin dato</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C6.historial.vs_tasa_objetivo.cne</td>
+<td>soft</td>
+<td>tasa realizada vs tasa objetivo del tipo</td>
+<td style="text-align:right">0,164</td>
+<td style="text-align:right">0,157</td>
+<td style="text-align:right">0,0100</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C6.historial.vs_tasa_objetivo.iq</td>
+<td>soft</td>
+<td>tasa realizada vs tasa objetivo del tipo</td>
+<td style="text-align:right">0,0532</td>
+<td style="text-align:right">0,0500</td>
+<td style="text-align:right">0,0100</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C7.iq_mayor</td>
+<td>strict</td>
+<td>participación</td>
+<td style="text-align:right">0,723</td>
+<td style="text-align:right">0,723</td>
+<td style="text-align:right">0,0300</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C8.minutos_programados</td>
+<td>strict</td>
+<td>max|min/sem - objetivo|</td>
+<td style="text-align:right">6,36</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">sin dato</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C9.E[p2]_cne</td>
+<td>soft</td>
+<td>E[p²] CNE</td>
+<td style="text-align:right">0,0383</td>
+<td style="text-align:right">0,0304</td>
+<td style="text-align:right">0,0150</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C9.cobertura_ges</td>
+<td>soft</td>
+<td>cobertura sobre retrasadas</td>
+<td style="text-align:right">0,682</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">sin dato</td>
+<td>sí</td>
+</tr>
+<tr>
+<td>C9.cramer_v_servicio_x_especialidad</td>
+<td>soft</td>
+<td>V de Cramér</td>
+<td style="text-align:right">0,0307</td>
+<td style="text-align:right">sin dato</td>
+<td style="text-align:right">sin dato</td>
+<td>sí</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>Celdas (servicio, especialidad) con entradas pero sin sesiones: 613 de 2216</li>
+</ul>
+<h2>Priorización</h2>
+<p>Reglas <code>prioriza-default</code>, versión 2026.10-1. El puntaje de cada paciente combina tres componentes: prioridad clínica declarada (entrada definida por profesionales, nunca inferida del sistema), días de espera acumulados y cercanía a los plazos de garantía GES. La prioridad clínica es un dato exógeno y auditable; el sistema respeta lo que declare el gestor. La regla GES estricta adelanta las garantías vencidas o que vencen pronto por sobre el resto de la cola, salvo las entradas de máxima prioridad, que van antes (cesión a máxima prioridad). La tabla siguiente muestra cómo cada política afecta el cumplimiento de estas obligaciones y la atención de máxima prioridad.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Campo</th>
+<th style="text-align:right">Peso</th>
+<th style="text-align:right">Participación</th>
+<th>Parámetros</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prioridad clínica declarada</td>
+<td><code>clinical_priority</code></td>
+<td style="text-align:right">50</td>
+<td style="text-align:right">50 %</td>
+<td>p1: 1, p2: 0,6, p3: 0,25, p4: 0</td>
+</tr>
+<tr>
+<td>Días de espera</td>
+<td><code>wait_days</code></td>
+<td style="text-align:right">35</td>
+<td style="text-align:right">35 %</td>
+<td>type: linear_saturated, saturation_days: 730</td>
+</tr>
+<tr>
+<td>Cercanía al plazo GES</td>
+<td><code>days_to_ges_deadline</code></td>
+<td style="text-align:right">15</td>
+<td style="text-align:right">15 %</td>
+<td>type: ramp_down, start_days: 60, end_days: 0</td>
+</tr>
+</tbody>
+</table></div>
+<p>Regla GES estricta: activa: sí; vencidas o por vencer en 14 días o menos van antes que el resto, ordenadas por <code>deadline</code>; ceden el paso las prioridades p1.</p>
+<p>Las reglas versionadas coinciden con las que usó el plan canónico (versión 2026.10-1).</p>
+<p>Efecto en el plan canónico (06-10-2025 a 03-11-2025, exclusivo):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Política</th>
+<th style="text-align:right">Agendadas</th>
+<th style="text-align:right">Máxima prioridad agendadas</th>
+<th style="text-align:right">GES con obligación</th>
+<th style="text-align:right">GES cumplidas</th>
+<th style="text-align:right">GES agendadas antes del plazo</th>
+<th style="text-align:right">GES sin cumplir</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orden de llegada</td>
+<td style="text-align:right">13.169</td>
+<td style="text-align:right">844</td>
+<td style="text-align:right">3.866</td>
+<td style="text-align:right">342</td>
+<td style="text-align:right">23</td>
+<td style="text-align:right">3.524</td>
+</tr>
+<tr>
+<td>Solo prioridad</td>
+<td style="text-align:right">13.168</td>
+<td style="text-align:right">4.146</td>
+<td style="text-align:right">3.866</td>
+<td style="text-align:right">1.070</td>
+<td style="text-align:right">92</td>
+<td style="text-align:right">2.796</td>
+</tr>
+<tr>
+<td>Optimizada</td>
+<td style="text-align:right">13.616</td>
+<td style="text-align:right">4.150</td>
+<td style="text-align:right">3.866</td>
+<td style="text-align:right">1.594</td>
+<td style="text-align:right">615</td>
+<td style="text-align:right">2.272</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Modelo de inasistencias</h2>
+<p>Modelo principal: <code>logistic_regression_uncalibrated</code> (versión <code>noshow-4f0429cd-3ba6e988</code>), sin calibrar. Predice la probabilidad de que un paciente no se presente a su cita (inasistencia), usando solo las variables permitidas: <code>specialty_code</code>, <code>care_type</code>, <code>weekday</code>, <code>lead_days</code>, <code>prior_attended</code>, <code>prior_no_show</code>. Edad, previsión, comuna y servicio de salud no entran al modelo (se usan solo para medir equidad; motivos en la tabla de variables excluidas). Criterio de selección del modelo principal: Menor Brier en el conjunto de calibración entre los modelos sin calibrar (que no lo vieron al entrenar) y calibrados (predicciones fuera de pliegue, KFold contiguo). El conjunto de prueba no participa. Con datos sintéticos se valida la canalización (ingesta, features, entrenamiento, calibración, persistencia) pero no el desempeño en la población real. AUC mide la capacidad de separar asistencias de inasistencias; Brier es el error cuadrático medio; la calibración compara la probabilidad predicha contra la tasa observada. El intervalo de confianza del Δ Brier contra el baseline (1.000 remuestreos por paciente) excluye el cero: sí. Las brechas por grupo contra la verdad sintética muestran si el modelo da estimaciones sesgadas en grupos específicos; diferencias negativas indican sobrestimación.</p>
+<p>Con datos sintéticos, estas métricas validan el pipeline (que aprende la estructura que el generador puso), no el desempeño en pacientes reales.</p>
+<p>Partición temporal (sin barajar):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Parte</th>
+<th style="text-align:right">Citas</th>
+<th>Desde</th>
+<th>Hasta</th>
+<th style="text-align:right">Tasa de inasistencia</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entrenamiento</td>
+<td style="text-align:right">75.181</td>
+<td>01-10-2023</td>
+<td>02-12-2024</td>
+<td style="text-align:right">14,8 %</td>
+</tr>
+<tr>
+<td>Calibración</td>
+<td style="text-align:right">20.714</td>
+<td>03-12-2024</td>
+<td>01-04-2025</td>
+<td style="text-align:right">15,2 %</td>
+</tr>
+<tr>
+<td>Prueba</td>
+<td style="text-align:right">31.622</td>
+<td>02-04-2025</td>
+<td>29-09-2025</td>
+<td style="text-align:right">14,5 %</td>
+</tr>
+</tbody>
+</table></div>
+<p>Métricas en el conjunto de prueba:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Modelo</th>
+<th style="text-align:right">AUC</th>
+<th style="text-align:right">Brier</th>
+<th style="text-align:right">ECE</th>
+<th style="text-align:right">Pérdida logarítmica</th>
+<th style="text-align:right">Probabilidad media predicha</th>
+<th style="text-align:right">Tasa observada</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseline_specialty_rate</code></td>
+<td style="text-align:right">0,602</td>
+<td style="text-align:right">0,1215</td>
+<td style="text-align:right">0,0087</td>
+<td style="text-align:right">0,4035</td>
+<td style="text-align:right">14,7 %</td>
+<td style="text-align:right">14,5 %</td>
+</tr>
+<tr>
+<td><code>gradient_boosting</code></td>
+<td style="text-align:right">0,609</td>
+<td style="text-align:right">0,1215</td>
+<td style="text-align:right">0,0092</td>
+<td style="text-align:right">0,4037</td>
+<td style="text-align:right">15,1 %</td>
+<td style="text-align:right">14,5 %</td>
+</tr>
+<tr>
+<td><code>gradient_boosting_uncalibrated</code></td>
+<td style="text-align:right">0,611</td>
+<td style="text-align:right">0,1218</td>
+<td style="text-align:right">0,0176</td>
+<td style="text-align:right">0,4052</td>
+<td style="text-align:right">14,4 %</td>
+<td style="text-align:right">14,5 %</td>
+</tr>
+<tr>
+<td><code>logistic_regression</code></td>
+<td style="text-align:right">0,624</td>
+<td style="text-align:right">0,1206</td>
+<td style="text-align:right">0,0072</td>
+<td style="text-align:right">0,4003</td>
+<td style="text-align:right">15,2 %</td>
+<td style="text-align:right">14,5 %</td>
+</tr>
+<tr>
+<td><code>logistic_regression_uncalibrated</code> (principal)</td>
+<td style="text-align:right">0,625</td>
+<td style="text-align:right">0,1205</td>
+<td style="text-align:right">0,0064</td>
+<td style="text-align:right">0,4001</td>
+<td style="text-align:right">14,6 %</td>
+<td style="text-align:right">14,5 %</td>
+</tr>
+<tr>
+<td>Referencia con la probabilidad verdadera del generador</td>
+<td style="text-align:right">0,737</td>
+<td style="text-align:right">0,1110</td>
+<td style="text-align:right">0,0037</td>
+<td style="text-align:right">0,3660</td>
+<td style="text-align:right">sin dato</td>
+<td style="text-align:right">sin dato</td>
+</tr>
+</tbody>
+</table></div>
+<p>Diferencia de Brier del modelo principal contra el baseline por especialidad: -0,0010 (IC 95 % -0,0012 a -0,0007; 1.000 remuestreos por paciente). Mejora al baseline: sí; el IC 95 % excluye el cero: sí.</p>
+<p>Calibración del modelo principal en prueba (por decil de probabilidad predicha):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:right">Probabilidad media predicha</th>
+<th style="text-align:right">Tasa observada</th>
+<th style="text-align:right">Citas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">4,2 %</td>
+<td style="text-align:right">4,6 %</td>
+<td style="text-align:right">3.163</td>
+</tr>
+<tr>
+<td style="text-align:right">7,5 %</td>
+<td style="text-align:right">9,0 %</td>
+<td style="text-align:right">3.161</td>
+</tr>
+<tr>
+<td style="text-align:right">11,2 %</td>
+<td style="text-align:right">12,0 %</td>
+<td style="text-align:right">3.163</td>
+</tr>
+<tr>
+<td style="text-align:right">12,7 %</td>
+<td style="text-align:right">12,2 %</td>
+<td style="text-align:right">3.162</td>
+</tr>
+<tr>
+<td style="text-align:right">13,9 %</td>
+<td style="text-align:right">13,7 %</td>
+<td style="text-align:right">3.160</td>
+</tr>
+<tr>
+<td style="text-align:right">15,0 %</td>
+<td style="text-align:right">14,9 %</td>
+<td style="text-align:right">3.163</td>
+</tr>
+<tr>
+<td style="text-align:right">16,3 %</td>
+<td style="text-align:right">15,1 %</td>
+<td style="text-align:right">3.163</td>
+</tr>
+<tr>
+<td style="text-align:right">17,9 %</td>
+<td style="text-align:right">17,8 %</td>
+<td style="text-align:right">3.162</td>
+</tr>
+<tr>
+<td style="text-align:right">20,7 %</td>
+<td style="text-align:right">20,1 %</td>
+<td style="text-align:right">3.162</td>
+</tr>
+<tr>
+<td style="text-align:right">26,6 %</td>
+<td style="text-align:right">25,4 %</td>
+<td style="text-align:right">3.163</td>
+</tr>
+</tbody>
+</table></div>
+<p>Brier por modelo en el conjunto de calibración (criterio de selección):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Modelo</th>
+<th style="text-align:right">Brier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gradient_boosting</code></td>
+<td style="text-align:right">0,1266</td>
+</tr>
+<tr>
+<td><code>gradient_boosting_uncalibrated</code></td>
+<td style="text-align:right">0,1267</td>
+</tr>
+<tr>
+<td><code>logistic_regression</code></td>
+<td style="text-align:right">0,1260</td>
+</tr>
+<tr>
+<td><code>logistic_regression_uncalibrated</code></td>
+<td style="text-align:right">0,1260</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Equidad del modelo</h3>
+<p>Probabilidad media predicha por el modelo principal frente a la tasa observada y a la probabilidad verdadera media, por grupo, en el conjunto de prueba. Las variables de grupo no entran al modelo. Se reportan grupos con al menos 200 citas de prueba. La brecha es la probabilidad media predicha menos la probabilidad verdadera media del generador.</p>
+<p><strong>age_group</strong>: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad: +3,21 pp, en el grupo 15-19.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Citas</th>
+<th style="text-align:right">Tasa observada</th>
+<th style="text-align:right">Predicha media</th>
+<th style="text-align:right">Verdad media</th>
+<th style="text-align:right">Brecha contra la verdad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-14</td>
+<td style="text-align:right">3.391</td>
+<td style="text-align:right">17,8 %</td>
+<td style="text-align:right">17,6 %</td>
+<td style="text-align:right">17,4 %</td>
+<td style="text-align:right">+0,18 pp</td>
+</tr>
+<tr>
+<td>15-19</td>
+<td style="text-align:right">1.364</td>
+<td style="text-align:right">16,7 %</td>
+<td style="text-align:right">15,4 %</td>
+<td style="text-align:right">18,6 %</td>
+<td style="text-align:right">-3,21 pp</td>
+</tr>
+<tr>
+<td>20-44</td>
+<td style="text-align:right">7.281</td>
+<td style="text-align:right">17,1 %</td>
+<td style="text-align:right">14,4 %</td>
+<td style="text-align:right">17,6 %</td>
+<td style="text-align:right">-3,13 pp</td>
+</tr>
+<tr>
+<td>45-64</td>
+<td style="text-align:right">9.965</td>
+<td style="text-align:right">13,7 %</td>
+<td style="text-align:right">14,1 %</td>
+<td style="text-align:right">13,7 %</td>
+<td style="text-align:right">+0,46 pp</td>
+</tr>
+<tr>
+<td>65+</td>
+<td style="text-align:right">9.621</td>
+<td style="text-align:right">11,7 %</td>
+<td style="text-align:right">14,0 %</td>
+<td style="text-align:right">11,7 %</td>
+<td style="text-align:right">+2,27 pp</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>care_type</strong>: 2 grupos evaluados de 2; mayor brecha absoluta contra la verdad: +0,54 pp, en el grupo surgery.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Citas</th>
+<th style="text-align:right">Tasa observada</th>
+<th style="text-align:right">Predicha media</th>
+<th style="text-align:right">Verdad media</th>
+<th style="text-align:right">Brecha contra la verdad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>consultation</td>
+<td style="text-align:right">26.900</td>
+<td style="text-align:right">16,0 %</td>
+<td style="text-align:right">16,3 %</td>
+<td style="text-align:right">16,2 %</td>
+<td style="text-align:right">+0,09 pp</td>
+</tr>
+<tr>
+<td>surgery</td>
+<td style="text-align:right">4.722</td>
+<td style="text-align:right">5,6 %</td>
+<td style="text-align:right">4,8 %</td>
+<td style="text-align:right">5,3 %</td>
+<td style="text-align:right">-0,54 pp</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>insurance</strong>: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad: +0,23 pp, en el grupo fonasa a.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Citas</th>
+<th style="text-align:right">Tasa observada</th>
+<th style="text-align:right">Predicha media</th>
+<th style="text-align:right">Verdad media</th>
+<th style="text-align:right">Brecha contra la verdad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fonasa a</td>
+<td style="text-align:right">5.867</td>
+<td style="text-align:right">14,0 %</td>
+<td style="text-align:right">14,6 %</td>
+<td style="text-align:right">14,3 %</td>
+<td style="text-align:right">+0,23 pp</td>
+</tr>
+<tr>
+<td>fonasa b</td>
+<td style="text-align:right">12.378</td>
+<td style="text-align:right">14,5 %</td>
+<td style="text-align:right">14,6 %</td>
+<td style="text-align:right">14,6 %</td>
+<td style="text-align:right">-0,02 pp</td>
+</tr>
+<tr>
+<td>fonasa c</td>
+<td style="text-align:right">4.702</td>
+<td style="text-align:right">14,6 %</td>
+<td style="text-align:right">14,7 %</td>
+<td style="text-align:right">14,7 %</td>
+<td style="text-align:right">-0,07 pp</td>
+</tr>
+<tr>
+<td>fonasa d</td>
+<td style="text-align:right">6.811</td>
+<td style="text-align:right">14,6 %</td>
+<td style="text-align:right">14,5 %</td>
+<td style="text-align:right">14,7 %</td>
+<td style="text-align:right">-0,16 pp</td>
+</tr>
+<tr>
+<td>other</td>
+<td style="text-align:right">1.864</td>
+<td style="text-align:right">14,8 %</td>
+<td style="text-align:right">14,6 %</td>
+<td style="text-align:right">14,5 %</td>
+<td style="text-align:right">+0,09 pp</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>health_service_code</strong>: 29 grupos evaluados de 29; mayor brecha absoluta contra la verdad: +4,94 pp, en el grupo 1.</p>
+<p>Se listan los 10 grupos con mayor brecha absoluta.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Citas</th>
+<th style="text-align:right">Tasa observada</th>
+<th style="text-align:right">Predicha media</th>
+<th style="text-align:right">Verdad media</th>
+<th style="text-align:right">Brecha contra la verdad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td style="text-align:right">427</td>
+<td style="text-align:right">20,4 %</td>
+<td style="text-align:right">14,8 %</td>
+<td style="text-align:right">19,8 %</td>
+<td style="text-align:right">-4,94 pp</td>
+</tr>
+<tr>
+<td>2</td>
+<td style="text-align:right">678</td>
+<td style="text-align:right">20,8 %</td>
+<td style="text-align:right">15,5 %</td>
+<td style="text-align:right">19,8 %</td>
+<td style="text-align:right">-4,29 pp</td>
+</tr>
+<tr>
+<td>25</td>
+<td style="text-align:right">216</td>
+<td style="text-align:right">18,1 %</td>
+<td style="text-align:right">14,4 %</td>
+<td style="text-align:right">13,3 %</td>
+<td style="text-align:right">+1,10 pp</td>
+</tr>
+<tr>
+<td>4</td>
+<td style="text-align:right">431</td>
+<td style="text-align:right">16,5 %</td>
+<td style="text-align:right">14,7 %</td>
+<td style="text-align:right">13,8 %</td>
+<td style="text-align:right">+0,91 pp</td>
+</tr>
+<tr>
+<td>28</td>
+<td style="text-align:right">365</td>
+<td style="text-align:right">14,5 %</td>
+<td style="text-align:right">15,0 %</td>
+<td style="text-align:right">14,2 %</td>
+<td style="text-align:right">+0,84 pp</td>
+</tr>
+<tr>
+<td>6</td>
+<td style="text-align:right">911</td>
+<td style="text-align:right">12,7 %</td>
+<td style="text-align:right">14,1 %</td>
+<td style="text-align:right">14,7 %</td>
+<td style="text-align:right">-0,58 pp</td>
+</tr>
+<tr>
+<td>17</td>
+<td style="text-align:right">1.066</td>
+<td style="text-align:right">11,6 %</td>
+<td style="text-align:right">14,5 %</td>
+<td style="text-align:right">14,0 %</td>
+<td style="text-align:right">+0,54 pp</td>
+</tr>
+<tr>
+<td>5</td>
+<td style="text-align:right">1.806</td>
+<td style="text-align:right">13,1 %</td>
+<td style="text-align:right">14,7 %</td>
+<td style="text-align:right">14,1 %</td>
+<td style="text-align:right">+0,53 pp</td>
+</tr>
+<tr>
+<td>26</td>
+<td style="text-align:right">406</td>
+<td style="text-align:right">14,0 %</td>
+<td style="text-align:right">14,5 %</td>
+<td style="text-align:right">15,0 %</td>
+<td style="text-align:right">-0,46 pp</td>
+</tr>
+<tr>
+<td>10</td>
+<td style="text-align:right">1.876</td>
+<td style="text-align:right">14,2 %</td>
+<td style="text-align:right">15,2 %</td>
+<td style="text-align:right">14,8 %</td>
+<td style="text-align:right">+0,43 pp</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>commune_code</strong>: 44 grupos evaluados de 338; mayor brecha absoluta contra la verdad: +5,11 pp, en el grupo 15101. En el sintético la comuna no tiene efecto propio (solo vía servicio), así que este análisis no puede detectar daño por comuna aunque exista en la realidad.</p>
+<p>Se listan los 10 grupos con mayor brecha absoluta.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Citas</th>
+<th style="text-align:right">Tasa observada</th>
+<th style="text-align:right">Predicha media</th>
+<th style="text-align:right">Verdad media</th>
+<th style="text-align:right">Brecha contra la verdad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>15101</td>
+<td style="text-align:right">374</td>
+<td style="text-align:right">21,7 %</td>
+<td style="text-align:right">15,0 %</td>
+<td style="text-align:right">20,1 %</td>
+<td style="text-align:right">-5,11 pp</td>
+</tr>
+<tr>
+<td>13107</td>
+<td style="text-align:right">259</td>
+<td style="text-align:right">12,0 %</td>
+<td style="text-align:right">14,9 %</td>
+<td style="text-align:right">17,1 %</td>
+<td style="text-align:right">-2,24 pp</td>
+</tr>
+<tr>
+<td>05801</td>
+<td style="text-align:right">201</td>
+<td style="text-align:right">18,9 %</td>
+<td style="text-align:right">14,7 %</td>
+<td style="text-align:right">16,1 %</td>
+<td style="text-align:right">-1,41 pp</td>
+</tr>
+<tr>
+<td>04303</td>
+<td style="text-align:right">206</td>
+<td style="text-align:right">15,5 %</td>
+<td style="text-align:right">14,4 %</td>
+<td style="text-align:right">13,1 %</td>
+<td style="text-align:right">+1,26 pp</td>
+</tr>
+<tr>
+<td>08110</td>
+<td style="text-align:right">203</td>
+<td style="text-align:right">13,8 %</td>
+<td style="text-align:right">14,8 %</td>
+<td style="text-align:right">13,6 %</td>
+<td style="text-align:right">+1,24 pp</td>
+</tr>
+<tr>
+<td>14101</td>
+<td style="text-align:right">279</td>
+<td style="text-align:right">12,5 %</td>
+<td style="text-align:right">14,8 %</td>
+<td style="text-align:right">13,7 %</td>
+<td style="text-align:right">+1,12 pp</td>
+</tr>
+<tr>
+<td>16101</td>
+<td style="text-align:right">266</td>
+<td style="text-align:right">8,6 %</td>
+<td style="text-align:right">14,2 %</td>
+<td style="text-align:right">13,1 %</td>
+<td style="text-align:right">+1,05 pp</td>
+</tr>
+<tr>
+<td>04301</td>
+<td style="text-align:right">304</td>
+<td style="text-align:right">15,5 %</td>
+<td style="text-align:right">14,2 %</td>
+<td style="text-align:right">15,2 %</td>
+<td style="text-align:right">-1,03 pp</td>
+</tr>
+<tr>
+<td>08108</td>
+<td style="text-align:right">214</td>
+<td style="text-align:right">13,1 %</td>
+<td style="text-align:right">14,0 %</td>
+<td style="text-align:right">13,1 %</td>
+<td style="text-align:right">+0,93 pp</td>
+</tr>
+<tr>
+<td>13111</td>
+<td style="text-align:right">243</td>
+<td style="text-align:right">11,5 %</td>
+<td style="text-align:right">14,9 %</td>
+<td style="text-align:right">14,0 %</td>
+<td style="text-align:right">+0,91 pp</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Variables</h3>
+<p>Variables usadas. Categóricas: specialty_code, care_type, weekday. Numéricas: lead_days, prior_attended, prior_no_show. Eliminadas por ser constantes en el entrenamiento: time_band.</p>
+<p>Variables excluidas del modelo y motivo:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Motivo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>age_group</code></td>
+<td>No está en la lista de variables permitidas. Aunque el generador la usa, incluirla concentraría el sobreagendamiento en 15-44 años (hallazgo M3 de la revisión del generador). Se usa solo para medir equidad.</td>
+</tr>
+<tr>
+<td><code>clinical_priority</code></td>
+<td>No existe en el historial (sin entrada asociada). Además, el sistema no debe aprender de la prioridad clínica para decidir sobreagendamiento.</td>
+</tr>
+<tr>
+<td><code>commune_code</code></td>
+<td>Proxy geográfico de nivel socioeconómico, etnia y nacionalidad. Se usa solo para medir equidad.</td>
+</tr>
+<tr>
+<td><code>distance_km</code></td>
+<td>Permitida si existe, pero no hay coordenadas ni establecimiento en las citas del historial; usarla exigiría la comuna del paciente, que es un proxy excluido.</td>
+</tr>
+<tr>
+<td><code>duration_min</code></td>
+<td>En consultas vale siempre 20 min y en cirugías delata el procedimiento (hallazgo B2); redundante con la especialidad y con un sesgo asimétrico entre tipos de atención.</td>
+</tr>
+<tr>
+<td><code>ethnicity</code></td>
+<td>Atributo protegido (CLAUDE.md). No existe en los datos sintéticos.</td>
+</tr>
+<tr>
+<td><code>health_service_code</code></td>
+<td>Determinado por la comuna (V de Cramér = 1 en el sintético): mismo proxy geográfico. Costo: el modelo no ve que Arica e Iquique tienen tasas más altas.</td>
+</tr>
+<tr>
+<td><code>insurance</code></td>
+<td>Previsión: proxy evidente de nivel socioeconómico. Se usa solo para medir equidad.</td>
+</tr>
+<tr>
+<td><code>nationality</code></td>
+<td>Atributo protegido (CLAUDE.md). No existe en los datos sintéticos.</td>
+</tr>
+<tr>
+<td><code>noshow_frailty</code></td>
+<td>Verdad sintética del generador: prohibida como variable.</td>
+</tr>
+<tr>
+<td><code>sex</code></td>
+<td>Atributo protegido (CLAUDE.md). No existe en los datos sintéticos.</td>
+</tr>
+<tr>
+<td><code>true_noshow_prob</code></td>
+<td>Verdad sintética del generador: prohibida como variable.</td>
+</tr>
+<tr>
+<td><code>wait_days</code></td>
+<td>Permitida, pero las citas del historial no tienen entrada asociada (entry_id nulo) y el generador fija el término de espera en 0 (hallazgo A2). Se incluye automáticamente solo si tiene valores en el periodo de entrenamiento.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Riesgo de proxies entre las variables usadas:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Riesgo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>specialty_code</code></td>
+<td>Las especialidades pediátricas delatan el grupo 0-14 años (y así reintroducen parte del efecto de edad excluido); en datos reales ginecología y obstetricia, urología y mama delatarían el sexo. Alternativa no adoptada: unificar variantes pediátricas y adultas.</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Programador</h2>
+<p>Plan canónico de la corrida <code>32c9e349-74f9-5c85-bf4b-990796b47323</code> (100.000 entradas en espera), horizonte de 4 semanas, estado de revisión: pendiente de revisión humana. El programador asigna pacientes a cupos de consulta y bloques de pabellón respetando la capacidad disponible (12.504 cupos en 1.042 sesiones, 199.818 minutos en 653 bloques) y los plazos legales de garantía. Maximiza objetivos en orden lexicográfico: primero atender máxima prioridad, luego cumplir GES, luego maximizar puntaje total. El sobrecupo controlado agrega citas en sesiones de consulta usando la probabilidad predicha de inasistencia, con la condición de que el riesgo de que asistan más pacientes que cupos en cada sesión no supere α = 0,10. Los estados del solver indican si probó el óptimo de cada fase (OPTIMAL, dentro de la brecha relativa configurada), si encontró una solución sin probar que es la mejor (FEASIBLE, con su brecha) o si se quedó con la solución de partida sin cota útil (UNKNOWN); en todos los casos el plan es factible y verificado. Modelo usado: <code>noshow-4f0429cd-3ba6e988</code>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Política</th>
+<th style="text-align:right">Agendadas</th>
+<th style="text-align:right">Consultas</th>
+<th style="text-align:right">Cirugías</th>
+<th style="text-align:right">Máxima prioridad agendadas</th>
+<th style="text-align:right">GES cumplidas</th>
+<th style="text-align:right">GES antes del plazo</th>
+<th style="text-align:right">Citas con sobrecupo</th>
+<th style="text-align:right">Puntaje total</th>
+<th>Estado del solver</th>
+<th style="text-align:right">Brecha</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orden de llegada</td>
+<td style="text-align:right">13.169</td>
+<td style="text-align:right">11.905</td>
+<td style="text-align:right">1.264</td>
+<td style="text-align:right">844</td>
+<td style="text-align:right">342</td>
+<td style="text-align:right">23</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">52.705.746</td>
+<td>NOT_APPLICABLE</td>
+<td style="text-align:right">no aplica</td>
+</tr>
+<tr>
+<td>Solo prioridad</td>
+<td style="text-align:right">13.168</td>
+<td style="text-align:right">11.906</td>
+<td style="text-align:right">1.262</td>
+<td style="text-align:right">4.146</td>
+<td style="text-align:right">1.070</td>
+<td style="text-align:right">92</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">64.732.928</td>
+<td>NOT_APPLICABLE</td>
+<td style="text-align:right">no aplica</td>
+</tr>
+<tr>
+<td>Optimizada</td>
+<td style="text-align:right">13.616</td>
+<td style="text-align:right">12.212</td>
+<td style="text-align:right">1.404</td>
+<td style="text-align:right">4.150</td>
+<td style="text-align:right">1.594</td>
+<td style="text-align:right">615</td>
+<td style="text-align:right">343</td>
+<td style="text-align:right">66.454.560</td>
+<td>UNKNOWN</td>
+<td style="text-align:right">no aplica</td>
+</tr>
+</tbody>
+</table></div>
+<p>Diferencia de la optimizada frente a las políticas voraces:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th style="text-align:right">Contra solo prioridad</th>
+<th style="text-align:right">Contra orden de llegada</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agendadas</td>
+<td style="text-align:right">+448 (3,4 %)</td>
+<td style="text-align:right">+447 (3,4 %)</td>
+</tr>
+<tr>
+<td>Máxima prioridad agendadas</td>
+<td style="text-align:right">+4 (0,1 %)</td>
+<td style="text-align:right">+3.306 (391,7 %)</td>
+</tr>
+<tr>
+<td>GES cumplidas</td>
+<td style="text-align:right">+524 (49,0 %)</td>
+<td style="text-align:right">+1.252 (366,1 %)</td>
+</tr>
+<tr>
+<td>GES antes del plazo</td>
+<td style="text-align:right">+523 (568,5 %)</td>
+<td style="text-align:right">+592 (2.573,9 %)</td>
+</tr>
+<tr>
+<td>Puntaje total</td>
+<td style="text-align:right">+1.721.632 (2,7 %)</td>
+<td style="text-align:right">+13.748.814 (26,1 %)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Detalle de la optimizada: 40.870 candidatas de 100.000 en espera (31.978 fuera del conjunto de candidatas). Sobrecupo: nivel alfa 0,10, 343 bloques con sobrecupo, 540 citas agregadas por sobrecupo, riesgo exacto máximo 9,99 %. GES sin cumplir por causa:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Causa</th>
+<th style="text-align:right">GES</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>capacity_taken</code></td>
+<td style="text-align:right">652</td>
+</tr>
+<tr>
+<td><code>deadline_before_first_block</code></td>
+<td style="text-align:right">602</td>
+</tr>
+<tr>
+<td><code>no_block_in_horizon</code></td>
+<td style="text-align:right">1.018</td>
+</tr>
+</tbody>
+</table></div>
+<p>Tiempo y estados del solver (optimizada): 159 subproblemas, 98,2 s de pared en el plan final más 42,1 s de una primera pasada descartada (140,2 s en total); límite configurado de 120 s para todo el plan, repartido entre subproblemas; con la primera pasada descartada el total puede superarlo. Estado global: <code>UNKNOWN</code>. Colas que alcanzaron la frontera de candidatas: 96, y 14 siguieron en la frontera tras ampliarla.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Fase</th>
+<th>Subproblemas por estado</th>
+<th style="text-align:right">Total</th>
+<th style="text-align:right">Brecha máxima de la fase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>OPTIMAL: 136</td>
+<td style="text-align:right">136</td>
+<td style="text-align:right">no aplica</td>
+</tr>
+<tr>
+<td>2</td>
+<td>OPTIMAL: 89</td>
+<td style="text-align:right">89</td>
+<td style="text-align:right">no aplica</td>
+</tr>
+<tr>
+<td>3a</td>
+<td>FEASIBLE: 4, OPTIMAL: 155</td>
+<td style="text-align:right">159</td>
+<td style="text-align:right">2,060 %</td>
+</tr>
+<tr>
+<td>3b</td>
+<td>FEASIBLE: 16, OPTIMAL: 42, UNKNOWN: 21</td>
+<td style="text-align:right">79</td>
+<td style="text-align:right">no aplica</td>
+</tr>
+<tr>
+<td>4</td>
+<td>FEASIBLE: 6, OPTIMAL: 76, UNKNOWN: 14</td>
+<td style="text-align:right">96</td>
+<td style="text-align:right">no aplica</td>
+</tr>
+</tbody>
+</table></div>
+<p>Avisos del programador:</p>
+<ul>
+<li>candidate_frontier_reached en 96 colas</li>
+<li>candidate_frontier_reached persiste tras duplicar el margen en 14 colas</li>
+<li>lead_extrapolation: 139 citas con aviso fuera de 7-90 días; su p extrapola el modelo de inasistencias</li>
+</ul>
+<h3>Benchmark por tamaño y horizonte</h3>
+<p>El benchmark mide el rendimiento del programador al crecer el tamaño (1.000, 10.000, 50.000 entradas) y el horizonte (2, 4 semanas): tiempo real de pared, estado final del solver y brecha del óptimo. Máquina: macOS-27.0.1-arm64-arm-64bit, 8 núcleos, Python 3.12.13, OR-Tools 9.15.6755; CP-SAT en modo determinista con 1 hilo, límite de 120 s para todo el plan (repartido entre subproblemas y fases), semilla 42. La comparación contra la política voraz de solo prioridad muestra el valor añadido de la optimización en celdas que alcanzan óptimo probado. Las celdas con estado FEASIBLE (sin prueba de optimalidad) reportan brecha positiva; algunas no pasan calibración estricta (se listan en cada celda), lo que indica limitación en la reproducción de agregados en esa población sintética.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:right">Entradas</th>
+<th style="text-align:right">Semanas</th>
+<th>Estado</th>
+<th style="text-align:right">Brecha</th>
+<th style="text-align:right">Tiempo mediano (s)</th>
+<th style="text-align:right">Repeticiones</th>
+<th style="text-align:right">Candidatas</th>
+<th style="text-align:right">Subproblemas</th>
+<th style="text-align:right">Frontera sin resolver</th>
+<th>Calibración de la corrida</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1.000</td>
+<td style="text-align:right">2</td>
+<td>OPTIMAL</td>
+<td style="text-align:right">0,000 %</td>
+<td style="text-align:right">0,01</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">81</td>
+<td style="text-align:right">9</td>
+<td style="text-align:right">0</td>
+<td>no pasa: C3.iq.mediana, C5.nacional.media(mapeados)</td>
+</tr>
+<tr>
+<td style="text-align:right">1.000</td>
+<td style="text-align:right">4</td>
+<td>OPTIMAL</td>
+<td style="text-align:right">0,000 %</td>
+<td style="text-align:right">0,02</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">111</td>
+<td style="text-align:right">17</td>
+<td style="text-align:right">0</td>
+<td>no pasa: C3.iq.mediana, C5.nacional.media(mapeados)</td>
+</tr>
+<tr>
+<td style="text-align:right">10.000</td>
+<td style="text-align:right">2</td>
+<td>OPTIMAL</td>
+<td style="text-align:right">0,000 %</td>
+<td style="text-align:right">0,16</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">1.527</td>
+<td style="text-align:right">66</td>
+<td style="text-align:right">0</td>
+<td>pasa</td>
+</tr>
+<tr>
+<td style="text-align:right">10.000</td>
+<td style="text-align:right">4</td>
+<td>OPTIMAL</td>
+<td style="text-align:right">0,002 %</td>
+<td style="text-align:right">0,39</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">2.879</td>
+<td style="text-align:right">94</td>
+<td style="text-align:right">0</td>
+<td>pasa</td>
+</tr>
+<tr>
+<td style="text-align:right">50.000</td>
+<td style="text-align:right">2</td>
+<td>OPTIMAL</td>
+<td style="text-align:right">0,020 %</td>
+<td style="text-align:right">15,13</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">8.673</td>
+<td style="text-align:right">190</td>
+<td style="text-align:right">4</td>
+<td>pasa</td>
+</tr>
+<tr>
+<td style="text-align:right">50.000</td>
+<td style="text-align:right">4</td>
+<td>FEASIBLE</td>
+<td style="text-align:right">0,366 %</td>
+<td style="text-align:right">93,76</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">18.430</td>
+<td style="text-align:right">190</td>
+<td style="text-align:right">3</td>
+<td>pasa</td>
+</tr>
+</tbody>
+</table></div>
+<p>Optimizada frente a la voraz de solo prioridad en cada celda:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:right">Entradas</th>
+<th style="text-align:right">Semanas</th>
+<th style="text-align:right">Agendadas (optimizada)</th>
+<th style="text-align:right">Δ agendadas</th>
+<th style="text-align:right">Δ máxima prioridad agendadas</th>
+<th style="text-align:right">Δ GES cumplidas</th>
+<th style="text-align:right">Δ GES antes del plazo</th>
+<th style="text-align:right">Δ puntaje total</th>
+<th>No peor en el orden lexicográfico</th>
+<th>Sin sobrecupo, no peor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1.000</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">79</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td>sí</td>
+<td>sí</td>
+</tr>
+<tr>
+<td style="text-align:right">1.000</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">108</td>
+<td style="text-align:right">+1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">+530</td>
+<td>sí</td>
+<td>sí</td>
+</tr>
+<tr>
+<td style="text-align:right">10.000</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">673</td>
+<td style="text-align:right">+16</td>
+<td style="text-align:right">+1</td>
+<td style="text-align:right">+6</td>
+<td style="text-align:right">+6</td>
+<td style="text-align:right">+36.109</td>
+<td>sí</td>
+<td>sí</td>
+</tr>
+<tr>
+<td style="text-align:right">10.000</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">1.333</td>
+<td style="text-align:right">+31</td>
+<td style="text-align:right">+1</td>
+<td style="text-align:right">+13</td>
+<td style="text-align:right">+12</td>
+<td style="text-align:right">+60.255</td>
+<td>sí</td>
+<td>sí</td>
+</tr>
+<tr>
+<td style="text-align:right">50.000</td>
+<td style="text-align:right">2</td>
+<td style="text-align:right">3.338</td>
+<td style="text-align:right">+120</td>
+<td style="text-align:right">+13</td>
+<td style="text-align:right">+43</td>
+<td style="text-align:right">+60</td>
+<td style="text-align:right">+695.144</td>
+<td>sí</td>
+<td>sí</td>
+</tr>
+<tr>
+<td style="text-align:right">50.000</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">6.935</td>
+<td style="text-align:right">+284</td>
+<td style="text-align:right">+6</td>
+<td style="text-align:right">+225</td>
+<td style="text-align:right">+240</td>
+<td style="text-align:right">+1.324.117</td>
+<td>sí</td>
+<td>sí</td>
+</tr>
+</tbody>
+</table></div>
+<h4>Ablación de técnicas</h4>
+<p>Tiempo mediano de pared en segundos y estado final del solver, por variante y celda (entradas y semanas). Cada variante apaga una técnica de la formulación.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Variante</th>
+<th style="text-align:right">1.000 entradas, 2 sem</th>
+<th style="text-align:right">1.000 entradas, 4 sem</th>
+<th style="text-align:right">10.000 entradas, 2 sem</th>
+<th style="text-align:right">10.000 entradas, 4 sem</th>
+<th style="text-align:right">50.000 entradas, 2 sem</th>
+<th style="text-align:right">50.000 entradas, 4 sem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Completa (todas las técnicas)</td>
+<td style="text-align:right">0,01 s, OPTIMAL</td>
+<td style="text-align:right">0,02 s, OPTIMAL</td>
+<td style="text-align:right">0,16 s, OPTIMAL</td>
+<td style="text-align:right">0,39 s, OPTIMAL</td>
+<td style="text-align:right">15,13 s, OPTIMAL</td>
+<td style="text-align:right">93,76 s, FEASIBLE</td>
+</tr>
+<tr>
+<td>Sin ninguna técnica</td>
+<td style="text-align:right">0,01 s, OPTIMAL</td>
+<td style="text-align:right">0,02 s, OPTIMAL</td>
+<td style="text-align:right">0,16 s, OPTIMAL</td>
+<td style="text-align:right">0,42 s, OPTIMAL</td>
+<td style="text-align:right">17,38 s, OPTIMAL</td>
+<td style="text-align:right">115,95 s, UNKNOWN</td>
+</tr>
+<tr>
+<td>Sin pistas de solución</td>
+<td style="text-align:right">0,01 s, OPTIMAL</td>
+<td style="text-align:right">0,02 s, OPTIMAL</td>
+<td style="text-align:right">0,15 s, OPTIMAL</td>
+<td style="text-align:right">0,39 s, OPTIMAL</td>
+<td style="text-align:right">12,13 s, UNKNOWN</td>
+<td style="text-align:right">100,36 s, UNKNOWN</td>
+</tr>
+<tr>
+<td>Sin corte del objetivo</td>
+<td style="text-align:right">0,01 s, OPTIMAL</td>
+<td style="text-align:right">0,01 s, OPTIMAL</td>
+<td style="text-align:right">0,16 s, OPTIMAL</td>
+<td style="text-align:right">0,38 s, OPTIMAL</td>
+<td style="text-align:right">15,25 s, OPTIMAL</td>
+<td style="text-align:right">100,59 s, FEASIBLE</td>
+</tr>
+<tr>
+<td>Sin pista de sobrecupo</td>
+<td style="text-align:right">0,01 s, OPTIMAL</td>
+<td style="text-align:right">0,02 s, OPTIMAL</td>
+<td style="text-align:right">0,16 s, OPTIMAL</td>
+<td style="text-align:right">0,44 s, OPTIMAL</td>
+<td style="text-align:right">15,07 s, OPTIMAL</td>
+<td style="text-align:right">106,51 s, FEASIBLE</td>
+</tr>
+<tr>
+<td>Sin poda de niveles de sobrecupo</td>
+<td style="text-align:right">0,02 s, OPTIMAL</td>
+<td style="text-align:right">0,02 s, OPTIMAL</td>
+<td style="text-align:right">0,21 s, OPTIMAL</td>
+<td style="text-align:right">0,50 s, OPTIMAL</td>
+<td style="text-align:right">14,01 s, OPTIMAL</td>
+<td style="text-align:right">112,34 s, FEASIBLE</td>
+</tr>
+<tr>
+<td>Sin ruptura de simetría</td>
+<td style="text-align:right">0,01 s, OPTIMAL</td>
+<td style="text-align:right">0,02 s, OPTIMAL</td>
+<td style="text-align:right">0,16 s, OPTIMAL</td>
+<td style="text-align:right">0,40 s, OPTIMAL</td>
+<td style="text-align:right">15,69 s, OPTIMAL</td>
+<td style="text-align:right">98,22 s, FEASIBLE</td>
+</tr>
+<tr>
+<td>Sin arranque en caliente de la frontera</td>
+<td style="text-align:right">0,01 s, OPTIMAL</td>
+<td style="text-align:right">0,02 s, OPTIMAL</td>
+<td style="text-align:right">0,16 s, OPTIMAL</td>
+<td style="text-align:right">0,40 s, OPTIMAL</td>
+<td style="text-align:right">14,58 s, OPTIMAL</td>
+<td style="text-align:right">96,06 s, FEASIBLE</td>
+</tr>
+</tbody>
+</table></div>
+<p>Puntaje total y brecha de cada variante en la celda más grande (50.000 entradas, 4 semanas):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Variante</th>
+<th>Estado</th>
+<th style="text-align:right">Brecha</th>
+<th style="text-align:right">Agendadas</th>
+<th style="text-align:right">Puntaje total</th>
+<th style="text-align:right">Tiempo mediano (s)</th>
+<th style="text-align:right">Repeticiones</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Completa (todas las técnicas)</td>
+<td>FEASIBLE</td>
+<td style="text-align:right">0,366 %</td>
+<td style="text-align:right">6.935</td>
+<td style="text-align:right">34.848.421</td>
+<td style="text-align:right">93,76</td>
+<td style="text-align:right">3</td>
+</tr>
+<tr>
+<td>Sin ninguna técnica</td>
+<td>UNKNOWN</td>
+<td style="text-align:right">no aplica</td>
+<td style="text-align:right">6.884</td>
+<td style="text-align:right">34.655.722</td>
+<td style="text-align:right">115,95</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>Sin pistas de solución</td>
+<td>UNKNOWN</td>
+<td style="text-align:right">no aplica</td>
+<td style="text-align:right">6.944</td>
+<td style="text-align:right">34.885.292</td>
+<td style="text-align:right">100,36</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>Sin corte del objetivo</td>
+<td>FEASIBLE</td>
+<td style="text-align:right">0,387 %</td>
+<td style="text-align:right">6.934</td>
+<td style="text-align:right">34.842.298</td>
+<td style="text-align:right">100,59</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>Sin pista de sobrecupo</td>
+<td>FEASIBLE</td>
+<td style="text-align:right">0,815 %</td>
+<td style="text-align:right">6.898</td>
+<td style="text-align:right">34.691.199</td>
+<td style="text-align:right">106,51</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>Sin poda de niveles de sobrecupo</td>
+<td>FEASIBLE</td>
+<td style="text-align:right">0,915 %</td>
+<td style="text-align:right">6.924</td>
+<td style="text-align:right">34.799.074</td>
+<td style="text-align:right">112,34</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>Sin ruptura de simetría</td>
+<td>FEASIBLE</td>
+<td style="text-align:right">0,374 %</td>
+<td style="text-align:right">6.935</td>
+<td style="text-align:right">34.850.118</td>
+<td style="text-align:right">98,22</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>Sin arranque en caliente de la frontera</td>
+<td>FEASIBLE</td>
+<td style="text-align:right">0,347 %</td>
+<td style="text-align:right">6.937</td>
+<td style="text-align:right">34.856.501</td>
+<td style="text-align:right">96,06</td>
+<td style="text-align:right">1</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Simulación</h2>
+<p>Simulación de 26 semanas con 5 réplicas (semillas 101, 102, 103, 104, 105). Cada semana, nuevos pacientes llegan a la lista, la política programa con el horizonte disponible (4 semanas), y los pacientes asisten o no según su probabilidad verdadera (de <code>synthetic.noshow_truth.true_noshow_prob</code>, sin usar la predicción). Réplicas con semillas distintas reproducen variabilidad; cada métrica reporta media e IC 95 % entre réplicas. Población de 10.000 entradas (corrida <code>a0386f24-5378-5fee-add8-5c1e1c81fa7e</code>, semilla 42), multiplicador de capacidad 1,00, tasa de abandono semanal 0,0 %, salida tras 2 inasistencias. Las comparaciones pareadas muestran la diferencia media entre políticas (por ejemplo, &quot;Optimizada menos Prioridad&quot;); dirección &quot;mejor&quot; significa que el IC 95 % está fuera de cero y el signo favorece la métrica; &quot;peor&quot; indica lo contrario. Las diferencias desfavorables (p. ej., donde la optimizada no gana) se reportan tal cual.</p>
+<p><strong>Atención.</strong> Esta simulación usa 10.000 entradas; el plan canónico usa 100.000. Las cifras de esta sección no son extrapolables al tamaño canónico.</p>
+<h3>Medias por política</h3>
+<p>Media entre réplicas con su IC 95 %.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th style="text-align:right">Orden de llegada</th>
+<th style="text-align:right">Solo prioridad</th>
+<th style="text-align:right">Optimizada</th>
+<th style="text-align:right">Optimizada con sobrecupo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pacientes atendidos</td>
+<td style="text-align:right">6.428,4 (IC 95 % 6.400,6 a 6.456,2)</td>
+<td style="text-align:right">6.482,8 (IC 95 % 6.448,2 a 6.517,4)</td>
+<td style="text-align:right">6.515,2 (IC 95 % 6.475,9 a 6.554,5)</td>
+<td style="text-align:right">6.616,0 (IC 95 % 6.577,8 a 6.654,2)</td>
+</tr>
+<tr>
+<td>Mediana de espera de los atendidos (días)</td>
+<td style="text-align:right">356,8 (IC 95 % 355,0 a 358,6)</td>
+<td style="text-align:right">300,7 (IC 95 % 299,2 a 302,2)</td>
+<td style="text-align:right">295,4 (IC 95 % 293,5 a 297,3)</td>
+<td style="text-align:right">294,9 (IC 95 % 293,1 a 296,7)</td>
+</tr>
+<tr>
+<td>p90 de espera de los atendidos (días)</td>
+<td style="text-align:right">799,9 (IC 95 % 796,3 a 803,6)</td>
+<td style="text-align:right">772,5 (IC 95 % 767,3 a 777,7)</td>
+<td style="text-align:right">768,3 (IC 95 % 764,2 a 772,4)</td>
+<td style="text-align:right">766,0 (IC 95 % 761,5 a 770,4)</td>
+</tr>
+<tr>
+<td>Mediana de espera de la lista final (días)</td>
+<td style="text-align:right">138,6 (IC 95 % 137,2 a 140,0)</td>
+<td style="text-align:right">154,4 (IC 95 % 153,0 a 155,8)</td>
+<td style="text-align:right">154,4 (IC 95 % 153,0 a 155,8)</td>
+<td style="text-align:right">153,8 (IC 95 % 152,0 a 155,6)</td>
+</tr>
+<tr>
+<td>p90 de espera de la lista final (días)</td>
+<td style="text-align:right">488,4 (IC 95 % 484,7 a 492,1)</td>
+<td style="text-align:right">552,0 (IC 95 % 548,5 a 555,5)</td>
+<td style="text-align:right">554,9 (IC 95 % 550,9 a 558,9)</td>
+<td style="text-align:right">554,5 (IC 95 % 550,6 a 558,4)</td>
+</tr>
+<tr>
+<td>Tamaño final de la lista</td>
+<td style="text-align:right">11.239,8 (IC 95 % 11.171,3 a 11.308,3)</td>
+<td style="text-align:right">11.192,6 (IC 95 % 11.119,2 a 11.266,0)</td>
+<td style="text-align:right">11.161,8 (IC 95 % 11.088,7 a 11.234,9)</td>
+<td style="text-align:right">11.058,6 (IC 95 % 10.987,8 a 11.129,4)</td>
+</tr>
+<tr>
+<td>GES atendidas a tiempo</td>
+<td style="text-align:right">56,4 (IC 95 % 50,9 a 61,9)</td>
+<td style="text-align:right">416,8 (IC 95 % 388,5 a 445,1)</td>
+<td style="text-align:right">619,4 (IC 95 % 589,1 a 649,7)</td>
+<td style="text-align:right">634,6 (IC 95 % 601,9 a 667,3)</td>
+</tr>
+<tr>
+<td>GES incumplidas</td>
+<td style="text-align:right">1.358,8 (IC 95 % 1.318,7 a 1.398,9)</td>
+<td style="text-align:right">1.201,4 (IC 95 % 1.163,4 a 1.239,4)</td>
+<td style="text-align:right">1.034,6 (IC 95 % 1.002,0 a 1.067,2)</td>
+<td style="text-align:right">1.034,2 (IC 95 % 1.000,9 a 1.067,5)</td>
+</tr>
+<tr>
+<td>GES vencidas al final</td>
+<td style="text-align:right">1.166,0 (IC 95 % 1.118,8 a 1.213,2)</td>
+<td style="text-align:right">833,6 (IC 95 % 790,5 a 876,7)</td>
+<td style="text-align:right">813,4 (IC 95 % 772,0 a 854,8)</td>
+<td style="text-align:right">813,2 (IC 95 % 772,2 a 854,2)</td>
+</tr>
+<tr>
+<td>Llegadas sin cupo en el horizonte del plan</td>
+<td style="text-align:right">7.337,2 (IC 95 % 7.286,6 a 7.387,8)</td>
+<td style="text-align:right">7.003,0 (IC 95 % 6.964,0 a 7.042,0)</td>
+<td style="text-align:right">6.998,8 (IC 95 % 6.962,7 a 7.034,9)</td>
+<td style="text-align:right">6.979,4 (IC 95 % 6.938,9 a 7.019,9)</td>
+</tr>
+<tr>
+<td>Salidas por dos inasistencias</td>
+<td style="text-align:right">77,2 (IC 95 % 69,9 a 84,5)</td>
+<td style="text-align:right">70,0 (IC 95 % 66,2 a 73,8)</td>
+<td style="text-align:right">68,4 (IC 95 % 61,8 a 75,0)</td>
+<td style="text-align:right">70,8 (IC 95 % 65,4 a 76,2)</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, consultas</td>
+<td style="text-align:right">15,4 % (IC 95 % 15,2 % a 15,6 %)</td>
+<td style="text-align:right">14,9 % (IC 95 % 14,7 % a 15,1 %)</td>
+<td style="text-align:right">14,9 % (IC 95 % 14,5 % a 15,2 %)</td>
+<td style="text-align:right">14,9 % (IC 95 % 14,6 % a 15,2 %)</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, cirugías</td>
+<td style="text-align:right">5,3 % (IC 95 % 4,0 % a 6,6 %)</td>
+<td style="text-align:right">4,8 % (IC 95 % 3,9 % a 5,7 %)</td>
+<td style="text-align:right">4,6 % (IC 95 % 3,7 % a 5,4 %)</td>
+<td style="text-align:right">4,6 % (IC 95 % 3,7 % a 5,4 %)</td>
+</tr>
+<tr>
+<td>Utilización de cupos de consulta</td>
+<td style="text-align:right">69,8 % (IC 95 % 69,5 % a 70,2 %)</td>
+<td style="text-align:right">70,3 % (IC 95 % 69,9 % a 70,7 %)</td>
+<td style="text-align:right">70,3 % (IC 95 % 69,9 % a 70,8 %)</td>
+<td style="text-align:right">71,4 % (IC 95 % 71,0 % a 71,9 %)</td>
+</tr>
+<tr>
+<td>Utilización de pabellón</td>
+<td style="text-align:right">67,9 % (IC 95 % 66,8 % a 68,9 %)</td>
+<td style="text-align:right">67,8 % (IC 95 % 67,0 % a 68,7 %)</td>
+<td style="text-align:right">68,3 % (IC 95 % 67,4 % a 69,1 %)</td>
+<td style="text-align:right">68,3 % (IC 95 % 67,4 % a 69,1 %)</td>
+</tr>
+<tr>
+<td>Cupos de consulta perdidos</td>
+<td style="text-align:right">1.030,2 (IC 95 % 1.017,0 a 1.043,4)</td>
+<td style="text-align:right">995,4 (IC 95 % 981,9 a 1.008,9)</td>
+<td style="text-align:right">993,2 (IC 95 % 972,4 a 1.014,0)</td>
+<td style="text-align:right">901,8 (IC 95 % 883,2 a 920,4)</td>
+</tr>
+<tr>
+<td>Minutos de pabellón perdidos</td>
+<td style="text-align:right">6.049,0 (IC 95 % 4.458,1 a 7.639,9)</td>
+<td style="text-align:right">5.447,0 (IC 95 % 4.124,0 a 6.770,0)</td>
+<td style="text-align:right">5.244,0 (IC 95 % 3.787,8 a 6.700,2)</td>
+<td style="text-align:right">5.244,0 (IC 95 % 3.787,8 a 6.700,2)</td>
+</tr>
+<tr>
+<td>Sesiones con desborde</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">11,8 (IC 95 % 6,2 a 17,4)</td>
+</tr>
+<tr>
+<td>Pacientes afectados por desborde</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">153,4 (IC 95 % 80,0 a 226,8)</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Comparaciones pareadas</h3>
+<p>Diferencia pareada (política menos base) en las mismas réplicas, con IC 95 %. La lectura dice si el IC excluye el cero a favor (&quot;mejora&quot;) o en contra (&quot;empeora&quot;) según la dirección de la métrica; las diferencias desfavorables se muestran igual que las favorables. La comparación de orden de llegada contra solo prioridad es el espejo con signo invertido de la de solo prioridad contra orden de llegada y no se repite.</p>
+<h4>Optimizada frente a Solo prioridad</h4>
+<p>Métricas que mejoran: 8; que empeoran: 1; sin diferencia clara: 10. Empeoran: p90 de espera de la lista final (días).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th style="text-align:right">Diferencia media</th>
+<th style="text-align:right">Réplicas en que mejora</th>
+<th>Lectura</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pacientes atendidos</td>
+<td style="text-align:right">+32,4 (IC 95 % +24,4 a +40,4)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de los atendidos (días)</td>
+<td style="text-align:right">-5,3 (IC 95 % -5,9 a -4,7)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>p90 de espera de los atendidos (días)</td>
+<td style="text-align:right">-4,2 (IC 95 % -7,0 a -1,3)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de la lista final (días)</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>p90 de espera de la lista final (días)</td>
+<td style="text-align:right">+2,9 (IC 95 % +1,5 a +4,4)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>Tamaño final de la lista</td>
+<td style="text-align:right">-30,8 (IC 95 % -37,9 a -23,7)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES atendidas a tiempo</td>
+<td style="text-align:right">+202,6 (IC 95 % +190,7 a +214,5)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES incumplidas</td>
+<td style="text-align:right">-166,8 (IC 95 % -182,7 a -150,9)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES vencidas al final</td>
+<td style="text-align:right">-20,2 (IC 95 % -32,2 a -8,2)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Llegadas sin cupo en el horizonte del plan</td>
+<td style="text-align:right">-4,2 (IC 95 % -9,6 a +1,2)</td>
+<td style="text-align:right">4 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Salidas por dos inasistencias</td>
+<td style="text-align:right">-1,6 (IC 95 % -4,6 a +1,4)</td>
+<td style="text-align:right">3 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, consultas</td>
+<td style="text-align:right">0,0 pp (IC 95 % -0,1 pp a +0,1 pp)</td>
+<td style="text-align:right">3 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, cirugías</td>
+<td style="text-align:right">-0,2 pp (IC 95 % -0,5 pp a +0,1 pp)</td>
+<td style="text-align:right">4 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Utilización de cupos de consulta</td>
+<td style="text-align:right">0,0 pp (IC 95 % -0,1 pp a +0,1 pp)</td>
+<td style="text-align:right">2 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Utilización de pabellón</td>
+<td style="text-align:right">+0,4 pp (IC 95 % +0,2 pp a +0,6 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Cupos de consulta perdidos</td>
+<td style="text-align:right">-2,2 (IC 95 % -10,3 a +5,9)</td>
+<td style="text-align:right">3 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Minutos de pabellón perdidos</td>
+<td style="text-align:right">-203,0 (IC 95 % -603,2 a +197,2)</td>
+<td style="text-align:right">4 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Sesiones con desborde</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Pacientes afectados por desborde</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+</tbody>
+</table></div>
+<h4>Optimizada frente a Orden de llegada</h4>
+<p>Métricas que mejoran: 14; que empeoran: 2; sin diferencia clara: 3. Empeoran: Mediana de espera de la lista final (días); p90 de espera de la lista final (días).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th style="text-align:right">Diferencia media</th>
+<th style="text-align:right">Réplicas en que mejora</th>
+<th>Lectura</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pacientes atendidos</td>
+<td style="text-align:right">+86,8 (IC 95 % +71,0 a +102,6)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de los atendidos (días)</td>
+<td style="text-align:right">-61,4 (IC 95 % -62,5 a -60,3)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>p90 de espera de los atendidos (días)</td>
+<td style="text-align:right">-31,6 (IC 95 % -35,6 a -27,6)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de la lista final (días)</td>
+<td style="text-align:right">+15,8 (IC 95 % +14,8 a +16,8)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>p90 de espera de la lista final (días)</td>
+<td style="text-align:right">+66,5 (IC 95 % +64,7 a +68,3)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>Tamaño final de la lista</td>
+<td style="text-align:right">-78,0 (IC 95 % -95,2 a -60,8)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES atendidas a tiempo</td>
+<td style="text-align:right">+563,0 (IC 95 % +533,9 a +592,1)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES incumplidas</td>
+<td style="text-align:right">-324,2 (IC 95 % -341,7 a -306,7)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES vencidas al final</td>
+<td style="text-align:right">-352,6 (IC 95 % -375,3 a -329,9)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Llegadas sin cupo en el horizonte del plan</td>
+<td style="text-align:right">-338,4 (IC 95 % -359,7 a -317,1)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Salidas por dos inasistencias</td>
+<td style="text-align:right">-8,8 (IC 95 % -14,6 a -3,0)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, consultas</td>
+<td style="text-align:right">-0,6 pp (IC 95 % -0,8 pp a -0,4 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, cirugías</td>
+<td style="text-align:right">-0,7 pp (IC 95 % -1,3 pp a -0,2 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Utilización de cupos de consulta</td>
+<td style="text-align:right">+0,5 pp (IC 95 % +0,3 pp a +0,7 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Utilización de pabellón</td>
+<td style="text-align:right">+0,4 pp (IC 95 % -0,1 pp a +0,9 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Cupos de consulta perdidos</td>
+<td style="text-align:right">-37,0 (IC 95 % -50,7 a -23,3)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Minutos de pabellón perdidos</td>
+<td style="text-align:right">-805,0 (IC 95 % -1.471,8 a -138,2)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Sesiones con desborde</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Pacientes afectados por desborde</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+</tbody>
+</table></div>
+<h4>Solo prioridad frente a Orden de llegada</h4>
+<p>Métricas que mejoran: 12; que empeoran: 2; sin diferencia clara: 5. Empeoran: Mediana de espera de la lista final (días); p90 de espera de la lista final (días).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th style="text-align:right">Diferencia media</th>
+<th style="text-align:right">Réplicas en que mejora</th>
+<th>Lectura</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pacientes atendidos</td>
+<td style="text-align:right">+54,4 (IC 95 % +43,7 a +65,1)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de los atendidos (días)</td>
+<td style="text-align:right">-56,1 (IC 95 % -57,4 a -54,8)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>p90 de espera de los atendidos (días)</td>
+<td style="text-align:right">-27,4 (IC 95 % -31,7 a -23,1)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de la lista final (días)</td>
+<td style="text-align:right">+15,8 (IC 95 % +14,8 a +16,8)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>p90 de espera de la lista final (días)</td>
+<td style="text-align:right">+63,6 (IC 95 % +60,7 a +66,5)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>Tamaño final de la lista</td>
+<td style="text-align:right">-47,2 (IC 95 % -59,0 a -35,4)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES atendidas a tiempo</td>
+<td style="text-align:right">+360,4 (IC 95 % +333,0 a +387,8)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES incumplidas</td>
+<td style="text-align:right">-157,4 (IC 95 % -164,2 a -150,6)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES vencidas al final</td>
+<td style="text-align:right">-332,4 (IC 95 % -351,3 a -313,5)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Llegadas sin cupo en el horizonte del plan</td>
+<td style="text-align:right">-334,2 (IC 95 % -353,0 a -315,4)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Salidas por dos inasistencias</td>
+<td style="text-align:right">-7,2 (IC 95 % -12,6 a -1,8)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, consultas</td>
+<td style="text-align:right">-0,5 pp (IC 95 % -0,7 pp a -0,4 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, cirugías</td>
+<td style="text-align:right">-0,5 pp (IC 95 % -1,1 pp a +0,1 pp)</td>
+<td style="text-align:right">4 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Utilización de cupos de consulta</td>
+<td style="text-align:right">+0,5 pp (IC 95 % +0,3 pp a +0,6 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Utilización de pabellón</td>
+<td style="text-align:right">0,0 pp (IC 95 % -0,6 pp a +0,6 pp)</td>
+<td style="text-align:right">1 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Cupos de consulta perdidos</td>
+<td style="text-align:right">-34,8 (IC 95 % -44,9 a -24,7)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Minutos de pabellón perdidos</td>
+<td style="text-align:right">-602,0 (IC 95 % -1.370,8 a +166,8)</td>
+<td style="text-align:right">4 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Sesiones con desborde</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Pacientes afectados por desborde</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+</tbody>
+</table></div>
+<h4>Optimizada con sobrecupo frente a Solo prioridad</h4>
+<p>Métricas que mejoran: 11; que empeoran: 3; sin diferencia clara: 5. Empeoran: p90 de espera de la lista final (días); Sesiones con desborde; Pacientes afectados por desborde.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th style="text-align:right">Diferencia media</th>
+<th style="text-align:right">Réplicas en que mejora</th>
+<th>Lectura</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pacientes atendidos</td>
+<td style="text-align:right">+133,2 (IC 95 % +122,7 a +143,7)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de los atendidos (días)</td>
+<td style="text-align:right">-5,8 (IC 95 % -6,5 a -5,1)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>p90 de espera de los atendidos (días)</td>
+<td style="text-align:right">-6,5 (IC 95 % -9,0 a -4,1)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de la lista final (días)</td>
+<td style="text-align:right">-0,6 (IC 95 % -1,3 a +0,1)</td>
+<td style="text-align:right">3 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>p90 de espera de la lista final (días)</td>
+<td style="text-align:right">+2,5 (IC 95 % +1,2 a +3,8)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>Tamaño final de la lista</td>
+<td style="text-align:right">-134,0 (IC 95 % -143,1 a -124,9)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES atendidas a tiempo</td>
+<td style="text-align:right">+217,8 (IC 95 % +208,0 a +227,6)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES incumplidas</td>
+<td style="text-align:right">-167,2 (IC 95 % -183,8 a -150,6)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES vencidas al final</td>
+<td style="text-align:right">-20,4 (IC 95 % -32,6 a -8,2)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Llegadas sin cupo en el horizonte del plan</td>
+<td style="text-align:right">-23,6 (IC 95 % -33,7 a -13,5)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Salidas por dos inasistencias</td>
+<td style="text-align:right">+0,8 (IC 95 % -1,4 a +3,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, consultas</td>
+<td style="text-align:right">0,0 pp (IC 95 % -0,1 pp a +0,1 pp)</td>
+<td style="text-align:right">3 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, cirugías</td>
+<td style="text-align:right">-0,2 pp (IC 95 % -0,5 pp a +0,1 pp)</td>
+<td style="text-align:right">4 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Utilización de cupos de consulta</td>
+<td style="text-align:right">+1,1 pp (IC 95 % +1,0 pp a +1,2 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Utilización de pabellón</td>
+<td style="text-align:right">+0,4 pp (IC 95 % +0,2 pp a +0,6 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Cupos de consulta perdidos</td>
+<td style="text-align:right">-93,6 (IC 95 % -100,3 a -86,9)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Minutos de pabellón perdidos</td>
+<td style="text-align:right">-203,0 (IC 95 % -603,2 a +197,2)</td>
+<td style="text-align:right">4 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Sesiones con desborde</td>
+<td style="text-align:right">+11,8 (IC 95 % +6,2 a +17,4)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>Pacientes afectados por desborde</td>
+<td style="text-align:right">+153,4 (IC 95 % +80,0 a +226,8)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+</tbody>
+</table></div>
+<h4>Optimizada con sobrecupo frente a Orden de llegada</h4>
+<p>Métricas que mejoran: 14; que empeoran: 4; sin diferencia clara: 1. Empeoran: Mediana de espera de la lista final (días); p90 de espera de la lista final (días); Sesiones con desborde; Pacientes afectados por desborde.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th style="text-align:right">Diferencia media</th>
+<th style="text-align:right">Réplicas en que mejora</th>
+<th>Lectura</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pacientes atendidos</td>
+<td style="text-align:right">+187,6 (IC 95 % +173,5 a +201,7)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de los atendidos (días)</td>
+<td style="text-align:right">-61,9 (IC 95 % -62,6 a -61,2)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>p90 de espera de los atendidos (días)</td>
+<td style="text-align:right">-34,0 (IC 95 % -37,8 a -30,1)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de la lista final (días)</td>
+<td style="text-align:right">+15,2 (IC 95 % +14,2 a +16,2)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>p90 de espera de la lista final (días)</td>
+<td style="text-align:right">+66,1 (IC 95 % +64,2 a +68,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>Tamaño final de la lista</td>
+<td style="text-align:right">-181,2 (IC 95 % -197,5 a -164,9)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES atendidas a tiempo</td>
+<td style="text-align:right">+578,2 (IC 95 % +546,3 a +610,1)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES incumplidas</td>
+<td style="text-align:right">-324,6 (IC 95 % -342,6 a -306,6)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES vencidas al final</td>
+<td style="text-align:right">-352,8 (IC 95 % -375,7 a -329,9)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Llegadas sin cupo en el horizonte del plan</td>
+<td style="text-align:right">-357,8 (IC 95 % -382,3 a -333,3)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Salidas por dos inasistencias</td>
+<td style="text-align:right">-6,4 (IC 95 % -10,1 a -2,7)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, consultas</td>
+<td style="text-align:right">-0,5 pp (IC 95 % -0,7 pp a -0,4 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, cirugías</td>
+<td style="text-align:right">-0,7 pp (IC 95 % -1,3 pp a -0,2 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Utilización de cupos de consulta</td>
+<td style="text-align:right">+1,6 pp (IC 95 % +1,4 pp a +1,7 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Utilización de pabellón</td>
+<td style="text-align:right">+0,4 pp (IC 95 % -0,1 pp a +0,9 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Cupos de consulta perdidos</td>
+<td style="text-align:right">-128,4 (IC 95 % -141,0 a -115,8)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Minutos de pabellón perdidos</td>
+<td style="text-align:right">-805,0 (IC 95 % -1.471,8 a -138,2)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Sesiones con desborde</td>
+<td style="text-align:right">+11,8 (IC 95 % +6,2 a +17,4)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>Pacientes afectados por desborde</td>
+<td style="text-align:right">+153,4 (IC 95 % +80,0 a +226,8)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+</tbody>
+</table></div>
+<h4>Optimizada con sobrecupo frente a Optimizada</h4>
+<p>Métricas que mejoran: 7; que empeoran: 2; sin diferencia clara: 10. Empeoran: Sesiones con desborde; Pacientes afectados por desborde.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th style="text-align:right">Diferencia media</th>
+<th style="text-align:right">Réplicas en que mejora</th>
+<th>Lectura</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pacientes atendidos</td>
+<td style="text-align:right">+100,8 (IC 95 % +94,8 a +106,8)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de los atendidos (días)</td>
+<td style="text-align:right">-0,5 (IC 95 % -1,1 a +0,1)</td>
+<td style="text-align:right">3 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>p90 de espera de los atendidos (días)</td>
+<td style="text-align:right">-2,4 (IC 95 % -3,4 a -1,4)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Mediana de espera de la lista final (días)</td>
+<td style="text-align:right">-0,6 (IC 95 % -1,3 a +0,1)</td>
+<td style="text-align:right">3 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>p90 de espera de la lista final (días)</td>
+<td style="text-align:right">-0,4 (IC 95 % -1,0 a +0,1)</td>
+<td style="text-align:right">3 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Tamaño final de la lista</td>
+<td style="text-align:right">-103,2 (IC 95 % -108,1 a -98,3)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES atendidas a tiempo</td>
+<td style="text-align:right">+15,2 (IC 95 % +9,2 a +21,2)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>GES incumplidas</td>
+<td style="text-align:right">-0,4 (IC 95 % -1,5 a +0,7)</td>
+<td style="text-align:right">1 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>GES vencidas al final</td>
+<td style="text-align:right">-0,2 (IC 95 % -0,8 a +0,4)</td>
+<td style="text-align:right">1 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Llegadas sin cupo en el horizonte del plan</td>
+<td style="text-align:right">-19,4 (IC 95 % -26,6 a -12,2)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Salidas por dos inasistencias</td>
+<td style="text-align:right">+2,4 (IC 95 % 0,0 a +4,8)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, consultas</td>
+<td style="text-align:right">0,0 pp (IC 95 % 0,0 pp a +0,1 pp)</td>
+<td style="text-align:right">1 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Inasistencia realizada, cirugías</td>
+<td style="text-align:right">0,0 pp (IC 95 % 0,0 pp a 0,0 pp)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Utilización de cupos de consulta</td>
+<td style="text-align:right">+1,1 pp (IC 95 % +1,0 pp a +1,2 pp)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Utilización de pabellón</td>
+<td style="text-align:right">0,0 pp (IC 95 % 0,0 pp a 0,0 pp)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Cupos de consulta perdidos</td>
+<td style="text-align:right">-91,4 (IC 95 % -95,8 a -87,0)</td>
+<td style="text-align:right">5 de 5</td>
+<td>mejora</td>
+</tr>
+<tr>
+<td>Minutos de pabellón perdidos</td>
+<td style="text-align:right">0,0 (IC 95 % 0,0 a 0,0)</td>
+<td style="text-align:right">0 de 5</td>
+<td>sin diferencia clara</td>
+</tr>
+<tr>
+<td>Sesiones con desborde</td>
+<td style="text-align:right">+11,8 (IC 95 % +6,2 a +17,4)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+<tr>
+<td>Pacientes afectados por desborde</td>
+<td style="text-align:right">+153,4 (IC 95 % +80,0 a +226,8)</td>
+<td style="text-align:right">0 de 5</td>
+<td>empeora</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Cobertura de la oferta</h3>
+<p>Algunas combinaciones de servicio y especialidad (celdas) no reciben ningún bloque de oferta en el periodo simulado, lo que deja parte del stock sin posibilidad de ser atendido: ninguna política puede programar citas en cupos que no existen. La tabla muestra la cobertura de la oferta sintética: qué fracción del stock cae en celdas que reciben al menos un bloque.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Tipo de atención</th>
+<th style="text-align:right">Bloques de oferta</th>
+<th style="text-align:right">Celdas</th>
+<th style="text-align:right">Celdas con algún bloque</th>
+<th style="text-align:right">Stock</th>
+<th style="text-align:right">Stock en celdas con bloque</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Consulta nueva de especialidad</td>
+<td style="text-align:right">674</td>
+<td style="text-align:right">1.246</td>
+<td style="text-align:right">466 (37,4 %)</td>
+<td style="text-align:right">8.559</td>
+<td style="text-align:right">6.537 (76,4 %)</td>
+</tr>
+<tr>
+<td>Intervención quirúrgica</td>
+<td style="text-align:right">423</td>
+<td style="text-align:right">304</td>
+<td style="text-align:right">219 (72,0 %)</td>
+<td style="text-align:right">1.441</td>
+<td style="text-align:right">1.293 (89,7 %)</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Programador dentro de la simulación</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Política</th>
+<th style="text-align:right">Planes semanales</th>
+<th>Estados del solver por fase</th>
+<th style="text-align:right">Brecha máxima</th>
+<th style="text-align:right">Tiempo de pared del solver (s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orden de llegada</td>
+<td style="text-align:right">130</td>
+<td>no usa el solver</td>
+<td style="text-align:right">no aplica</td>
+<td style="text-align:right">0,0</td>
+</tr>
+<tr>
+<td>Solo prioridad</td>
+<td style="text-align:right">130</td>
+<td>no usa el solver</td>
+<td style="text-align:right">no aplica</td>
+<td style="text-align:right">0,0</td>
+</tr>
+<tr>
+<td>Optimizada</td>
+<td style="text-align:right">130</td>
+<td>1: OPTIMAL 6.235; 2: OPTIMAL 4.269; 3a: OPTIMAL 16.990; 4: OPTIMAL 200</td>
+<td style="text-align:right">0,006 %</td>
+<td style="text-align:right">4,5</td>
+</tr>
+<tr>
+<td>Optimizada con sobrecupo</td>
+<td style="text-align:right">130</td>
+<td>1: OPTIMAL 6.241; 2: OPTIMAL 4.264; 3a: OPTIMAL 17.026; 3b: OPTIMAL 3.523; 4: OPTIMAL 200</td>
+<td style="text-align:right">0,019 %</td>
+<td style="text-align:right">8,1</td>
+</tr>
+</tbody>
+</table></div>
+<p>Tiempo de simulación por política:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Política</th>
+<th style="text-align:right">Media por réplica (s)</th>
+<th style="text-align:right">Total (s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orden de llegada</td>
+<td style="text-align:right">15,6</td>
+<td style="text-align:right">78,0</td>
+</tr>
+<tr>
+<td>Solo prioridad</td>
+<td style="text-align:right">15,6</td>
+<td style="text-align:right">78,1</td>
+</tr>
+<tr>
+<td>Optimizada</td>
+<td style="text-align:right">19,4</td>
+<td style="text-align:right">96,9</td>
+</tr>
+<tr>
+<td>Optimizada con sobrecupo</td>
+<td style="text-align:right">21,9</td>
+<td style="text-align:right">109,6</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Equidad</h2>
+<p>Se miden desigualdades por comuna, grupo etario y previsión en el programador y la simulación: exposición al sobrecupo (proporción de citas en cupos con overbooking), tasa de atención (agendadas sobre entradas) y mediana de espera. Brechas se calculan contra el total ponderado por entradas; la comuna del sintético es un atributo del paciente sin correlato económico o de distancia, por lo que no tiene efecto causal propio. Se nombran sin suavizar los grupos más expuestos o que quedan en desventaja frente a otros: el informe no filtra resultados por signo.</p>
+<h3>Plan canónico</h3>
+<p>Referencia (todas las entradas):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Política</th>
+<th style="text-align:right">Tasa de agendamiento</th>
+<th style="text-align:right">Exposición al sobrecupo</th>
+<th style="text-align:right">Citas marcadas</th>
+<th style="text-align:right">Riesgo medio de los expuestos</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orden de llegada</td>
+<td style="text-align:right">13,17 %</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">0,0 %</td>
+</tr>
+<tr>
+<td>Solo prioridad</td>
+<td style="text-align:right">13,17 %</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">0,0 %</td>
+</tr>
+<tr>
+<td>Optimizada</td>
+<td style="text-align:right">13,62 %</td>
+<td style="text-align:right">36,5 %</td>
+<td style="text-align:right">2,8 %</td>
+<td style="text-align:right">7,6 %</td>
+</tr>
+</tbody>
+</table></div>
+<p>La exposición al sobrecupo es la proporción de las citas de consulta agendadas que caen en un bloque con sobrecupo; la tasa de agendamiento es agendadas sobre entradas del grupo. Se listan grupos con al menos 30 entradas.</p>
+<h4>age_group</h4>
+<p>Grupo más expuesto al sobrecupo: 0-14 (41,4 %, +4,9 pp respecto del total, 10.751 entradas). Mayor desvío de exposición respecto del total: 0-14 (+4,9 pp). Mayor desvío de la tasa de agendamiento de la optimizada respecto del total: -0,34 pp (15-19). Grupos donde la optimizada agenda menos que solo prioridad: 0 de 5; peor caso: 65+ (+0,34 pp). 5 grupos evaluados de 5.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Entradas</th>
+<th style="text-align:right">Agendamiento, orden de llegada</th>
+<th style="text-align:right">Agendamiento, solo prioridad</th>
+<th style="text-align:right">Agendamiento, optimizada</th>
+<th style="text-align:right">Δ optimizada contra solo prioridad</th>
+<th style="text-align:right">Exposición al sobrecupo</th>
+<th style="text-align:right">Desvío de exposición</th>
+<th style="text-align:right">Citas marcadas</th>
+<th style="text-align:right">Riesgo medio de los expuestos</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-14</td>
+<td style="text-align:right">10.751</td>
+<td style="text-align:right">13,08 %</td>
+<td style="text-align:right">13,10 %</td>
+<td style="text-align:right">13,45 %</td>
+<td style="text-align:right">+0,35 pp</td>
+<td style="text-align:right">41,4 %</td>
+<td style="text-align:right">+4,9 pp</td>
+<td style="text-align:right">3,9 %</td>
+<td style="text-align:right">5,7 %</td>
+</tr>
+<tr>
+<td>15-19</td>
+<td style="text-align:right">4.340</td>
+<td style="text-align:right">12,95 %</td>
+<td style="text-align:right">12,58 %</td>
+<td style="text-align:right">13,27 %</td>
+<td style="text-align:right">+0,69 pp</td>
+<td style="text-align:right">36,7 %</td>
+<td style="text-align:right">+0,2 pp</td>
+<td style="text-align:right">2,9 %</td>
+<td style="text-align:right">7,2 %</td>
+</tr>
+<tr>
+<td>20-44</td>
+<td style="text-align:right">23.586</td>
+<td style="text-align:right">13,13 %</td>
+<td style="text-align:right">13,28 %</td>
+<td style="text-align:right">13,65 %</td>
+<td style="text-align:right">+0,36 pp</td>
+<td style="text-align:right">35,8 %</td>
+<td style="text-align:right">-0,7 pp</td>
+<td style="text-align:right">2,9 %</td>
+<td style="text-align:right">7,9 %</td>
+</tr>
+<tr>
+<td>45-64</td>
+<td style="text-align:right">31.133</td>
+<td style="text-align:right">13,18 %</td>
+<td style="text-align:right">13,29 %</td>
+<td style="text-align:right">13,90 %</td>
+<td style="text-align:right">+0,61 pp</td>
+<td style="text-align:right">35,2 %</td>
+<td style="text-align:right">-1,3 pp</td>
+<td style="text-align:right">2,6 %</td>
+<td style="text-align:right">7,9 %</td>
+</tr>
+<tr>
+<td>65+</td>
+<td style="text-align:right">30.190</td>
+<td style="text-align:right">13,26 %</td>
+<td style="text-align:right">13,06 %</td>
+<td style="text-align:right">13,41 %</td>
+<td style="text-align:right">+0,34 pp</td>
+<td style="text-align:right">36,6 %</td>
+<td style="text-align:right">+0,1 pp</td>
+<td style="text-align:right">2,5 %</td>
+<td style="text-align:right">8,0 %</td>
+</tr>
+</tbody>
+</table></div>
+<h4>insurance</h4>
+<p>Grupo más expuesto al sobrecupo: fonasa c (37,4 %, +0,9 pp respecto del total, 15.030 entradas). Mayor desvío de exposición respecto del total: other (-1,5 pp). Mayor desvío de la tasa de agendamiento de la optimizada respecto del total: -0,22 pp (fonasa d). Grupos donde la optimizada agenda menos que solo prioridad: 0 de 5; peor caso: fonasa d (+0,34 pp). 5 grupos evaluados de 5.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Entradas</th>
+<th style="text-align:right">Agendamiento, orden de llegada</th>
+<th style="text-align:right">Agendamiento, solo prioridad</th>
+<th style="text-align:right">Agendamiento, optimizada</th>
+<th style="text-align:right">Δ optimizada contra solo prioridad</th>
+<th style="text-align:right">Exposición al sobrecupo</th>
+<th style="text-align:right">Desvío de exposición</th>
+<th style="text-align:right">Citas marcadas</th>
+<th style="text-align:right">Riesgo medio de los expuestos</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fonasa a</td>
+<td style="text-align:right">18.435</td>
+<td style="text-align:right">13,06 %</td>
+<td style="text-align:right">13,07 %</td>
+<td style="text-align:right">13,56 %</td>
+<td style="text-align:right">+0,48 pp</td>
+<td style="text-align:right">35,3 %</td>
+<td style="text-align:right">-1,2 pp</td>
+<td style="text-align:right">2,8 %</td>
+<td style="text-align:right">7,6 %</td>
+</tr>
+<tr>
+<td>fonasa b</td>
+<td style="text-align:right">38.982</td>
+<td style="text-align:right">13,17 %</td>
+<td style="text-align:right">13,38 %</td>
+<td style="text-align:right">13,83 %</td>
+<td style="text-align:right">+0,45 pp</td>
+<td style="text-align:right">36,9 %</td>
+<td style="text-align:right">+0,4 pp</td>
+<td style="text-align:right">2,8 %</td>
+<td style="text-align:right">7,6 %</td>
+</tr>
+<tr>
+<td>fonasa c</td>
+<td style="text-align:right">15.030</td>
+<td style="text-align:right">13,07 %</td>
+<td style="text-align:right">12,87 %</td>
+<td style="text-align:right">13,41 %</td>
+<td style="text-align:right">+0,55 pp</td>
+<td style="text-align:right">37,4 %</td>
+<td style="text-align:right">+0,9 pp</td>
+<td style="text-align:right">3,1 %</td>
+<td style="text-align:right">7,7 %</td>
+</tr>
+<tr>
+<td>fonasa d</td>
+<td style="text-align:right">21.487</td>
+<td style="text-align:right">13,28 %</td>
+<td style="text-align:right">13,05 %</td>
+<td style="text-align:right">13,39 %</td>
+<td style="text-align:right">+0,34 pp</td>
+<td style="text-align:right">36,6 %</td>
+<td style="text-align:right">+0,1 pp</td>
+<td style="text-align:right">2,6 %</td>
+<td style="text-align:right">7,7 %</td>
+</tr>
+<tr>
+<td>other</td>
+<td style="text-align:right">6.066</td>
+<td style="text-align:right">13,35 %</td>
+<td style="text-align:right">13,24 %</td>
+<td style="text-align:right">13,68 %</td>
+<td style="text-align:right">+0,45 pp</td>
+<td style="text-align:right">35,0 %</td>
+<td style="text-align:right">-1,5 pp</td>
+<td style="text-align:right">2,8 %</td>
+<td style="text-align:right">7,5 %</td>
+</tr>
+</tbody>
+</table></div>
+<h4>commune_code</h4>
+<p>Grupo más expuesto al sobrecupo: 16305 (75,0 %, +38,5 pp respecto del total, 91 entradas). Mayor desvío de exposición respecto del total: 16305 (+38,5 pp). Mayor desvío de la tasa de agendamiento de la optimizada respecto del total: +13,66 pp (08109). Grupos donde la optimizada agenda menos que solo prioridad: 53 de 313; peor caso: 13203 (-4,17 pp). 313 grupos evaluados de 338.</p>
+<p>Se listan los 10 grupos más expuestos.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Entradas</th>
+<th style="text-align:right">Agendamiento, orden de llegada</th>
+<th style="text-align:right">Agendamiento, solo prioridad</th>
+<th style="text-align:right">Agendamiento, optimizada</th>
+<th style="text-align:right">Δ optimizada contra solo prioridad</th>
+<th style="text-align:right">Exposición al sobrecupo</th>
+<th style="text-align:right">Desvío de exposición</th>
+<th style="text-align:right">Citas marcadas</th>
+<th style="text-align:right">Riesgo medio de los expuestos</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16305</td>
+<td style="text-align:right">91</td>
+<td style="text-align:right">4,40 %</td>
+<td style="text-align:right">7,69 %</td>
+<td style="text-align:right">5,49 %</td>
+<td style="text-align:right">-2,20 pp</td>
+<td style="text-align:right">75,0 %</td>
+<td style="text-align:right">+38,5 pp</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">8,3 %</td>
+</tr>
+<tr>
+<td>03202</td>
+<td style="text-align:right">62</td>
+<td style="text-align:right">11,29 %</td>
+<td style="text-align:right">9,68 %</td>
+<td style="text-align:right">11,29 %</td>
+<td style="text-align:right">+1,61 pp</td>
+<td style="text-align:right">71,4 %</td>
+<td style="text-align:right">+34,9 pp</td>
+<td style="text-align:right">14,3 %</td>
+<td style="text-align:right">4,8 %</td>
+</tr>
+<tr>
+<td>01403</td>
+<td style="text-align:right">320</td>
+<td style="text-align:right">5,63 %</td>
+<td style="text-align:right">8,75 %</td>
+<td style="text-align:right">8,75 %</td>
+<td style="text-align:right">0,00 pp</td>
+<td style="text-align:right">70,4 %</td>
+<td style="text-align:right">+33,9 pp</td>
+<td style="text-align:right">3,7 %</td>
+<td style="text-align:right">9,5 %</td>
+</tr>
+<tr>
+<td>10304</td>
+<td style="text-align:right">141</td>
+<td style="text-align:right">12,77 %</td>
+<td style="text-align:right">7,09 %</td>
+<td style="text-align:right">8,51 %</td>
+<td style="text-align:right">+1,42 pp</td>
+<td style="text-align:right">70,0 %</td>
+<td style="text-align:right">+33,5 pp</td>
+<td style="text-align:right">20,0 %</td>
+<td style="text-align:right">9,3 %</td>
+</tr>
+<tr>
+<td>09202</td>
+<td style="text-align:right">104</td>
+<td style="text-align:right">10,58 %</td>
+<td style="text-align:right">6,73 %</td>
+<td style="text-align:right">6,73 %</td>
+<td style="text-align:right">0,00 pp</td>
+<td style="text-align:right">66,7 %</td>
+<td style="text-align:right">+30,2 pp</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">5,6 %</td>
+</tr>
+<tr>
+<td>09207</td>
+<td style="text-align:right">188</td>
+<td style="text-align:right">6,91 %</td>
+<td style="text-align:right">9,04 %</td>
+<td style="text-align:right">9,04 %</td>
+<td style="text-align:right">0,00 pp</td>
+<td style="text-align:right">66,7 %</td>
+<td style="text-align:right">+30,2 pp</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">5,7 %</td>
+</tr>
+<tr>
+<td>16207</td>
+<td style="text-align:right">108</td>
+<td style="text-align:right">6,48 %</td>
+<td style="text-align:right">9,26 %</td>
+<td style="text-align:right">10,19 %</td>
+<td style="text-align:right">+0,93 pp</td>
+<td style="text-align:right">66,7 %</td>
+<td style="text-align:right">+30,2 pp</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">8,4 %</td>
+</tr>
+<tr>
+<td>01107</td>
+<td style="text-align:right">565</td>
+<td style="text-align:right">9,03 %</td>
+<td style="text-align:right">7,26 %</td>
+<td style="text-align:right">8,14 %</td>
+<td style="text-align:right">+0,88 pp</td>
+<td style="text-align:right">62,5 %</td>
+<td style="text-align:right">+26,0 pp</td>
+<td style="text-align:right">7,5 %</td>
+<td style="text-align:right">9,6 %</td>
+</tr>
+<tr>
+<td>14203</td>
+<td style="text-align:right">165</td>
+<td style="text-align:right">18,18 %</td>
+<td style="text-align:right">13,94 %</td>
+<td style="text-align:right">16,36 %</td>
+<td style="text-align:right">+2,42 pp</td>
+<td style="text-align:right">62,5 %</td>
+<td style="text-align:right">+26,0 pp</td>
+<td style="text-align:right">8,3 %</td>
+<td style="text-align:right">7,9 %</td>
+</tr>
+<tr>
+<td>14204</td>
+<td style="text-align:right">136</td>
+<td style="text-align:right">11,76 %</td>
+<td style="text-align:right">17,65 %</td>
+<td style="text-align:right">19,85 %</td>
+<td style="text-align:right">+2,21 pp</td>
+<td style="text-align:right">60,9 %</td>
+<td style="text-align:right">+24,4 pp</td>
+<td style="text-align:right">0,0 %</td>
+<td style="text-align:right">6,6 %</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Simulación</h3>
+<p>Medias entre 5 réplicas, población de 10.000 entradas. La exposición al sobrecupo es la proporción de citas en sesiones con sobrecupo. Las brechas son contra el total de la dimensión ponderado por entradas.</p>
+<h4>age_group</h4>
+<p>Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): 0-14 (26,9 %, +3,2 pp respecto del total, 1.827 entradas). 5 grupos evaluados.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Política</th>
+<th style="text-align:right">Mayor desvío de la tasa de atención</th>
+<th>Grupo</th>
+<th style="text-align:right">Menor tasa de atención</th>
+<th>Grupo</th>
+<th style="text-align:right">Mayor desvío de la exposición</th>
+<th>Grupo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orden de llegada</td>
+<td style="text-align:right">-5,5 pp</td>
+<td>0-14</td>
+<td style="text-align:right">30,8 %</td>
+<td>0-14</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Solo prioridad</td>
+<td style="text-align:right">-6,8 pp</td>
+<td>0-14</td>
+<td style="text-align:right">29,7 %</td>
+<td>0-14</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Optimizada</td>
+<td style="text-align:right">-6,6 pp</td>
+<td>0-14</td>
+<td style="text-align:right">30,1 %</td>
+<td>0-14</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Optimizada con sobrecupo</td>
+<td style="text-align:right">-6,6 pp</td>
+<td>0-14</td>
+<td style="text-align:right">30,6 %</td>
+<td>0-14</td>
+<td style="text-align:right">+3,2 pp</td>
+<td>0-14</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Entradas</th>
+<th style="text-align:right">Atención, Orden de llegada</th>
+<th style="text-align:right">Atención, Solo prioridad</th>
+<th style="text-align:right">Atención, Optimizada</th>
+<th style="text-align:right">Atención, Optimizada con sobrecupo</th>
+<th style="text-align:right">Exposición al sobrecupo</th>
+<th style="text-align:right">Mediana de espera de atendidos, Optimizada con sobrecupo</th>
+<th style="text-align:right">GES incumplidas, Optimizada con sobrecupo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0-14</td>
+<td style="text-align:right">1.827</td>
+<td style="text-align:right">30,8 %</td>
+<td style="text-align:right">29,7 %</td>
+<td style="text-align:right">30,1 %</td>
+<td style="text-align:right">30,6 %</td>
+<td style="text-align:right">26,9 %</td>
+<td style="text-align:right">311,8</td>
+<td style="text-align:right">85,6</td>
+</tr>
+<tr>
+<td>15-19</td>
+<td style="text-align:right">751</td>
+<td style="text-align:right">34,6 %</td>
+<td style="text-align:right">34,1 %</td>
+<td style="text-align:right">34,9 %</td>
+<td style="text-align:right">35,5 %</td>
+<td style="text-align:right">23,4 %</td>
+<td style="text-align:right">316,8</td>
+<td style="text-align:right">27,8</td>
+</tr>
+<tr>
+<td>20-44</td>
+<td style="text-align:right">4.224</td>
+<td style="text-align:right">36,0 %</td>
+<td style="text-align:right">36,1 %</td>
+<td style="text-align:right">36,3 %</td>
+<td style="text-align:right">36,8 %</td>
+<td style="text-align:right">23,1 %</td>
+<td style="text-align:right">292,8</td>
+<td style="text-align:right">252,4</td>
+</tr>
+<tr>
+<td>45-64</td>
+<td style="text-align:right">5.541</td>
+<td style="text-align:right">37,2 %</td>
+<td style="text-align:right">37,5 %</td>
+<td style="text-align:right">37,6 %</td>
+<td style="text-align:right">38,2 %</td>
+<td style="text-align:right">23,5 %</td>
+<td style="text-align:right">291,8</td>
+<td style="text-align:right">308,6</td>
+</tr>
+<tr>
+<td>65+</td>
+<td style="text-align:right">5.403</td>
+<td style="text-align:right">37,5 %</td>
+<td style="text-align:right">38,5 %</td>
+<td style="text-align:right">38,6 %</td>
+<td style="text-align:right">39,3 %</td>
+<td style="text-align:right">23,3 %</td>
+<td style="text-align:right">290,7</td>
+<td style="text-align:right">359,8</td>
+</tr>
+</tbody>
+</table></div>
+<h4>insurance</h4>
+<p>Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): fonasa c (24,9 %, +1,3 pp respecto del total, 2.641 entradas). 5 grupos evaluados.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Política</th>
+<th style="text-align:right">Mayor desvío de la tasa de atención</th>
+<th>Grupo</th>
+<th style="text-align:right">Menor tasa de atención</th>
+<th>Grupo</th>
+<th style="text-align:right">Mayor desvío de la exposición</th>
+<th>Grupo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orden de llegada</td>
+<td style="text-align:right">+1,7 pp</td>
+<td>other</td>
+<td style="text-align:right">35,9 %</td>
+<td>fonasa c</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Solo prioridad</td>
+<td style="text-align:right">-1,5 pp</td>
+<td>fonasa c</td>
+<td style="text-align:right">35,1 %</td>
+<td>fonasa c</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Optimizada</td>
+<td style="text-align:right">-1,4 pp</td>
+<td>fonasa c</td>
+<td style="text-align:right">35,3 %</td>
+<td>fonasa c</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Optimizada con sobrecupo</td>
+<td style="text-align:right">-1,3 pp</td>
+<td>fonasa c</td>
+<td style="text-align:right">36,0 %</td>
+<td>fonasa c</td>
+<td style="text-align:right">+1,3 pp</td>
+<td>fonasa c</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Entradas</th>
+<th style="text-align:right">Atención, Orden de llegada</th>
+<th style="text-align:right">Atención, Solo prioridad</th>
+<th style="text-align:right">Atención, Optimizada</th>
+<th style="text-align:right">Atención, Optimizada con sobrecupo</th>
+<th style="text-align:right">Exposición al sobrecupo</th>
+<th style="text-align:right">Mediana de espera de atendidos, Optimizada con sobrecupo</th>
+<th style="text-align:right">GES incumplidas, Optimizada con sobrecupo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fonasa a</td>
+<td style="text-align:right">3.308</td>
+<td style="text-align:right">36,3 %</td>
+<td style="text-align:right">36,7 %</td>
+<td style="text-align:right">36,8 %</td>
+<td style="text-align:right">37,4 %</td>
+<td style="text-align:right">23,3 %</td>
+<td style="text-align:right">289,3</td>
+<td style="text-align:right">196,6</td>
+</tr>
+<tr>
+<td>fonasa b</td>
+<td style="text-align:right">6.918</td>
+<td style="text-align:right">35,9 %</td>
+<td style="text-align:right">36,4 %</td>
+<td style="text-align:right">36,6 %</td>
+<td style="text-align:right">37,1 %</td>
+<td style="text-align:right">23,6 %</td>
+<td style="text-align:right">295,4</td>
+<td style="text-align:right">412,0</td>
+</tr>
+<tr>
+<td>fonasa c</td>
+<td style="text-align:right">2.641</td>
+<td style="text-align:right">35,9 %</td>
+<td style="text-align:right">35,1 %</td>
+<td style="text-align:right">35,3 %</td>
+<td style="text-align:right">36,0 %</td>
+<td style="text-align:right">24,9 %</td>
+<td style="text-align:right">300,5</td>
+<td style="text-align:right">133,0</td>
+</tr>
+<tr>
+<td>fonasa d</td>
+<td style="text-align:right">3.835</td>
+<td style="text-align:right">36,6 %</td>
+<td style="text-align:right">37,5 %</td>
+<td style="text-align:right">37,7 %</td>
+<td style="text-align:right">38,2 %</td>
+<td style="text-align:right">23,3 %</td>
+<td style="text-align:right">292,4</td>
+<td style="text-align:right">254,2</td>
+</tr>
+<tr>
+<td>other</td>
+<td style="text-align:right">1.044</td>
+<td style="text-align:right">37,9 %</td>
+<td style="text-align:right">36,9 %</td>
+<td style="text-align:right">37,7 %</td>
+<td style="text-align:right">38,0 %</td>
+<td style="text-align:right">22,9 %</td>
+<td style="text-align:right">306,9</td>
+<td style="text-align:right">38,4</td>
+</tr>
+</tbody>
+</table></div>
+<h4>commune_code</h4>
+<p>Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): 05503 (53,8 %, +30,9 pp respecto del total, 49 entradas). 156 grupos evaluados.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Política</th>
+<th style="text-align:right">Mayor desvío de la tasa de atención</th>
+<th>Grupo</th>
+<th style="text-align:right">Menor tasa de atención</th>
+<th>Grupo</th>
+<th style="text-align:right">Mayor desvío de la exposición</th>
+<th>Grupo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Orden de llegada</td>
+<td style="text-align:right">-21,4 pp</td>
+<td>10202</td>
+<td style="text-align:right">15,6 %</td>
+<td>10202</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Solo prioridad</td>
+<td style="text-align:right">+27,4 pp</td>
+<td>07307</td>
+<td style="text-align:right">16,7 %</td>
+<td>10202</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Optimizada</td>
+<td style="text-align:right">+28,4 pp</td>
+<td>07307</td>
+<td style="text-align:right">16,7 %</td>
+<td>10202</td>
+<td style="text-align:right">0,0 pp</td>
+<td>ninguno</td>
+</tr>
+<tr>
+<td>Optimizada con sobrecupo</td>
+<td style="text-align:right">+27,1 pp</td>
+<td>07307</td>
+<td style="text-align:right">16,7 %</td>
+<td>10202</td>
+<td style="text-align:right">+30,9 pp</td>
+<td>05503</td>
+</tr>
+</tbody>
+</table></div>
+<p>Se listan los 10 grupos más expuestos al sobrecupo.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grupo</th>
+<th style="text-align:right">Entradas</th>
+<th style="text-align:right">Atención, Orden de llegada</th>
+<th style="text-align:right">Atención, Solo prioridad</th>
+<th style="text-align:right">Atención, Optimizada</th>
+<th style="text-align:right">Atención, Optimizada con sobrecupo</th>
+<th style="text-align:right">Exposición al sobrecupo</th>
+<th style="text-align:right">Mediana de espera de atendidos, Optimizada con sobrecupo</th>
+<th style="text-align:right">GES incumplidas, Optimizada con sobrecupo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>05503</td>
+<td style="text-align:right">49</td>
+<td style="text-align:right">25,9 %</td>
+<td style="text-align:right">33,6 %</td>
+<td style="text-align:right">34,8 %</td>
+<td style="text-align:right">36,9 %</td>
+<td style="text-align:right">53,8 %</td>
+<td style="text-align:right">167,9</td>
+<td style="text-align:right">6,2</td>
+</tr>
+<tr>
+<td>04204</td>
+<td style="text-align:right">43</td>
+<td style="text-align:right">44,7 %</td>
+<td style="text-align:right">44,7 %</td>
+<td style="text-align:right">45,6 %</td>
+<td style="text-align:right">47,4 %</td>
+<td style="text-align:right">52,0 %</td>
+<td style="text-align:right">340,5</td>
+<td style="text-align:right">0,0</td>
+</tr>
+<tr>
+<td>10106</td>
+<td style="text-align:right">36</td>
+<td style="text-align:right">37,3 %</td>
+<td style="text-align:right">36,3 %</td>
+<td style="text-align:right">35,2 %</td>
+<td style="text-align:right">35,8 %</td>
+<td style="text-align:right">51,5 %</td>
+<td style="text-align:right">307,5</td>
+<td style="text-align:right">2,4</td>
+</tr>
+<tr>
+<td>07402</td>
+<td style="text-align:right">37</td>
+<td style="text-align:right">39,3 %</td>
+<td style="text-align:right">54,3 %</td>
+<td style="text-align:right">55,7 %</td>
+<td style="text-align:right">55,7 %</td>
+<td style="text-align:right">50,2 %</td>
+<td style="text-align:right">123,4</td>
+<td style="text-align:right">2,0</td>
+</tr>
+<tr>
+<td>06111</td>
+<td style="text-align:right">59</td>
+<td style="text-align:right">30,3 %</td>
+<td style="text-align:right">39,7 %</td>
+<td style="text-align:right">41,1 %</td>
+<td style="text-align:right">42,8 %</td>
+<td style="text-align:right">46,4 %</td>
+<td style="text-align:right">79,2</td>
+<td style="text-align:right">8,8</td>
+</tr>
+<tr>
+<td>13502</td>
+<td style="text-align:right">39</td>
+<td style="text-align:right">36,3 %</td>
+<td style="text-align:right">33,9 %</td>
+<td style="text-align:right">38,0 %</td>
+<td style="text-align:right">38,7 %</td>
+<td style="text-align:right">45,0 %</td>
+<td style="text-align:right">220,7</td>
+<td style="text-align:right">0,4</td>
+</tr>
+<tr>
+<td>09111</td>
+<td style="text-align:right">73</td>
+<td style="text-align:right">30,2 %</td>
+<td style="text-align:right">40,9 %</td>
+<td style="text-align:right">42,6 %</td>
+<td style="text-align:right">42,6 %</td>
+<td style="text-align:right">43,0 %</td>
+<td style="text-align:right">272,8</td>
+<td style="text-align:right">2,4</td>
+</tr>
+<tr>
+<td>04301</td>
+<td style="text-align:right">194</td>
+<td style="text-align:right">36,5 %</td>
+<td style="text-align:right">38,6 %</td>
+<td style="text-align:right">38,3 %</td>
+<td style="text-align:right">39,0 %</td>
+<td style="text-align:right">42,9 %</td>
+<td style="text-align:right">381,0</td>
+<td style="text-align:right">11,4</td>
+</tr>
+<tr>
+<td>06108</td>
+<td style="text-align:right">38</td>
+<td style="text-align:right">44,0 %</td>
+<td style="text-align:right">37,1 %</td>
+<td style="text-align:right">37,1 %</td>
+<td style="text-align:right">38,2 %</td>
+<td style="text-align:right">42,5 %</td>
+<td style="text-align:right">362,5</td>
+<td style="text-align:right">4,2</td>
+</tr>
+<tr>
+<td>04305</td>
+<td style="text-align:right">35</td>
+<td style="text-align:right">39,4 %</td>
+<td style="text-align:right">38,7 %</td>
+<td style="text-align:right">36,4 %</td>
+<td style="text-align:right">38,0 %</td>
+<td style="text-align:right">41,0 %</td>
+<td style="text-align:right">383,5</td>
+<td style="text-align:right">1,2</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Limitaciones</h2>
+<p>Los datos son sintéticos, calibrados a agregados públicos pero no derivados de ellos. Las conclusiones del informe valen únicamente para el mundo simulado: no son extrapolables a la red de salud real sin validación institucional e implementación cuidadosa. El sistema apoya la decisión pero no la toma; no hay validación clínica de los supuestos ni autorización de cambios en política de atención. Varios parámetros del generador (distribuciones de espera, composición por edad y previsión, tasas de inasistencia sintéticas) se derivan de datos públicos agregados pero no se comparan directamente con la realidad celda a celda; otros no tienen fuente pública y se listan abajo como supuestos sin verificar.</p>
+<p>Supuestos del generador sin verificar con una fuente pública: 53 de 58.</p>
+<ul>
+<li><code>capacity_multiplier</code></li>
+<li><code>cne_session_min</code></li>
+<li><code>cne_session_starts</code></li>
+<li><code>commune_facility_weights</code></li>
+<li><code>consult_min</code></li>
+<li><code>general_age_mix</code></li>
+<li><code>ges_in_plazo_factor</code></li>
+<li><code>ges_in_plazo_wait</code></li>
+<li><code>ges_service_share_in_deadline</code></li>
+<li><code>history_lead_range_days</code></li>
+<li><code>history_max_appointments</code></li>
+<li><code>history_poisson_lambda</code></li>
+<li><code>history_window_days</code></li>
+<li><code>hospital_complexity_weights</code></li>
+<li><code>insurance_waitlist_proxy</code></li>
+<li><code>iq_block_min</code></li>
+<li><code>iq_block_start</code></li>
+<li><code>iq_turnover_min</code></li>
+<li><code>iq_utilization</code></li>
+<li><code>lognormal_sigma_floor</code></li>
+<li><code>noshow_e_p2_cne_target</code></li>
+<li><code>noshow_rate_iq</code></li>
+<li><code>noshow_rate_others_rule</code></li>
+<li><code>noshow_ref_lead_days</code></li>
+<li><code>noshow_scenarios</code></li>
+<li><code>noshow_sigma_u</code></li>
+<li><code>patient_link_retries</code></li>
+<li><code>pediatric_age_mix</code></li>
+<li><code>priority_mix_cne</code></li>
+<li><code>priority_mix_ges_oncologic</code></li>
+<li><code>priority_mix_iq</code></li>
+<li><code>timezone</code></li>
+<li><code>wait_clip_days</code></li>
+<li><code>ges_problem_map[11]</code></li>
+<li><code>ges_problem_map[26]</code></li>
+<li><code>ges_problem_map[12]</code></li>
+<li><code>ges_problem_map[35]</code></li>
+<li><code>ges_problem_map[10]</code></li>
+<li><code>ges_problem_map[44]</code></li>
+<li><code>ges_problem_map[43]</code></li>
+<li><code>ges_problem_map[30]</code></li>
+<li><code>ges_problem_map[25]</code></li>
+<li><code>ges_problem_map[8]</code></li>
+<li><code>ges_problem_map[70]</code></li>
+<li><code>ges_problem_map[3]</code></li>
+<li><code>ges_problem_map[27]</code></li>
+<li><code>ges_problem_map[28]</code></li>
+<li><code>ges_problem_map[81]</code></li>
+<li><code>ges_problem_map[16]</code></li>
+<li><code>ges_problem_map[17]</code></li>
+<li><code>ges_problem_map[31]</code></li>
+<li><code>ges_problem_map[29]</code></li>
+<li><code>ges_problem_map[56]</code></li>
+</ul>
+<p>Limitaciones declaradas por la simulación:</p>
+<ul>
+<li>Granularidad de la oferta: cada sesión atiende una sola celda (servicio x especialidad); a tamaños chicos muchas celdas no reciben ninguna sesión en el periodo simulado y su stock no puede atenderse con ninguna política (ver supply_coverage).</li>
+<li>Llegadas por Little en estado estacionario: sin estacionalidad, sin tendencia y con la espera media de un solo corte.</li>
+<li>La oferta replica la del generador (capacity_multiplier 1,0, sin margen) y es igual todas las semanas; no hay feriados, suspensiones de pabellón ni ausentismo de especialistas.</li>
+<li>Sin abandono ni otras causales administrativas por defecto; sin controles posteriores ni derivación a cirugía.</li>
+<li>El modelo de inasistencias no se reentrena durante la simulación.</li>
+<li>La verdad de inasistencia es la del generador: las conclusiones valen para ese mundo sintético, no para la red real.</li>
+</ul>
+<p>Avisos del plan canónico:</p>
+<ul>
+<li>candidate_frontier_reached en 96 colas</li>
+<li>candidate_frontier_reached persiste tras duplicar el margen en 14 colas</li>
+<li>lead_extrapolation: 139 citas con aviso fuera de 7-90 días; su p extrapola el modelo de inasistencias</li>
+</ul>
+<p>Advertencia del modelo de inasistencias: Con datos sintéticos, estas métricas validan el pipeline (que aprende la estructura que el generador puso), no el desempeño en pacientes reales.</p>
+<h2>Metodología reproducible</h2>
+<p>El informe es determinista: dadas las mismas entradas (archivos en <code>results/</code>), se regenera byte a byte sin marcas de tiempo. Cada paso usa una semilla fija leída de los JSON para reproducibilidad: semilla única para la población sintética, para el entrenamiento del modelo y para la simulación de réplicas. Para verificar una cifra, búscala en el JSON de origen que indica la tabla de procedencia. Los pasos se corren en orden: síntesis, entrenamiento, programación, benchmark, simulación, reporte. Comandos, con argumentos y semillas leídos de los resultados:</p>
+<pre><code>make synth SIZE=100000 SEED=42
+make train-noshow SIZE=100000 SEED=42 SCENARIO=baseline
+make schedule SIZE=100000 SEED=42 SCENARIO=baseline WEEKS=4
+make bench-scheduler BENCH_ARGS=&quot;--sizes 1000,10000,50000 --weeks 2,4 --seed 42 --scenario baseline --time-limit 120 --repeats 3&quot;
+make simulate SIM_ARGS=&quot;--size 10000 --seed 42 --scenario baseline --weeks 26 --replica-seeds 101,102,103,104,105 --horizon-weeks 4 --time-limit 30 --capacity-multiplier 1 --abandon-weekly-rate 0 --policies fifo,priority,optimized,optimized_overbooking&quot;
+make report
+</code></pre>
+<p>Archivos de origen:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Archivo</th>
+<th>Generado</th>
+<th>Versión de código</th>
+<th style="text-align:right">Corridas</th>
+<th style="text-align:right">Semilla</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>synthetic_calibration_baseline_seed42_n100000.json</code></td>
+<td>sin marca de tiempo</td>
+<td>sin dato</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">42</td>
+</tr>
+<tr>
+<td><code>noshow.json</code></td>
+<td>sin marca de tiempo</td>
+<td>noshow-4f0429cd-3ba6e988</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">42</td>
+</tr>
+<tr>
+<td><code>schedule_32c9e349-74f9-5c85-bf4b-990796b47323_4w.json</code></td>
+<td>sin marca de tiempo</td>
+<td>scheduler-0.1.0</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">42</td>
+</tr>
+<tr>
+<td><code>scheduler-benchmark.json</code></td>
+<td>09-10-2026</td>
+<td>scheduler-0.1.0</td>
+<td style="text-align:right">6</td>
+<td style="text-align:right">42</td>
+</tr>
+<tr>
+<td><code>simulation.json</code></td>
+<td>09-10-2026</td>
+<td>simulation-0.1.0</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">42</td>
+</tr>
+</tbody>
+</table></div>
+<p>Último commit que modificó <code>results/</code>: <code>a71be63a1bc5ee7d9998c6aa3845741aa0a3ed78</code>.</p>
+<p>Este informe se genera con <code>prioriza-report</code> y es determinista: con los mismos resultados produce los mismos bytes, sin hora de generación.</p>
+
+</main>
+</body>
+</html>
