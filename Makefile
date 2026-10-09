@@ -36,8 +36,10 @@ BENCH_ARGS ?=
 bench-scheduler:
 	uv run --package scheduler prioriza-schedule-bench $(BENCH_ARGS)
 
+SIM_ARGS ?=
+
 simulate:
-	@echo "simulate: pendiente"
+	uv run --package simulation prioriza-simulate $(SIM_ARGS)
 
 report:
 	@echo "report: pendiente"
