@@ -238,10 +238,10 @@ Rama: `feat/simulation` (apilada sobre `feat/scheduler-cpsat`, PR #12 aún sin i
 
 - [x] P10-T0 (Asignada a: Tier 3 - Kimi) -> Hecha (Kimi)
 - [x] P10-T1 (Asignada a: Tier 1 - Claude) -> Hecha: `docs/simulation-design.md`, `docs/decisions.md` §12
-- [ ] P10-T2 (Asignada a: Tier 2 - DeepSeek) -> En curso (instrucciones abajo)
-- [ ] P10-T3 (Asignada a: Tier 1 - Claude) -> Tests de invariantes (conservación, caso trivial)
+- [x] P10-T2 (Asignada a: Tier 2 - DeepSeek) -> Hecha (DeepSeek); corregida por Tier 1 en la revisión (ver log)
+- [x] P10-T3 (Asignada a: Tier 1 - Claude) -> Hecha: `simulation/tests/test_simulation_invariants.py`
 - [ ] P10-T4 (Asignada a: Tier 3 - Qwen) -> Tests de determinismo con semilla
-- [ ] P10-R (Tier 1 + `reviewer`) -> Verificar que la asistencia usa probabilidades reales del generador
+- [x] P10-R (Tier 1) -> Hecha: la asistencia usa la verdad del generador (tests); 9 errores corregidos (ver log)
 
 ### P10-T0: interfaces que consume la simulación
 
@@ -327,3 +327,20 @@ problemas abiertos.
 ### Log
 
 - 2026-10-09, Tier 3 (P10-T0, Kimi): escaneados `synthetic/` (pipeline, population, noshow_truth, capacity, config, rng, targets), `scheduler/` (instance, config, plan, greedy, adapters), `noshow/` (train, features, metrics, data), docs (data-sources, scheduler-formulation §11.2) y workspace (`simulation/pyproject.toml`, `uv.lock`, `Makefile`). Hallazgos clave: no existe proceso de llegadas/egresos en el generador (solo stock + ley de Little como proxy y `ytd_new_cases` GES); la verdad de inasistencia sí es invocable para citas futuras con `NoShowParams.from_json` del manifiesto + `patient_latent`; la API del scheduler ya admite `prebooked_units/min` en bloques para cupos tomados; `simpy` no está en el workspace y `make simulate` es un stub.
+- 2026-10-09, Tier 2 (P10-T2, DeepSeek): implementado `simulation/` completo (config, world, arrivals, supply, truth, policies, engine, metrics, report, cli + `__init__.py`), `Cell.throughput_per_week`/`ges_throughput_per_week` y `capacity_cells` pública en `synthetic/capacity.py`, `entries_from_frames`/`noshow_from_frames` extraídos en `scheduler/adapters.py`, `simulation/pyproject.toml` con `simpy>=4.1` y script `prioriza-simulate`, `Makefile` target `simulate` + `SIM_ARGS`, `.gitignore` `data/simulation/`, y test de humo `simulation/tests/test_simulation_smoke.py`. Verificación verde: `make lint` (176 archivos), `make typecheck` (35 archivos, simulation no cubierto por diseño), `make test` (862 passed, 10 skipped) y corrida corta real `--size 1000 --weeks 3 --replicas 2` (~6 s, 4 políticas x 2 réplicas, ~138 resueltos/política, overflow 0). Decisiones: (1) `build_supply` reparte sesiones con resto mayor (`synthetic.allocation.hamilton`) en vez del `floor(r_c·(w+1)) - floor(r_c·w)` literal del diseño, porque a tamaño 1000 (`r_c<1`) truncaba toda la fracción y no generaba capacidad (0 resueltos); (2) `truth.py` es el único módulo que importa `true_noshow_prob`/`NoShowParams`; `policies.py` no toca la verdad; (3) `PolicyResult.events` lista `(día, entry_id, de_estado, a_estado, causa)` para conservación (P10-T3). Problemas abiertos: ninguno bloqueante; queda para P10-R verificar en profundidad que la asistencia usa las probabilidades reales del generador, y revisar el §11.2 de `scheduler-formulation.md` (concentración de sesiones CNE en semana 13) si se reutilizara el slot del generador.
+- 2026-10-09, Tier 1 (P10-R, revisión de P10-T2): verificado que la asistencia se sortea solo con
+  `synthetic.noshow_truth.true_noshow_prob` (único import en `truth.py`, usado solo por `engine.resolve`) y que el
+  programador recibe solo la p predicha; tests que lo prueban con p predicha y verdadera opuestas. Corregidos:
+  (1) `resolve` usaba `env.timeout` con el día absoluto desde `env.now = 7k`: las citas de la semana k se resolvían
+  7k días tarde; (2) la oferta repartía con resto mayor y `_spread`, que ponía la primera sesión de cada celda chica
+  en la misma semana (mismo artefacto §11.2); ahora fase de Weyl por celda; (3) `groups=None`: el sobrecupo corría
+  sin límites por grupo (P6); (4) `commit_weeks` ignorado y sin `prebooked_*`; (5) uso de cupos con denominador de
+  todas las semanas de oferta (también la 0 y las posteriores al fin); (6) cupos perdidos contaban toda la capacidad
+  libre de sesiones con alguna falta; (7) GES incumplidas contaba plazos posteriores al fin; (8) agregado de estados
+  del programador mal anidado y "afectados" por desborde = unidades; (9) dirección de métricas por substring
+  (`wait_attended_n` contaba como "menor es mejor") → `report.DIRECTION` explícito; comparaciones agregan
+  `optimized_overbooking` vs `optimized`. Además: GES de llegada reasignada a celdas con donantes GES (antes copiaba
+  procedimiento y plazo de otra especialidad o inventaba 30 días), intercepto faltante ahora es error, corte del
+  historial en `as_of` (MEDIO 3 de la revisión de P8), `supply_coverage` en el JSON y la CLI reutiliza la corrida
+  sintética para cualquier `--weeks`. Hallazgo de diseño: a 10.000 entradas solo el 37 % de las celdas CNE recibe
+  alguna sesión en 26 semanas (76 % del stock CNE); documentado como limitación principal en el diseño §3.
