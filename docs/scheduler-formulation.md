@@ -377,7 +377,7 @@ Corrida canónica (N = 100.000, semilla 42, escenario baseline, `as_of` 2025-09-
 | GES obligadas (vencidas antes del horizonte) | 3.866 (2.105) | 6.555 (2.105) |
 | GES obligadas con algún bloque compatible | 1.857 | 6.517 |
 
-Con 4 semanas, el problema es pequeño para CP-SAT: el subproblema mayor tiene unos 15.000 booleanos `x`. Con 26 semanas el filtro no reduce casi nada (la oferta del horizonte se acerca a la demanda) y el subproblema mayor tiene unos 200.000 pares; sigue bajo el umbral de 400.000, pero el tiempo de la fase 3 puede ser el cuello de botella. Objetivo de rendimiento para la implementación: plan de 4 semanas para N = 100.000 en menos de 120 s. Medido en la [sección 11.3](#113-medición-de-la-implementación-p8-actualizada-en-p9): 143 s reales en P8 y 166 s en P9; no se cumple.
+Con 4 semanas, el problema es pequeño para CP-SAT: el subproblema mayor tiene unos 15.000 booleanos `x`. Con 26 semanas el filtro no reduce casi nada (la oferta del horizonte se acerca a la demanda) y el subproblema mayor tiene unos 200.000 pares; sigue bajo el umbral de 400.000, pero el tiempo de la fase 3 puede ser el cuello de botella. Objetivo de rendimiento para la implementación: plan de 4 semanas para N = 100.000 en menos de 120 s. Medido en la [sección 11.3](#113-medición-de-la-implementación-p8-actualizada-en-p9-y-tras-la-revisión-de-p8): 143 s reales en P8, 166 s en P9 y 117,8 s tras la revisión de P8. Esta última corrida queda bajo 120 s, pero no es una garantía: el tiempo real depende de la carga de la máquina y, con la expansión de frontera, el presupuesto total puede superar `time_limit_s`.
 
 ### 11.2 Artefactos de la oferta sintética que afectan al programador
 
@@ -388,24 +388,24 @@ Al medir se encontraron dos patrones del generador (`synthetic/capacity.py`) que
 
 El programador no corrige la oferta: la usa como viene y reporta la capacidad por semana. Se recomienda corregir el generador antes de la simulación de políticas (P8); queda como pendiente en `TASK_PLAN.md`.
 
-### 11.3 Medición de la implementación (P8, actualizada en P9)
+### 11.3 Medición de la implementación (P8, actualizada en P9 y tras la revisión de P8)
 
-Corrida canónica, 4 semanas, configuración por defecto (`deterministic = true`, un hilo, `linearization_level = 2`, `time_limit_s = 120`, técnicas de la [sección 8.6](#86-técnicas-de-rendimiento-p9) activas), medida el 2026-10-09 con `make schedule`; informe completo en `results/schedule_32c9e349-74f9-5c85-bf4b-990796b47323_4w.json`. El benchmark por tamaño y la ablación de cada técnica están en [scheduler-performance.md](scheduler-performance.md).
+Corrida canónica, 4 semanas, configuración por defecto (`deterministic = true`, un hilo, `linearization_level = 2`, `time_limit_s = 120`, técnicas de la [sección 8.6](#86-técnicas-de-rendimiento-p9) activas), medida el 2026-10-09 con `make schedule` después de los arreglos de la revisión (frontera sobre la fase 3a, presupuesto fijo de 3a); informe completo en `results/schedule_32c9e349-74f9-5c85-bf4b-990796b47323_4w.json`. El benchmark por tamaño y la ablación de cada técnica están en [scheduler-performance.md](scheduler-performance.md).
 
-| | `fifo` | `priority` | `optimized` (P9) | `optimized` (P8) |
+| | `fifo` | `priority` | `optimized` (actual) | `optimized` (P8) |
 |---|---|---|---|---|
-| Agendadas (CNE / pabellón) | 5.665 (4.524 / 1.141) | 5.672 (4.524 / 1.148) | 5.952 (4.668 / 1.284) | 5.843 (4.564 / 1.279) |
+| Agendadas (CNE / pabellón) | 5.665 (4.524 / 1.141) | 5.672 (4.524 / 1.148) | 5.949 (4.666 / 1.283) | 5.843 (4.564 / 1.279) |
 | p1 agendados | 355 | 2.448 | 2.460 | 2.460 |
 | GES obligadas cumplidas (de 3.866) | 180 | 851 | 1.211 | 1.211 |
 | GES dentro de plazo | 8 | 50 | 414 | 413 |
-| Suma de `c_ib` | 24.290.245 | 29.917.088 | 31.327.054 | 30.796.038 |
-| Sobrecupos | 0 | 0 | 144 (riesgo exacto máximo 0,0999 ≤ 0,10) | 40 |
+| Suma de `c_ib` | 24.290.245 | 29.917.088 | 31.320.256 | 30.796.038 |
+| Sobrecupos | 0 | 0 | 142 (riesgo exacto máximo 0,0999 ≤ 0,10) | 40 |
 
-- **Tiempo (no se cumple el objetivo de 120 s, y empeora frente a P8).** La política optimizada tarda 166 s reales (P8: 143 s); las voraces, 1,6-1,8 s. CP-SAT gasta 129,8 unidades deterministas en los 120 subproblemas del plan y 48,1 más en 37 componentes de la primera pasada que la expansión de frontera (29 colas) reemplazó; en P8 ese tiempo descartado no se informaba. El presupuesto es por pasada, así que con expansión el total puede superar `time_limit_s` (pendiente: presupuesto global).
-- **Estados.** Fases 1 (112) y 2 (75) en `OPTIMAL`; 3a 117 `OPTIMAL` y 3 `FEASIBLE` (brecha agregada 0,03 %); 3b 19 `OPTIMAL`, 20 `FEASIBLE` y 9 `UNKNOWN`; fase 4 65 `OPTIMAL`, 7 `FEASIBLE` y 9 `UNKNOWN`. Una fase en `UNKNOWN` conserva su pista (en 3b, la de la voraz con sobrecupo), así que el plan es factible y verificado, pero la brecha agregada de 3b queda sin definir. Con `objective_cut = false` hubo 2 fases 3b en `UNKNOWN`, un objetivo menor (31.322.561) y un tiempo determinista parecido (173,0 frente a 177,9).
+- **Tiempo.** La política optimizada tarda 117,8 s reales (antes de la revisión, en P9: 166 s; P8: 143 s); las voraces, 1,4-1,5 s. El tiempo real varía con la carga de la máquina (esta corrida compartió la CPU con otros procesos), así que la medida comparable es la determinista: 123,1 unidades en los 120 subproblemas del plan y 39,3 más en 36 componentes de la primera pasada que la expansión de frontera (28 colas) reemplazó, 162,4 en total (P9 antes de la revisión: 177,9). El presupuesto es por pasada, así que con expansión el total puede superar `time_limit_s` (pendiente: presupuesto global).
+- **Estados.** Fases 1 (112) y 2 (75) en `OPTIMAL`; 3a 114 `OPTIMAL` y 6 `FEASIBLE` (brecha agregada 0,08 %; antes de la revisión 3 `FEASIBLE` y 0,03 %: sin fase 3b, la 3a ya no recibe el presupuesto de 3b); 3b 20 `OPTIMAL`, 20 `FEASIBLE` y 8 `UNKNOWN`; fase 4 67 `OPTIMAL`, 5 `FEASIBLE` y 9 `UNKNOWN`. Una fase en `UNKNOWN` conserva su pista (en 3b, la de la voraz con sobrecupo), así que el plan es factible y verificado, pero la brecha agregada de 3b queda sin definir. En P9, antes de la revisión, con `objective_cut = false` hubo 2 fases 3b en `UNKNOWN`, un objetivo menor y un tiempo determinista parecido; no se repitió esa medición.
 - **GES.** De las 2.655 garantías incumplidas, 2.009 no tienen ningún bloque de su especialidad en el horizonte, 341 vencen antes del primer bloque posible y 305 encuentran los cupos tomados (igual que en P8). Las dos primeras causas vienen de la oferta sintética (§11.2), no del programador.
-- **Equidad (resultados que se informan tal cual).** Ninguna política agenda bien al grupo 0-14: 3,07 % (fifo), 3,13 % (priority) y 3,13 % (optimized), frente a 5-6,6 % del resto, por la oferta pediátrica del generador. La optimizada queda por encima de `priority` en 15-19 (5,30 % frente a 5,02 %) y en 45-64 (6,59 % frente a 6,12 %). Con más sobrecupos, la exposición (agendados CNE en sesiones con sobrecupo) sube de 10-13 % en P8 a 38,5-40,9 % por grupo etario y 38,8-41,2 % por previsión; queda dentro del límite relativo de 5 pp, pero ahora cerca de 4 de cada 10 pacientes CNE agendados comparten sesión con un sobrecupo.
-- **Advertencias del informe.** Frontera de candidatos alcanzada en 29 colas y todavía alcanzada en 2 tras duplicar el margen (oftalmología de los servicios 3 y 16); 48 citas con aviso fuera del rango del historial (7-90 días), cuya `p` extrapola el modelo.
+- **Equidad (resultados que se informan tal cual).** Ninguna política agenda bien al grupo 0-14: 3,07 % (fifo), 3,13 % (priority) y 3,12 % (optimized), frente a 5-6,6 % del resto, por la oferta pediátrica del generador. La optimizada queda por encima de `priority` en 15-19 (5,30 % frente a 5,02 %) y en 45-64 (6,59 % frente a 6,12 %). Con más sobrecupos, la exposición (agendados CNE en sesiones con sobrecupo) sube de 10-13 % en P8 a 37,0-40,3 % por grupo etario y 38,3-40,6 % por previsión; queda dentro del límite relativo de 5 pp, pero ahora cerca de 4 de cada 10 pacientes CNE agendados comparten sesión con un sobrecupo.
+- **Advertencias del informe.** Frontera de candidatos alcanzada en 28 colas y todavía alcanzada en 2 tras duplicar el margen (oftalmología de los servicios 3 y 16); 48 citas con aviso fuera del rango del historial (7-90 días), cuya `p` extrapola el modelo.
 
 ## 12. Configuración
 
