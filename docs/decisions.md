@@ -332,6 +332,20 @@ Diseño visual en `docs/design.md`; instrucciones en `TASK_PLAN.md` (P13).
 - **Simulación**: se oculta el reverso de cada comparación pareada (`fifo_vs_priority` frente a `priority_vs_fifo`); la lectura dice "Empeora" cuando el IC excluye el 0 en contra de la dirección de la métrica. Si la corrida simulada difiere de la de la lista, se avisa.
 - **API**: el resumen agrega `run_id` y `run_entries` (el diseño pide mostrar la corrida en la barra lateral y la API no la exponía).
 
+## 16. Commits directos en `main`
+
+**Fecha**: 2026-10-09
+
+**Decisión del usuario**: desde ahora se commitea directo en `main`, sin ramas de trabajo ni Pull Requests.
+
+**Motivo**: las ramas apiladas e integradas por *squash* (PR #12 a #16) obligaban a rebasar la rama siguiente y resolver conflictos después de cada integración; con un solo autor, el PR no agregaba revisión.
+
+**Consecuencias**:
+- `main` sigue siempre en verde: cada commit exige `make lint typecheck test` y el push pasa por el hook `pre-push`.
+- La protección de `main` en GitHub se salta con permisos de administrador (queda registrado en cada push); no se reescribe el historial (sin *force push*).
+- La revisión crítica de módulos importantes la hace `reviewer` antes del commit.
+- `docs/version-control.md` y CLAUDE.md actualizados.
+
 ---
 
 ## Referencias

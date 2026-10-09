@@ -95,7 +95,7 @@ make test / lint / typecheck
 - Después de cada tarea: tests, lint y typecheck en verde, y un resumen de qué se hizo, qué subagentes se usaron y qué queda pendiente.
 - Si una decisión cambia algo de este archivo, actualízalo junto con `docs/decisions.md`.
 - No agregues dependencias sin justificarlas en `docs/decisions.md`.
-- Control de versiones según `docs/version-control.md`: ramas cortas desde `main`, Conventional Commits en español, un commit por cambio lógico y solo con `make lint typecheck test` en verde. Solo la sesión principal commitea y hace push.
+- Control de versiones según `docs/version-control.md`: commits directos en `main` (sin ramas ni PR, decisión del usuario del 2026-10-09), Conventional Commits en español, un commit por cambio lógico y solo con `make lint typecheck test` en verde. El push a `origin/main` pasa por el hook `pre-push` y se hace cuando el usuario lo pide. Solo la sesión principal commitea y hace push.
 
 
 
