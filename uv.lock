@@ -387,7 +387,9 @@ dependencies = [
     { name = "dash" },
     { name = "dash-bootstrap-components" },
     { name = "gunicorn" },
+    { name = "httpx" },
     { name = "plotly" },
+    { name = "pydantic-settings" },
     { name = "shared" },
 ]
 
@@ -396,7 +398,9 @@ requires-dist = [
     { name = "dash", specifier = ">=2.18" },
     { name = "dash-bootstrap-components", specifier = ">=1.6" },
     { name = "gunicorn", specifier = ">=22" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "plotly", specifier = ">=5.24" },
+    { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "shared", editable = "shared" },
 ]
 

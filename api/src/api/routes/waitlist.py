@@ -10,7 +10,13 @@ from shared.schemas import CareType
 
 from api.auth import current_user
 from api.deps import CatalogDep, Limit, Offset, errors
-from api.schemas import PatientOut, StrictTierName, WaitlistOrder, WaitlistPageOut
+from api.schemas import (
+    PatientOut,
+    StrictTierName,
+    WaitlistOrder,
+    WaitlistPageOut,
+    WaitlistSummaryOut,
+)
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(current_user)])
 
@@ -50,6 +56,37 @@ def waitlist(
         filters=filters, order_by=order_by.value, limit=limit, offset=offset
     )
     return WaitlistPageOut(total=total, limit=limit, offset=offset, items=items)
+
+
+@router.get(
+    "/waitlist/summary",
+    response_model=WaitlistSummaryOut,
+    tags=["lista de espera"],
+    summary="Resumen agregado de la lista de espera",
+    responses=errors(401, 503),
+)
+def waitlist_summary(
+    cat: CatalogDep,
+    health_service_code: Annotated[int | None, Query()] = None,
+    specialty_code: Annotated[str | None, Query()] = None,
+    care_type: Annotated[CareType | None, Query()] = None,
+    clinical_priority: Annotated[ClinicalPriority | None, Query()] = None,
+    is_ges: Annotated[bool | None, Query()] = None,
+    tier: Annotated[StrictTierName | None, Query()] = None,
+) -> WaitlistSummaryOut:
+    """Total, mediana y p90 de espera, GES en riesgo y vencidas, y distribución de la espera.
+
+    Mismos filtros que `/v1/waitlist`. Se calcula una vez por corrida y combinación de filtros.
+    """
+    filters: dict[str, Any] = {
+        "health_service_code": health_service_code,
+        "specialty_code": specialty_code,
+        "care_type": care_type.value if care_type else None,
+        "clinical_priority": clinical_priority.value if clinical_priority else None,
+        "is_ges": is_ges,
+        "tier": tier.value if tier else None,
+    }
+    return WaitlistSummaryOut(**cat.waitlist_summary(filters))
 
 
 @router.get(

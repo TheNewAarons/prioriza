@@ -1,4 +1,4 @@
-.PHONY: up down migrate ingest synth train-noshow schedule bench-scheduler simulate report dashboard test lint typecheck format sync hooks help
+.PHONY: api up down migrate ingest synth train-noshow schedule bench-scheduler simulate report dashboard test lint typecheck format sync hooks help
 
 up:
 	@[ -f .env ] || cp .env.example .env
@@ -44,8 +44,14 @@ simulate:
 report:
 	@echo "report: pendiente"
 
+PRIORIZA_API_USERS_FILE ?= api/config/users.json
+API_PORT ?= 8000
+
+api:
+	PRIORIZA_API_USERS_FILE=$(PRIORIZA_API_USERS_FILE) uv run --package api uvicorn --factory api.main:create_app --host 127.0.0.1 --port $(API_PORT)
+
 dashboard:
-	@echo "dashboard: pendiente"
+	PRIORIZA_API_USERS_FILE=$(PRIORIZA_API_USERS_FILE) uv run --package dashboard prioriza-dashboard --with-api
 
 test:
 	uv run pytest
@@ -79,7 +85,8 @@ help:
 	@echo "  bench-scheduler    Benchmark del programador CP-SAT"
 	@echo "  simulate           Compara políticas con SimPy"
 	@echo "  report             Genera docs/results.md y .html"
-	@echo "  dashboard          Levanta el panel Dash"
+	@echo "  api                Levanta la API FastAPI (puerto 8000)"
+	@echo "  dashboard          Levanta el panel Dash (y la API si no responde)"
 	@echo "  test               Corre pytest"
 	@echo "  lint               Verifica ruff (check y format)"
 	@echo "  typecheck          Corre mypy"

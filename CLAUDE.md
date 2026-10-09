@@ -84,7 +84,8 @@ make schedule          # corre el programador CP-SAT sobre un escenario
 make bench-scheduler   # benchmark del programador (tamaños, horizontes, ablación)
 make simulate          # compara políticas con SimPy
 make report            # genera docs/results.md y .html
-make dashboard         # levanta el panel Dash
+make api               # API FastAPI local (usuarios en api/config/users.json)
+make dashboard         # panel Dash; con --with-api levanta también la API si no responde
 make test / lint / typecheck
 ```
 

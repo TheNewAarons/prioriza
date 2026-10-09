@@ -3,18 +3,21 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from shared.db.enums import Policy, ReviewStatus
 
 from api.auth import Role, User, current_user, require_roles
-from api.deps import Limit, Offset, ServicesDep, errors, to_http
+from api.deps import CatalogDep, Limit, Offset, ServicesDep, errors, to_http
 from api.plans import PlanError, PlanRecord
 from api.schemas import (
     ActivateIn,
     AssignmentPageOut,
+    CalendarPageOut,
     ExplanationPageOut,
+    GesCauseCount,
+    GesPageOut,
     PlanDetailOut,
     PlanPageOut,
     PlanSummaryOut,
@@ -164,6 +167,78 @@ def plan_explanations(
     except PlanError as exc:
         raise to_http(exc) from exc
     return ExplanationPageOut(total=page.total, limit=limit, offset=offset, items=page.items)
+
+
+@router.get(
+    "/plans/{plan_id}/ges",
+    response_model=GesPageOut,
+    summary="Garantías GES del plan",
+    responses=errors(401, 404, e404=_E404),
+)
+def plan_ges(
+    plan_id: uuid.UUID,
+    svc: ServicesDep,
+    limit: Limit = 50,
+    offset: Offset = 0,
+    met: Annotated[bool | None, Query(description="Cumplidas (true) o no cumplidas.")] = None,
+    cause: Annotated[str | None, Query(description="Causa de incumplimiento.")] = None,
+) -> GesPageOut:
+    """Estado de cada garantía GES con su causa; `by_cause` cuenta todas las no cumplidas."""
+    try:
+        page = svc.store.ges(plan_id, met=met, cause=cause, limit=limit, offset=offset)
+        causes = svc.store.ges_causes(plan_id)
+    except PlanError as exc:
+        raise to_http(exc) from exc
+    return GesPageOut(
+        plan_id=plan_id,
+        total=page.total,
+        limit=limit,
+        offset=offset,
+        items=page.items,
+        by_cause=[GesCauseCount(cause=c, count=n) for c, n in causes.items()],
+    )
+
+
+@router.get(
+    "/plans/{plan_id}/calendar",
+    response_model=CalendarPageOut,
+    summary="Carga del plan por recurso y día",
+    responses=errors(401, 404, 503, e404=_E404),
+)
+def plan_calendar(
+    plan_id: uuid.UUID,
+    svc: ServicesDep,
+    cat: CatalogDep,
+    limit: Limit = 500,
+    offset: Offset = 0,
+    resource_kind: Annotated[Literal["specialist_agenda", "operating_room"] | None, Query()] = None,
+    health_service_code: Annotated[int | None, Query()] = None,
+) -> CalendarPageOut:
+    """Por recurso y día local del horizonte: bloques, capacidad, citas y sobrecupos.
+
+    Capacidad: cupos CNE (duración / unidad) en agendas y minutos planificables en pabellones.
+    """
+    if cat.slots.is_empty() or cat.resources.is_empty():
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="la corrida sintética no tiene cupos ni recursos para armar el calendario",
+        )
+    try:
+        record = svc.store.get(plan_id)
+        counts = svc.store.slot_counts(plan_id)
+    except PlanError as exc:
+        raise to_http(exc) from exc
+    frame = cat.calendar(
+        counts,
+        horizon_start=record.horizon_start,
+        horizon_end=record.horizon_end,
+        resource_kind=resource_kind,
+        health_service_code=health_service_code,
+    )
+    page = frame.slice(offset, limit)
+    return CalendarPageOut(
+        plan_id=plan_id, total=frame.height, limit=limit, offset=offset, items=page.to_dicts()
+    )
 
 
 @router.get(
