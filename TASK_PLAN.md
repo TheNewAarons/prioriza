@@ -617,3 +617,86 @@ No commitees. Al terminar marca P13-T1 y agrega una línea de log con lo hecho, 
   angostos ajustado al ancho, tablas de GES y explicaciones de 10 filas, separadores "·" reemplazados, "Límite de
   tiempo del solver" (no son segundos en modo determinista), concordancia "1 grupo queda" y `AuthStep.session` fuera
   del `repr` (lleva la clave). Claves locales rotadas (la verificación del subagente imprimió una).
+
+## P14: demo de punta a punta
+
+Rama: `feat/demo` (desde `main`, con #16 integrado).
+
+- [x] P14-T1 (Asignada a: Tier 3 - Kimi) -> Hecha por `chore` (`scripts/demo.sh`, `make demo`) y `docs-writer` (README); revisadas por Tier 1
+- [x] P14-T2 (Asignada a: Tier 3 - Qwen) -> Hecha por `test-writer` (tests/integration/test_demo_flow.py)
+- [x] P14-R (Tier 1) -> Hecha: `make demo` desde un clon limpio y recorrido del panel (ver log)
+
+### P14: contrato de `scripts/demo.sh` (Tier 1)
+
+Sin Docker ni PostgreSQL: todo con `uv`, almacén de planes en memoria. Solo requiere `uv` (instala Python 3.12 solo).
+
+- Bash, `set -euo pipefail`, ejecutable, cabecera con el aviso obligatorio y la descripción. Se corre desde cualquier
+  directorio (hace `cd` a la raíz del repo). Si falta `uv`, explica cómo instalarlo y sale con código 1.
+- Opciones (y variables de entorno equivalentes): `--size N` (`DEMO_SIZE`, por defecto 10000; mínimo 1000),
+  `--seed N` (42), `--dir DIR` (`DEMO_DIR`, por defecto `data/demo`), `--api-port` (8000), `--panel-port` (8050),
+  `--sim-weeks` (8), `--sim-replicas` (2), `--fresh` (borra `DIR` antes de empezar), `--no-sync` (no corre
+  `uv sync`), `--no-serve` (termina tras generar los resultados, sin levantar API ni panel), `--no-open` (no abre el
+  navegador), `-h/--help`.
+- Pasos, cada uno con un título numerado y su tiempo (`[3/7] Entrenando el modelo de inasistencias… listo en 12 s`):
+  1. `uv sync --all-packages` (salvo `--no-sync`).
+  2. Población: `uv run --package synthetic prioriza-synth generate --size N --seed S --out DIR/synthetic
+     --report-dir DIR/results`; la corrida es el único subdirectorio con `manifest.json` y el `size` pedido (si hay
+     más de uno, falla con un mensaje que sugiere `--fresh`).
+  3. Modelo: `uv run --package noshow prioriza-noshow train --run-dir RUN --models-dir DIR/models
+     --results DIR/results/noshow.json --seed S`.
+  4. Usuarios: si no existe `DIR/users.json`, lo crea con tres usuarios (`gestora.demo` gestor, `revisor.demo`
+     revisor, `lectura.demo` lectura) y claves de `secrets.token_urlsafe(32)`, permisos 600. Nunca reutiliza claves de
+     ejemplo ni las escribe fuera de `DIR`.
+  5. Programación: `uv run --package scheduler prioriza-schedule --run-dir RUN --models-dir DIR/models
+     --results-dir DIR/results --out-dir DIR/schedules --weeks 4 --time-limit 30 --workers 1 --seed S` (las tres
+     políticas) e imprime el resumen de la comparación.
+  6. Simulación corta: `uv run --package simulation prioriza-simulate --size N --seed S --weeks W --replicas R
+     --work-dir DIR/simulation --out DIR/results/simulation.json`.
+  7. Servicio (salvo `--no-serve`): verifica que los puertos estén libres (si no, dice cuál y cómo cambiarlo);
+     exporta `PRIORIZA_API_USERS_FILE`, `PRIORIZA_API_RUN_DIR`, `PRIORIZA_API_MODELS_DIR`, `PRIORIZA_API_RESULTS_DIR`
+     y `PRIORIZA_API_DATA_DIR`, y lanza `uv run --package dashboard prioriza-dashboard --with-api --port P
+     --api-url http://127.0.0.1:A` en segundo plano; espera a que respondan `http://127.0.0.1:A/healthz` y el panel
+     (máximo 120 s, si no, muestra el final del log y sale con error); abre el navegador (`open` en macOS,
+     `xdg-open` en Linux; salvo `--no-open`); imprime la URL del panel, la de la API (`/docs`), las tres claves con su
+     rol, un recorrido sugerido de 5 pasos (lista, programar como gestor, aprobar como revisor, marcar vigente como
+     gestor, simulación y equidad) y cómo detenerla. `trap` en INT/TERM/EXIT detiene el panel y la API.
+- Logs de cada paso en `DIR/logs/<paso>.log`; en la pantalla solo títulos, tiempos y el resumen. Si un paso falla,
+  muestra las últimas 30 líneas de su log y sale con su código.
+- `Makefile`: `demo:` → `scripts/demo.sh $(DEMO_ARGS)` y en `make help`. `.gitignore` ya ignora `data/`.
+
+### Log
+
+- 2026-10-09, Tier 1: Kimi y Qwen sin respuesta del proxy en 40 s; P14-T1 pasa a `chore` (script) y `docs-writer`
+  (README), P14-T2 a `test-writer`, según la tabla de CLAUDE.md.
+- 2026-10-09, Haiku (P14-T1, chore): `scripts/demo.sh` con contrato exacto (7 pasos con títulos y tiempos, opciones
+  `--size/seed/dir/api-port/panel-port/sim-weeks/sim-replicas/fresh/no-sync/no-serve/no-open`; variables de entorno
+  equivalentes; logs en `DIR/logs/`, captura de errores con últimas 30 líneas). Ajustes: synthetic puede fallar en
+  calibración a tamaño 1000 pero crear corrida (capturada con `|| true`); usuarios con claves únicas por `secrets.token_urlsafe`
+  sin claves en ejemplo; detección de puerto ocupado; servicio en segundo plano con `trap INT/TERM/EXIT` para limpieza;
+  espera 120 s a que API y panel respondan. `Makefile` actualizado: `DEMO_ARGS ?=`, target `demo`, `.PHONY`, `make help`.
+  Validación: `bash -n` OK; prueba corta `--size 1000 --sim-weeks 2 --sim-replicas 1 --no-serve --no-open --fresh` en 12 s
+  (EXIT 0), todos 6 pasos completados, directorios y archivos creados. Prueba con servicio en puertos 8101/8151: 7 pasos
+  completados, API `/healthz` responde, panel responde (HTML válido), puertos liberados tras SIGTERM.
+- 2026-10-09, docs-writer (Haiku, P14-T1): README.md reescrito en español: (1) aviso obligatorio en negrita al inicio,
+  (2) qué es: las tres piezas, simulador, API y panel sin marcas de "pendiente", (3) demo en 5 minutos con requisitos
+  (`uv` con comando curl de instalación, no Docker ni PostgreSQL), pasos reales (clonar, `make demo`/`scripts/demo.sh`),
+  qué hace cada paso, ~5-15 min totales, URLs e impresiones de claves, recorrido sugerido (lista → programar → revisar →
+  vigente → simulación), opciones `--size/--fresh/--no-open/--no-serve`, cómo detener (Ctrl+C), (4) principios (sin datos
+  reales, apoya y no decide, equidad, resultados negativos), (5) uso avanzado: comandos `make` reales del Makefile
+  (synth, train-noshow, schedule, bench-scheduler, simulate, test, lint, typecheck, format) con `SIZE/WEEKS/SEED`,
+  Docker Compose opcional (`make up/migrate/down`), desarrollo (`make sync/hooks`), (6) documentación: 10 enlaces a
+  `docs/*.md` con línea descriptiva cada uno, (7) estructura del monorepo con tabla, (8) licencia de datos sin inventar.
+  Verificado: nada es inventado (TODO desde Makefile, contrato P14 en TASK_PLAN.md, docs existentes). Sin commit.
+- 2026-10-09, test-writer (P14-T2): `tests/integration/test_demo_flow.py` (9 tests + 1 xfail estricto, ~14 s) corre `scripts/demo.sh` real (size 1000), API en proceso con InlineExecutor y vistas del panel contra el TestClient; `testpaths` y marcador `integration` en `pyproject.toml`. Bug hallado: `/v1/me` (`MeOut`) no trae `disclaimer`. `make lint typecheck test` en verde.
+- 2026-10-09, Tier 1 (P14-R): revisión de `scripts/demo.sh` de `chore`: el chequeo de puertos usaba `netstat -tuln`,
+  que en macOS no detecta nada (con un panel ya en 8050 la demo habría reusado otra API sin avisar) → `/dev/tcp` de
+  bash; el paso de la población tragaba cualquier error con `|| true` → busca corridas con `manifest.json` y el
+  tamaño pedido y solo tolera el código 1 de la calibración estricta con aviso; `python3` del sistema →
+  `uv run python` (el contrato pide solo `uv`); la espera del servicio ahora aborta si el proceso murió; textos con
+  tildes y recorrido corregido. `shellcheck` sin hallazgos. El test de integración de `test-writer` encontró que
+  `GET /v1/me` no llevaba `disclaimer` (corregido). Demo desde un clon limpio (`git clone` + `make demo`, caché de
+  `uv` ya llena): 225 s en total (población 14 s, modelo 49 s, programación 30 s, simulación 117 s, servicio 13 s) y
+  recorrido completo con Playwright usando las claves de la demo (gestor programa, revisor aprueba, gestor marca
+  vigente, lectura sin acciones, 0 errores de consola); la simulación usa la misma corrida que la lista. README
+  corregido: tiempos medidos en vez de "5 a 15 minutos", tres políticas en la programación y cuatro en la simulación,
+  `make synth` requiere PostgreSQL, y sin el ejemplo `--size 50000` (no medido y mucho más lento).
