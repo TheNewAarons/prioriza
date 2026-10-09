@@ -27,6 +27,7 @@ from shared.db.enums import (
     NoShowScenario,
     Policy,
     ResourceKind,
+    ReviewAction,
     ReviewStatus,
     RunStatus,
 )
@@ -343,6 +344,16 @@ class ScheduleRun(Base):
     __table_args__ = (
         sa.UniqueConstraint("run_id", "id", name="uq_schedule_run_run_id_id"),
         sa.CheckConstraint("horizon_end >= horizon_start", name="ck_schedule_run_horizon_order"),
+        sa.CheckConstraint(
+            "NOT is_current OR review_status = 'approved'",
+            name="ck_schedule_run_current_requires_approved",
+        ),
+        sa.Index(
+            "uq_schedule_run_current_per_run",
+            "run_id",
+            unique=True,
+            postgresql_where=sa.text("is_current"),
+        ),
         {"comment": "Plan de programación; todo plan nace pendiente de revisión humana."},
     )
 
@@ -360,9 +371,48 @@ class ScheduleRun(Base):
         default=ReviewStatus.PENDING,
         server_default=ReviewStatus.PENDING.value,
     )
+    is_current: Mapped[bool] = mapped_column(
+        sa.Boolean,
+        default=False,
+        server_default=sa.false(),
+        comment="plan vigente de la corrida; solo un plan aprobado puede serlo",
+    )
+    requested_by: Mapped[str | None] = mapped_column(
+        sa.String(64), comment="usuario que pidió el plan (para la regla de cuatro ojos)"
+    )
     code_version: Mapped[str] = mapped_column(sa.String(64))
     created_at: Mapped[datetime] = mapped_column(_tstz(), server_default=sa.func.now())
     finished_at: Mapped[datetime | None] = mapped_column(_tstz())
+
+
+class PlanReview(Base):
+    """Registro de auditoría de la revisión y la vigencia de un plan (solo se agregan filas)."""
+
+    __tablename__ = "plan_review"
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["run_id", "schedule_run_id"],
+            ["schedule_run.run_id", "schedule_run.id"],
+            ondelete="CASCADE",
+            name="fk_plan_review_schedule_run",
+        ),
+        sa.CheckConstraint(
+            "(action IN ('approve', 'reject') AND role = 'revisor') "
+            "OR (action IN ('activate', 'deactivate') AND role = 'gestor')",
+            name="ck_plan_review_role_matches_action",
+        ),
+        sa.Index("ix_plan_review_run_id_schedule_run_id", "run_id", "schedule_run_id"),
+        {"comment": "Auditoría de revisión y vigencia de planes: usuario, rol, hora y nota."},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True)
+    run_id: Mapped[uuid.UUID] = _run_fk()
+    schedule_run_id: Mapped[uuid.UUID] = mapped_column()
+    action: Mapped[ReviewAction] = mapped_column(_enum(ReviewAction))
+    user_name: Mapped[str] = mapped_column(sa.String(64))
+    role: Mapped[str] = mapped_column(sa.String(16))
+    note: Mapped[str | None] = mapped_column(sa.Text)
+    created_at: Mapped[datetime] = mapped_column(_tstz(), server_default=sa.func.now())
 
 
 class Appointment(Base):

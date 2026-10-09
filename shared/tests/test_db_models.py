@@ -33,6 +33,7 @@ EXPECTED_TABLES = {
     "appointment",
     "appointment_truth",
     "schedule_run",
+    "plan_review",
     "policy_result",
 }
 
