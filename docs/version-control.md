@@ -49,9 +49,8 @@ Ejemplo: `feat(priority): agrega puntaje por plazo de garantía GES`.
 
 ## Protección de `main`
 
-- La regla de GitHub sigue pidiendo PR y el check `checks`; el push directo la salta con permisos de administrador y
-  GitHub lo registra ("Bypassed rule violations"). Esto es intencional mientras rija el modelo de commits directos.
-- No se permiten *force push* ni borrado de `main`: el historial de `main` nunca se reescribe.
+- Desde el 2026-10-09 la protección de `main` en GitHub solo prohíbe *force push* y borrado: ya no exige PR ni el
+  check `checks` (se quitaron al pasar a commits directos). El historial de `main` nunca se reescribe.
 - Antes de commitear, `git pull --ff-only` para no divergir de `origin/main`.
 
 ## Hooks locales y CI
@@ -59,8 +58,11 @@ Ejemplo: `feat(priority): agrega puntaje por plazo de garantía GES`.
 - `make hooks` instala dos hooks de git con pre-commit:
   - `pre-commit`: ruff (check y format) y mypy sobre los archivos del commit.
   - `pre-push`: `make lint typecheck test` sin red (`UV_OFFLINE=1`), los mismos chequeos que `.github/workflows/ci.yml`. Si algo falla, el push se cancela.
-- Mientras GitHub Actions no esté disponible (cuenta bloqueada por facturación), el hook `pre-push` reemplaza a CI. Limitaciones: solo protege los pushes desde máquinas donde se instaló el hook, se puede saltar con `git push --no-verify` (no hacerlo), y verifica el árbol de trabajo, no solo los commits que se suben: conviene hacer push con el árbol limpio.
-- Como el check `checks` de CI no se ejecuta, el hook `pre-push` en verde es la única verificación antes de subir a `main`.
+- El workflow `CI` (`.github/workflows/ci.yml`) está desactivado en GitHub desde el 2026-10-09 (`gh workflow disable CI`;
+  se reactiva con `gh workflow enable CI`); el archivo se conserva. Antes ya no corría porque la cuenta tenía Actions
+  bloqueado por facturación. El hook `pre-push` reemplaza a CI. Limitaciones: solo protege los pushes desde máquinas donde se instaló el hook, se puede saltar con `git push --no-verify` (no hacerlo), y verifica el árbol de trabajo, no solo los commits que se suben: conviene hacer push con el árbol limpio.
+- El hook `pre-push` en verde es la única verificación antes de subir a `main`: instalarlo con `make hooks` y nunca usar
+  `git push --no-verify`.
 
 ## Flujo de trabajo con subagentes
 

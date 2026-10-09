@@ -342,7 +342,7 @@ Diseño visual en `docs/design.md`; instrucciones en `TASK_PLAN.md` (P13).
 
 **Consecuencias**:
 - `main` sigue siempre en verde: cada commit exige `make lint typecheck test` y el push pasa por el hook `pre-push`.
-- La protección de `main` en GitHub se salta con permisos de administrador (queda registrado en cada push); no se reescribe el historial (sin *force push*).
+- La protección de `main` en GitHub queda solo con "sin *force push*" y "sin borrado" (se quitaron la exigencia de PR y del check `checks`), y el workflow `CI` se desactivó con `gh workflow disable CI` (reversible; el archivo se conserva). La única verificación antes de subir es el hook `pre-push`.
 - La revisión crítica de módulos importantes la hace `reviewer` antes del commit.
 - `docs/version-control.md` y CLAUDE.md actualizados.
 
