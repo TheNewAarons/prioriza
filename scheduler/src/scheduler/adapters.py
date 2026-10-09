@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import polars as pl
 from noshow.data import load_fairness_attributes  # type: ignore[import-untyped]
@@ -63,14 +64,16 @@ def _place(config: SchedulerConfig, df: pl.DataFrame) -> pl.Expr:
     return pl.lit("e:") + pl.col("establishment_code").cast(pl.String)
 
 
-def entries_frame(run_dir: Path, rules: RuleSet, as_of: date) -> pl.DataFrame:
-    """Tabla ``entries`` (§2.2) con el puntaje S y el puesto P4 de cada entrada en espera."""
-    we = _read(run_dir, "waitlist_entry").filter(pl.col("status") == "waiting")
-    we = we.with_columns(pl.col("id").cast(pl.String), pl.col("patient_id").cast(pl.String))
-    proc = _read(run_dir, "catalog_procedure").select(
-        pl.col("code").alias("procedure_code"), "duration_min"
-    )
-    rankings = rank_frame(we, rules, as_of=as_of)
+def entries_from_frames(
+    waitlist: pl.DataFrame, procedures: pl.DataFrame, rules: RuleSet, as_of: date
+) -> pl.DataFrame:
+    """Tabla ``entries`` (§2.2) con el puntaje S y el puesto P4 de cada entrada en espera.
+
+    ``waitlist`` ya filtrado a ``waiting`` y con ``id``/``patient_id`` como texto; ``procedures``
+    trae ``procedure_code`` y ``duration_min``. No lee archivos (la simulación la usa con tablas
+    armadas en memoria).
+    """
+    rankings = rank_frame(waitlist, rules, as_of=as_of)
     scores = pl.DataFrame(
         [
             (r.score.entry_id, r.score.score, r.rank)
@@ -81,7 +84,7 @@ def entries_frame(run_dir: Path, rules: RuleSet, as_of: date) -> pl.DataFrame:
         orient="row",
     )
     return (
-        we.join(proc, on="procedure_code", how="left")
+        waitlist.join(procedures, on="procedure_code", how="left")
         .rename({"id": "entry_id"})
         .join(scores, on="entry_id", how="left")
         .select(
@@ -100,6 +103,16 @@ def entries_frame(run_dir: Path, rules: RuleSet, as_of: date) -> pl.DataFrame:
             "rank",
         )
     )
+
+
+def entries_frame(run_dir: Path, rules: RuleSet, as_of: date) -> pl.DataFrame:
+    """Tabla ``entries`` (§2.2) con el puntaje S y el puesto P4 de cada entrada en espera."""
+    we = _read(run_dir, "waitlist_entry").filter(pl.col("status") == "waiting")
+    we = we.with_columns(pl.col("id").cast(pl.String), pl.col("patient_id").cast(pl.String))
+    proc = _read(run_dir, "catalog_procedure").select(
+        pl.col("code").alias("procedure_code"), "duration_min"
+    )
+    return entries_from_frames(we, proc, rules, as_of)
 
 
 def blocks_frame(run_dir: Path, config: SchedulerConfig, horizon_start: date) -> pl.DataFrame:
@@ -167,20 +180,22 @@ def blocks_frame(run_dir: Path, config: SchedulerConfig, horizon_start: date) ->
     ).sort("slot_id")
 
 
-def noshow_frame(
-    run_dir: Path,
+def noshow_from_frames(
     entries: pl.DataFrame,
     blocks: pl.DataFrame,
+    history: pl.DataFrame,
+    specialties: pl.DataFrame,
+    bundle: dict[str, Any],
     config: SchedulerConfig,
     as_of: date,
-    model_path: Path,
 ) -> tuple[pl.DataFrame, str]:
     """Tabla ``noshow`` (§2.2) para los pares CNE de misma especialidad y lugar.
 
-    Usa ``noshow.build_candidate_features`` con ``scheduled_start = start_at`` del bloque,
-    ``lead_days = (fecha local del bloque - as_of)`` y el historial observado hasta ``as_of``.
+    ``history`` trae ``patient_id``, ``scheduled_start`` y ``status``; ``specialties``, ``code`` y
+    ``care_type``; ``bundle``, el modelo ya cargado. Usa ``noshow.build_candidate_features`` con
+    ``scheduled_start = start_at`` del bloque y ``lead_days = (fecha local del bloque - as_of)``.
+    Devuelve (tabla, versión del modelo). No lee archivos.
     """
-    bundle = load_bundle(model_path)
     min_lead = min(config.min_lead_days, config.ges_min_lead_days)
     cne_e = entries.filter(pl.col("care_type") == "consultation").with_columns(
         _place(config, entries).alias("place")
@@ -200,14 +215,15 @@ def noshow_frame(
         .filter(pl.col("lead_days") >= min_lead)
         .with_columns((pl.col("entry_id") + "|" + pl.col("slot_id")).alias("id"))
     )
+    model_version = str(bundle["model_version"])
+    # Solo lo observado antes de planificar: citas anteriores a la medianoche local de as_of.
+    # Sin este corte, un resultado del mismo día cambiaría p según la hora del bloque.
+    cutoff = datetime.combine(as_of, time(0), tzinfo=ZoneInfo(LOCAL_TZ_NAME))
+    history = history.filter(pl.col("scheduled_start") < cutoff.astimezone(UTC))
     if pairs.is_empty():
         return pl.DataFrame(
             schema={"entry_id": pl.String, "slot_id": pl.String, "p": pl.Float64}
-        ), str(bundle["model_version"])
-    history = _read(run_dir, "appointment").select(
-        pl.col("patient_id").cast(pl.String), "scheduled_start", pl.col("status").cast(pl.String)
-    )
-    specialties = _read(run_dir, "catalog_specialty")
+        ), model_version
     candidates = pairs.select(
         "id",
         "entry_id",
@@ -220,7 +236,24 @@ def noshow_frame(
     features = build_candidate_features(candidates, history, specialties, waitlist)
     probs = predict_noshow(bundle, features)
     out = pairs.select("entry_id", "slot_id").with_columns(pl.Series("p", probs, dtype=pl.Float64))
-    return out, str(bundle["model_version"])
+    return out, model_version
+
+
+def noshow_frame(
+    run_dir: Path,
+    entries: pl.DataFrame,
+    blocks: pl.DataFrame,
+    config: SchedulerConfig,
+    as_of: date,
+    model_path: Path,
+) -> tuple[pl.DataFrame, str]:
+    """Tabla ``noshow`` (§2.2) desde la corrida y el modelo; envuelve ``noshow_from_frames``."""
+    bundle = load_bundle(model_path)
+    history = _read(run_dir, "appointment").select(
+        pl.col("patient_id").cast(pl.String), "scheduled_start", pl.col("status").cast(pl.String)
+    )
+    specialties = _read(run_dir, "catalog_specialty")
+    return noshow_from_frames(entries, blocks, history, specialties, bundle, config, as_of)
 
 
 def instance_from_run(

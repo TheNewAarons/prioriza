@@ -48,7 +48,11 @@ WORKDAYS = 5
 
 @dataclass(frozen=True)
 class Cell:
-    """Celda (servicio, especialidad) con su demanda de minutos por semana."""
+    """Celda (servicio, especialidad) con su demanda de minutos por semana.
+
+    ``throughput_per_week`` (θ) y ``ges_throughput_per_week`` (la parte GES de θ) son las
+    entradas por semana de la celda por la ley de Little (§2 de ``docs/simulation-design.md``).
+    """
 
     service: int
     care_type: str
@@ -56,6 +60,8 @@ class Cell:
     entries: int
     minutes_per_week: float
     unit_min: int
+    throughput_per_week: float
+    ges_throughput_per_week: float
 
 
 def horizon_start(as_of: date) -> date:
@@ -64,9 +70,14 @@ def horizon_start(as_of: date) -> date:
     return as_of + timedelta(days=days or 7)
 
 
-def _cells(
+def capacity_cells(
     t: CalibrationTargets, a: Assumptions, cfg: RunConfig, entries: pl.DataFrame
 ) -> list[Cell]:
+    """Celdas (servicio, tipo, especialidad) con su oferta y sus llegadas esperadas por semana.
+
+    ``throughput_per_week`` y ``ges_throughput_per_week`` se escalan igual que
+    ``minutes_per_week``; no cambia nada de lo que el generador escribe (digest idéntico).
+    """
     uni = build_universe(t, a)
     specs = specialty_index(t)
     durations = procedure_durations(t, a)
@@ -76,6 +87,7 @@ def _cells(
     util = float(a.value("iq_utilization"))
 
     theta: dict[tuple[int, str], float] = {}
+    ges_theta: dict[tuple[int, str], float] = {}
     for r in t.service_rows:
         theta[(r.health_service_code, r.care_type)] = 7.0 * r.waiting_count / r.mean_wait_days
     ges_total = sum(g.waiting_count for g in t.ges_services)
@@ -84,7 +96,9 @@ def _cells(
         for s in t.ges_services:
             key = (s.health_service_code, care)
             share = s.waiting_count / ges_total
-            theta[key] = theta.get(key, 0.0) + g.ytd_new_cases / 52.0 * share
+            add = g.ytd_new_cases / 52.0 * share
+            theta[key] = theta.get(key, 0.0) + add
+            ges_theta[key] = ges_theta.get(key, 0.0) + add
 
     rows = (
         entries.with_columns(
@@ -103,7 +117,9 @@ def _cells(
     for r in rows.iter_rows(named=True):
         s, c, sp = int(r["health_service_code"]), str(r["care_type"]), str(r["specialty_code"])
         info: SpecialtyInfo = specs[sp]
-        th = theta.get((s, c), 0.0) * scale * int(r["n"]) / group_n[(s, c)]
+        w = int(r["n"]) / group_n[(s, c)]
+        th = theta.get((s, c), 0.0) * scale * w
+        gth = ges_theta.get((s, c), 0.0) * scale * w
         no_show = rates.get((s, CareType(c)), 0.0)
         dur = float(r["dur_mean"])
         if c == CareType.CONSULTATION.value:
@@ -112,8 +128,11 @@ def _cells(
         else:
             minutes = th / (1.0 - no_show) * (dur + turnover) / util
             unit = 0
-        cells.append(Cell(s, c, info.code, int(r["n"]), minutes, unit))
+        cells.append(Cell(s, c, info.code, int(r["n"]), minutes, unit, th, gth))
     return cells
+
+
+_cells = capacity_cells  # alias privado histórico
 
 
 def session_minutes(a: Assumptions, care_type: str) -> int:
@@ -127,7 +146,7 @@ def capacity_targets(
 ) -> pl.DataFrame:
     """Minutos programables por semana objetivo, por (servicio, tipo), solo grupos con entradas."""
     agg: dict[tuple[int, str], float] = {}
-    for c in _cells(t, a, cfg, entries):
+    for c in capacity_cells(t, a, cfg, entries):
         agg[(c.service, c.care_type)] = agg.get((c.service, c.care_type), 0.0) + c.minutes_per_week
     keys = sorted(agg)
     return pl.DataFrame(
@@ -189,7 +208,7 @@ def generate_capacity(
             (e.code, float(hw.get(e.complexity or "", 1.0)))
         )
 
-    cells = _cells(t, a, cfg, entries)
+    cells = capacity_cells(t, a, cfg, entries)
     groups: dict[tuple[int, str], list[Cell]] = {}
     for c in cells:
         groups.setdefault((c.service, c.care_type), []).append(c)

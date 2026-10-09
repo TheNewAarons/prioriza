@@ -77,6 +77,8 @@ data/synthetic/
 data/schedules/
 # Datos del benchmark del programador (reproducibles con make bench-scheduler)
 data/bench/
+# Datos de la simulación (reproducibles con make simulate; el informe va en results/)
+data/simulation/
 
 # Artefactos de modelos (reproducibles con make train-noshow; los resultados van en results/)
 models/

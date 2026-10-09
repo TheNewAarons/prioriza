@@ -251,6 +251,22 @@ Técnicas en [scheduler-formulation.md §8.6](scheduler-formulation.md#86-técni
 - **Comparación con la voraz sin sobrecupo.** El orden lexicográfico de §9.5 (p1 agendados, GES cumplidas, suma de `c_ib`) se evalúa con `optimized` sin sobrecupo, igual que la voraz; las diferencias del plan con sobrecupo se informan una a una, sin agregarlas.
 - **Tiempo determinista como medida principal.** El tiempo real de un mismo plan determinista varió entre 63 y 98 s en la celda mayor durante el desarrollo (M1 con otros procesos activos). El benchmark registra el tiempo real de todo `solve` (mediana de 3 repeticiones de la variante completa; las ablaciones corren una vez) y el tiempo determinista de CP-SAT, del plan y total con las pasadas descartadas por la frontera.
 
+## 12. Simulación de políticas
+
+**Fecha**: 2026-10-09
+
+Diseño en [simulation-design.md](simulation-design.md); resultados en `results/simulation.json` (`make simulate`).
+
+**Dependencias**: `simpy` en `simulation`: motor de eventos discretos del stack declarado en CLAUDE.md; sin dependencias propias. `simulation` depende además de los miembros `synthetic` (verdad de inasistencia, celdas de llegada y oferta), `priority`, `noshow` y `scheduler`.
+
+**Decisiones**:
+- **Asistencia con la probabilidad verdadera del generador**, nunca con la predicha: el programador decide con la predicha y el mundo responde con la verdadera. La verdad se calcula solo en `simulation/truth.py`.
+- **Llegadas por la ley de Little** (θ del generador por celda) a falta de series públicas de ingresos; los atributos se copian de filas del stock de la misma celda y condición GES, con paciente y fragilidad nuevos.
+- **Oferta estacionaria propia** con los minutos por semana de cada celda del generador, en vez de los `slot` del generador (artefacto §11.2). El generador sigue sin corregirse; la simulación ya no depende de esa corrección.
+- **Números aleatorios comunes** entre políticas (llegadas y un uniforme por entrada e intento de asistencia) para comparar por réplica de forma pareada.
+- **Horizonte deslizante** de 4 semanas con una semana confirmada (formulación §8.3); anticipación de las citas de 7 a 11 días.
+- **Dos inasistencias = egreso** (causal de la Glosa 06); sin abandono por defecto.
+
 ---
 
 ## Referencias
