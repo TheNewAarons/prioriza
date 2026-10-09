@@ -231,3 +231,99 @@ en tiempos y brechas; enteros exactos). Aviso obligatorio al inicio. Secciones:
    (formulación §11.2); el benchmark no corrige el generador.
 No inventar cifras ni causas que no estén en el JSON o en `docs/scheduler-formulation.md` §8.6/§11 y `docs/decisions.md` §11.
 No tocar otros archivos salvo TASK_PLAN.md (marcar P9-T3 y log). No commitear.
+
+## P10: simulación de políticas (`simulation/`)
+
+Rama: `feat/simulation` (apilada sobre `feat/scheduler-cpsat`, PR #12 aún sin integrar).
+
+- [x] P10-T0 (Asignada a: Tier 3 - Kimi) -> Hecha (Kimi)
+- [x] P10-T1 (Asignada a: Tier 1 - Claude) -> Hecha: `docs/simulation-design.md`, `docs/decisions.md` §12
+- [ ] P10-T2 (Asignada a: Tier 2 - DeepSeek) -> En curso (instrucciones abajo)
+- [ ] P10-T3 (Asignada a: Tier 1 - Claude) -> Tests de invariantes (conservación, caso trivial)
+- [ ] P10-T4 (Asignada a: Tier 3 - Qwen) -> Tests de determinismo con semilla
+- [ ] P10-R (Tier 1 + `reviewer`) -> Verificar que la asistencia usa probabilidades reales del generador
+
+### P10-T0: interfaces que consume la simulación
+
+**`synthetic/`** (stock inicial y llegadas):
+
+- Entrada: `generate(cfg: RunConfig, targets=None, assumptions=None) -> SyntheticDataset` — `synthetic/src/synthetic/pipeline.py:56`. `RunConfig(size, seed, scenario=BASELINE, horizon_weeks=26, as_of=None)` — `config.py:12` (size ≥ 1.000). `run["params"]["noshow"]` guarda los parámetros de la verdad en el manifiesto (`pipeline.py:93-95`).
+- `generate_population(t, a, cfg, run_id) -> (patient, waitlist_entry)` — `population.py:150`. Sorteos: espera lognormal estratificada por (servicio, tipo) con media/mediana de la Glosa y clip `wait_clip_days` [1, 3650] (`_wait_days`, `population.py:112-124`); GES retrasada = plazo + retraso lognormal, GES en plazo ~ U(0, plazo) (`population.py:262-280`). `entry_date = as_of - wait` (`population.py:395`), `ges_deadline = entry_date + deadline_days` del `ges_problem_map` (`population.py:396-399`); `status` siempre `"waiting"`, `resolved_on` siempre `None` (`population.py:437-438`). Prioridad por mezcla `priority_mix_cne/iq/ges_oncologic` (`population.py:282-294`); edad `general_age_mix`/`pediatric_age_mix` (`population.py:296-304`); comuna por pesos APS `commune_facility_weights` (`commune_weights`, `population.py:127`); establecimiento por `hospital_complexity_weights` (`population.py:381-389`). Servicio/especialidad/subtipo/procedimiento por Hamilton sobre `service_rows`, `specialties`, `subtypes` y `iq_procedures` de los targets (`population.py:167-213`). Aleatoriedad: `rng_for(seed, Stream)` PCG64 con streams ALLOCATION/ATTRS/WAIT/PRIORITY/GES/LATENT/HISTORY/SPEC_EFFECTS/PATIENT_LINK/VALIDATION (`rng.py:9-27`).
+- **Tasas de llegada**: no existe un proceso de llegadas ni de egresos; solo el stock al `as_of`. Proxies disponibles: ley de Little `theta = 7·L/media_espera` por (servicio, tipo) (`capacity.py:78-80`) como llegadas semanales implícitas; GES usa `ytd_new_cases` anuales de la Superintendencia (`universe.py:25,69`, `capacity.py:82-87`); GES en plazo se estima con `ges_in_plazo_factor` 0,5 (`universe.py:43-45`). No existe causal de egreso administrativa en el generador.
+
+**`synthetic/noshow_truth.py`** (probabilidad REAL de inasistencia):
+
+- `NoShowParams` (`noshow_truth.py:57-101`): `scenario`, `beta_age`, `beta_ins`, `gamma` (por especialidad), `beta_wait` 0,15, `beta_lead` 0,1, `sigma_u` 0,8, `ref_lead_days` 28, `intercepts` por (servicio, care_type); `from_json(data)` (`:85`) reconstruye desde `run["params"]["noshow"]`. Escenarios: `neutral`, `baseline`, `ses_gradient` (`assumptions.json` clave `noshow_scenarios`).
+- `true_noshow_prob(features: pl.DataFrame, frailty: np.ndarray, params: NoShowParams) -> np.ndarray` (`:146`): columnas de `features` = `intercept`, `specialty_code`, `age_group`, `insurance`, `wait_days`, `median_wait_days`, `lead_days`. Sí sirve para una cita futura arbitraria: armar la fila con el intercept de su (servicio, care_type), la mediana del grupo (`with_wait`, `:188`) y el `noshow_frailty` del paciente. Término de espera: `beta_wait·log2(max(wait,1)/max(mediana,1))` (`:172`); `wait` = días de espera acumulada al momento de la cita. `noshow_frailty` vive en `patient_latent` (`LATENT_COLUMNS`, `:51`; `draw_frailty`, `:179`). En el historial el término de espera vale 0 (`:352-353`).
+
+**`synthetic/capacity.py`** (oferta):
+
+- `generate_capacity(t, a, cfg, entries, run_id) -> (resource, slot)` (`capacity.py:170`); `horizon_start(as_of)` = primer lunes posterior (`:61`). Escala `size/uni.total · capacity_multiplier` (`:73`); sesión CNE 240 min (`cne_session_min`), pabellón 360 min (`iq_block_min`), semana lunes-viernes. Problema conocido §11.2 de `docs/scheduler-formulation.md`: `_week_slots` (`capacity.py:149`) concentra sesiones CNE en la semana 13 (3.149 sesiones) y los bloques de pabellón en lunes (3.276 de 4.249); pendiente corregir antes de la simulación.
+
+**Cifras de calibración** (`synthetic/src/synthetic/targets/calibration_targets.json`, `assumptions.json`, `docs/data-sources.md`):
+
+- Stock: CNE 2.576.371 registros / 2.134.364 personas (media 341, mediana 242 días); IQ 417.561 (mediana 264); GES 80.022 retrasadas sobre 3,74 M (97,34 % cumplidas) — `data-sources.md:33-35`; en targets: `service_rows.waiting_count/persons_count/mean_wait_days/median_wait_days` por servicio y `ges_services`/`ges_problem_map`.
+- Llegadas: no hay ingresos mensuales públicos no GES (vacío); proxy = `theta` de Little. GES: casos nuevos anuales FONASA 2025 por problema (E3 Superintendencia) → `ytd_new_cases`.
+- Egresos: 2.707.426 egresos totales, 82.420 por "dos inasistencias" (78.162 CNE, 4.258 IQ) — `data-sources.md:36` y `noshow_e_p2_cne_target` 0,0304; suspensión de cirugía: administrativa 37,1 %, paciente 16,1 % (`data-sources.md:37`). No hay causal de abandono/muerte en el repo: no existe.
+- Oferta: `capacity_multiplier` 1,0, `cne_session_min` 240, `iq_block_min` 360, `iq_turnover_min` 30, `iq_utilization` 0,85 (`assumptions.json`).
+
+**`scheduler/`** (API para el loop semanal):
+
+- `SchedulingInstance.from_frames(*, as_of, horizon_start, entries, blocks, noshow=None, groups=None, rules_digest, rules_version, yield_priorities=("p1",), noshow_model_version=None, seed=42)` — `scheduler/src/scheduler/instance.py:150`. Columnas: `entries` = entry_id, patient_id, health_service_code, establishment_code, specialty_code, care_type, duration_min, clinical_priority, is_ges, ges_deadline, entry_date, score, rank (`instance.py:26-40`); `blocks` = slot_id, resource_id, resource_kind, health_service_code, establishment_code, specialty_code, start_at (con tz), duration_min, unit_min (+ `prebooked_units`/`prebooked_min` opcionales, `:41-51,186-200`); `noshow` = entry_id, slot_id, p (`:52`); `groups` = patient_id, age_group, insurance, commune_code (`:53`).
+- `solve(instance, config=None) -> SchedulePlan` (`plan.py:881`); `greedy_schedule(instance, config=None, order="priority") -> SchedulePlan` con `order` Literal `fifo`/`priority` (`plan.py:890`, `greedy.py:18`). Relevantes de `SchedulerConfig` (`config.py:81-101`): `horizon_weeks` (1-52), `overbooking.enabled/alpha/max_fraction`, `time_limit_s` 120, `commit_weeks` 1, `match_level`, `min_lead_days`/`ges_min_lead_days`.
+- `plan.assignments`: entry_id, patient_id, slot_id, specialty_code, resource_kind, scheduled_start, duration_min, lead_days, is_overbooked, predicted_noshow_prob, phase_added, coef (`plan.py:249-262`). `plan.report` (`plan.py:714-776`): `summary` (entries_waiting, scheduled, scheduled_cne/or, overbooked_flags, added_by_overbooking, by_status), `ges` (obligated, met, unmet, unmet_by_cause, on_time), `overbooking` (blocks con risk_exact, max_risk_exact), `equity` (lista por grupo), `capacity_by_week`, `solver` (status, gap, time), `config_digest`, `warnings`.
+- Adaptadores (`scheduler/src/scheduler/adapters.py`): `instance_from_run(run_dir, config, *, models_dir=Path("models/noshow"), rules=None, seed=42) -> (SchedulingInstance, RunInfo)` (`:226`); arma `entries` con `priority.rank_frame` (`entries_frame`, `:66`), `blocks` filtrando el horizonte y descontando citas vigentes en `prebooked_*` (`blocks_frame`, `:105`), `noshow` con `build_candidate_features`+`predict_noshow` por par (entry, slot) CNE (`noshow_frame`, `:170`), `groups` con `noshow.data.load_fairness_attributes` (`:251`).
+
+**`noshow/`** (confirmación de P8-T0): firmas vigentes — `load_bundle(path)` (`noshow/src/noshow/train.py:317`), `predict_noshow(bundle, features) -> np.ndarray` (`train.py:328`), `build_candidate_features(candidates, history, specialties, entries=None)` (`features.py:131`), `load_fairness_attributes(run_dir)` (`data.py:82`) y `load_truth_for_evaluation(run_dir)` (`data.py:88`, verdad solo para evaluar). Sin cambios.
+
+**Métricas por grupo ("P6")**: `GroupLimitsConfig` (`scheduler/src/scheduler/config.py:39-53`): dimensiones `age_group`/`insurance`/`commune_code`, `mode` relative/absolute, `max_gap_pp` 5,0, `min_group_n` 30. Filas de `report["equity"]`: dimension, value, entries, candidates, scheduled, scheduled_rate, scheduled_cne, exposure_share, flagged_share, mean_risk_exposed (`plan.py:566-583`). En `noshow`: `group_calibration(frame, column, prob, min_n, truth=None)` (`noshow/src/noshow/metrics.py:103`): n, observed_rate, mean_predicted, gap, gap_vs_truth; grupos evaluados en P5: edad, previsión, servicio, comuna.
+
+**Workspace**: `simulation/pyproject.toml` existe pero solo depende de `shared` (sin `simpy`); `simpy` no existe en `uv.lock` ni en ningún pyproject. Target `simulate` del `Makefile` es un stub: `@echo "simulate: pendiente"` (líneas 39-40).
+
+### P10-T2: instrucciones
+
+Implementar `simulation/` exactamente según `docs/simulation-design.md` (léelo completo; manda sobre estas notas si
+algo choca). Lee también CLAUDE.md (convenciones: identificadores en inglés, docstrings y comentarios en español,
+aviso obligatorio en todo informe, semillas fijas) y la sección P10-T0 de arriba (interfaces reales).
+
+1. `synthetic/src/synthetic/capacity.py`: agregar a `Cell` los campos `throughput_per_week` (θ de la celda, la
+   variable `th` de `_cells`) y `ges_throughput_per_week` (solo la parte GES de θ, escalada igual); exponer
+   `capacity_cells(t, a, cfg, entries) -> list[Cell]` pública (`_cells` puede quedar como alias). El generador debe
+   escribir exactamente lo mismo: `uv run pytest synthetic` en verde.
+2. `scheduler/src/scheduler/adapters.py`: extraer `entries_from_frames(waitlist, procedures, rules, as_of)` y
+   `noshow_from_frames(entries, blocks, history, specialties, bundle, config, as_of)` con la lógica actual de
+   `entries_frame` y `noshow_frame`; las versiones con `run_dir` pasan a envolverlas sin cambiar su comportamiento.
+   mypy --strict en `scheduler/`; `uv run pytest scheduler` en verde.
+3. `simulation/` (módulos sugeridos): `config.py` (pydantic frozen `SimulationConfig` con los parámetros del diseño
+   §1/§4/§6/§8), `world.py` (`World`, `world_from_run(run_dir, model_path)`), `arrivals.py`, `supply.py`,
+   `truth.py` (ÚNICO módulo que importa `true_noshow_prob`/`NoShowParams`), `policies.py` (las 4 políticas; NO
+   importa `truth.py` ni recibe fragilidad ni p verdadera), `engine.py` (SimPy; estados `waiting`, `booked`,
+   `resolved`, `removed_no_show`, `abandoned`; registro de eventos con causa), `metrics.py` (series semanales,
+   resumen, grupos de P6, agregado entre réplicas, comparaciones pareadas), `report.py` (JSON de §8), `cli.py`
+   (Typer `prioriza-simulate`, opciones de §8; genera la corrida en `data/simulation/` y entrena el modelo si faltan,
+   reutilizando `scheduler.bench.ensure_run` y `scheduler.bench.train_model`).
+   API pública mínima en `simulation/__init__.py`: `SimulationConfig`, `World`, `world_from_run`, `simulate`
+   (`simulate(world, policy, config, seed) -> PolicyResult`, sin I/O) y `run_experiment(world, config) -> dict`
+   (todas las políticas y réplicas; devuelve el payload del JSON).
+   - Números aleatorios comunes: llegadas y uniformes de asistencia `U_{i,k}` independientes de la política.
+   - El núcleo debe permitir mundos chicos armados a mano (sin generador) para los tests de P10-T3.
+   - `PolicyResult.events`: lista de (día, entry_id, de_estado, a_estado, causa) para verificar conservación.
+4. `simulation/pyproject.toml`: dependencias `simpy` (versión estable actual), `numpy`, `polars`, `pydantic`,
+   `typer` y los miembros `shared`, `synthetic`, `priority`, `noshow`, `scheduler` (workspace); script
+   `prioriza-simulate = "simulation.cli:run"`; `uv lock`. Deja `make lint` y `make typecheck` en verde (si
+   `typecheck` no incluye `simulation`, no lo agregues).
+5. `Makefile`: `SIM_ARGS ?=` y `simulate:` → `uv run --package simulation prioriza-simulate $(SIM_ARGS)` (reemplaza
+   el stub). `.gitignore`: `data/simulation/`.
+6. Tests propios: solo un humo rápido (`simulation/tests/test_simulation_smoke.py`, mundo chico, < 20 s) que
+   verifique que `run_experiment` devuelve las 4 políticas con sus réplicas y que el JSON tiene el aviso. Los tests de
+   invariantes (P10-T3) y de determinismo (P10-T4) los escriben otros.
+7. Verifica con `make lint typecheck test` y una corrida corta real:
+   `uv run --package simulation prioriza-simulate --size 1000 --weeks 3 --replicas 2 --out /tmp/sim_smoke.json`
+   (no sobrescribas `results/simulation.json`). No corras la configuración completa.
+
+No commitees. Al terminar marca P10-T2 en este archivo y agrega una línea de log con lo hecho, decisiones tomadas y
+problemas abiertos.
+
+### Log
+
+- 2026-10-09, Tier 3 (P10-T0, Kimi): escaneados `synthetic/` (pipeline, population, noshow_truth, capacity, config, rng, targets), `scheduler/` (instance, config, plan, greedy, adapters), `noshow/` (train, features, metrics, data), docs (data-sources, scheduler-formulation §11.2) y workspace (`simulation/pyproject.toml`, `uv.lock`, `Makefile`). Hallazgos clave: no existe proceso de llegadas/egresos en el generador (solo stock + ley de Little como proxy y `ytd_new_cases` GES); la verdad de inasistencia sí es invocable para citas futuras con `NoShowParams.from_json` del manifiesto + `patient_latent`; la API del scheduler ya admite `prebooked_units/min` en bloques para cupos tomados; `simpy` no está en el workspace y `make simulate` es un stub.
