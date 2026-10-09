@@ -1,4 +1,4 @@
-.PHONY: api up down migrate ingest synth train-noshow schedule bench-scheduler simulate report dashboard test lint typecheck format sync hooks help
+.PHONY: api up down migrate ingest synth train-noshow schedule bench-scheduler simulate demo report dashboard test lint typecheck format sync hooks help
 
 up:
 	@[ -f .env ] || cp .env.example .env
@@ -40,6 +40,11 @@ SIM_ARGS ?=
 
 simulate:
 	uv run --package simulation prioriza-simulate $(SIM_ARGS)
+
+DEMO_ARGS ?=
+
+demo:
+	scripts/demo.sh $(DEMO_ARGS)
 
 report:
 	@echo "report: pendiente"
@@ -84,6 +89,7 @@ help:
 	@echo "  schedule           Corre el programador CP-SAT"
 	@echo "  bench-scheduler    Benchmark del programador CP-SAT"
 	@echo "  simulate           Compara políticas con SimPy"
+	@echo "  demo               Demo de punta a punta (sin Docker ni PostgreSQL)"
 	@echo "  report             Genera docs/results.md y .html"
 	@echo "  api                Levanta la API FastAPI (puerto 8000)"
 	@echo "  dashboard          Levanta el panel Dash (y la API si no responde)"
