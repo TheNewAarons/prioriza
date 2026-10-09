@@ -73,6 +73,10 @@ logs/
 
 # Población sintética generada (reproducible con make synth)
 data/synthetic/
+# Planes del programador (reproducibles con make schedule; el informe va en results/)
+data/schedules/
+# Datos del benchmark del programador (reproducibles con make bench-scheduler)
+data/bench/
 
 # Artefactos de modelos (reproducibles con make train-noshow; los resultados van en results/)
 models/

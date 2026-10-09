@@ -81,6 +81,7 @@ make ingest            # descarga datos públicos agregados
 make synth             # genera población sintética calibrada
 make train-noshow      # entrena y calibra el modelo de inasistencias
 make schedule          # corre el programador CP-SAT sobre un escenario
+make bench-scheduler   # benchmark del programador (tamaños, horizontes, ablación)
 make simulate          # compara políticas con SimPy
 make report            # genera docs/results.md y .html
 make dashboard         # levanta el panel Dash
