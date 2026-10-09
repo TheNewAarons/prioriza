@@ -68,8 +68,8 @@ No existen en los datos: sexo, etnia, nacionalidad, coordenadas ni distancia.
   registrar en `docs/decisions.md` las decisiones de diseño de la formulación (fases lexicográficas, sobrecupo solo CNE
   y solo agregando, compatibilidad por servicio, límites de equidad provisionales).
 - [ ] P6 (límites de equidad por grupo) -> La formulación fija un contrato provisional (§6.5); P6 lo confirma o ajusta.
-- [ ] Generador (`synthetic/capacity.py`) -> Pendiente antes de P8: sesiones CNE concentradas en la semana 13 y
-  bloques de pabellón concentrados en lunes (§11.2 de la formulación).
+- [x] Generador (`synthetic/capacity.py`) -> Corregido el 2026-10-09 (generador 0.2.0, rama `fix/synthetic-supply`):
+  sesiones CNE concentradas en la semana 13 y bloques de pabellón concentrados en lunes (§11.2 de la formulación).
 
 ### Log
 
@@ -352,3 +352,19 @@ problemas abiertos.
   sobrecupo por grupo etario 23-27 % (0-14 la mayor). Negativos: la lista crece en todas las políticas (capacidad
   nominal = demanda, granularidad de la oferta) y la espera del stock final es mayor con priority/optimized que con
   fifo (154 frente a 139 días). Inasistencia CNE realizada 14,9-15,4 %; p predicha media 0,142.
+
+## Corrección de la oferta del generador (`synthetic/`)
+
+Rama: `fix/synthetic-supply`.
+
+- [x] Corrección (Tier 1 - Claude) -> Hecha: fase por recurso y rotación del día de pabellón; `docs/decisions.md` §13
+- [ ] Regenerar corrida canónica, benchmark y simulación (Tier 1) -> En curso
+- [ ] Actualizar `docs/scheduler-performance.md` con el benchmark nuevo (Tier 3 - Kimi) -> Pendiente
+
+### Log
+
+- 2026-10-09, Tier 1: `_week_slots` recibe una fase por recurso (Weyl) y el día del pabellón rota por recurso. Corrida
+  canónica (N 100.000, 26 semanas): sesiones CNE por semana 12-3.149 → 237-296; bloques de pabellón por semana
+  115-224 → 150-174; por día (lun-vie) 3.276/877/94/2/0 → 863/836/799/818/933; sin choques de recurso y hora.
+  `GENERATOR_VERSION` 0.2.0, digest nuevo (run_id igual), `results/noshow.json` solo cambia digest y `model_version`.
+  Test `synthetic/tests/test_synthetic_supply.py`.
