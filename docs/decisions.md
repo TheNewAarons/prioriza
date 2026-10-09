@@ -346,6 +346,31 @@ Diseño visual en `docs/design.md`; instrucciones en `TASK_PLAN.md` (P13).
 - La revisión crítica de módulos importantes la hace `reviewer` antes del commit.
 - `docs/version-control.md` y CLAUDE.md actualizados.
 
+## 17. Informe de resultados
+
+**Fecha**: 2026-10-09
+
+Paquete `reports/` (miembro del workspace, en `mypy --strict` y `testpaths`); `make report` corre `prioriza-report` y escribe `docs/results.md` y `docs/results.html`. Contrato en `TASK_PLAN.md` (P15).
+
+**Dependencias** (en `reports`):
+- `jinja2`: plantillas del informe con `StrictUndefined`, de modo que una variable ausente es un error y no un hueco en blanco. Ya estaba en el lock (transitiva de Dash/Flask).
+- `markdown-it-py`: conversión del Markdown a HTML con tablas, sin HTML crudo (`html=False`). Ya estaba en el lock (transitiva).
+- `typer`: CLI, igual que el resto de los paquetes; ya estaba en el lock.
+- `priority` y `synthetic` (miembros del workspace): las reglas de priorización (`load_default_rules`) y los objetivos y supuestos de calibración (`load_targets`, `load_assumptions`) se leen de su fuente en vez de copiarse. Los imports de `synthetic` llevan `# type: ignore[import-untyped]`, como en `scheduler`.
+- Ninguna dependencia nueva en el lock; solo se agregó el miembro `reports`.
+
+**Decisiones**:
+- **Ningún número escrito a mano.** Todo pasa por `load_facts` (que no formatea) y por los filtros de `reports.fmt`. Un test verifica que `results.md.j2` no tiene dígitos fuera de etiquetas Jinja salvo `p90`, `p50`, `IC 95 %` y `0-14`; el texto visible de `page.html.j2` se revisa igual (el CSS queda fuera). Por eso los rótulos dicen "máxima prioridad" y no "p1", y el nombre "Glosa 06" sale de una constante de `facts.py`.
+- **Lectura estricta.** `load_facts` levanta `FactsError` con el archivo y la ruta del campo si falta un archivo o un campo, o si el tipo no es el esperado. No hay valores por defecto. Los únicos opcionales son datos que el JSON no trae por diseño (`generated_at` de la calibración, del modelo y del plan) y se muestran como "sin marca de tiempo".
+- **Coherencia entre archivos.** El plan canónico (`schedule_<id>_4w.json`) fija la corrida; la calibración se elige por `run_id` y el modelo de inasistencias debe haberse entrenado con esa misma corrida. Si hay más de un plan canónico o más de una calibración para la corrida, falla en vez de elegir.
+- **Tamaños distintos, dichos.** El tamaño de cada corrida sale de su JSON (`run.size`, `data_version.size`, nombre del archivo de calibración). Si la simulación no tiene el tamaño del plan canónico, el informe lo advierte al principio y en la sección de simulación; el benchmark lista el tamaño de cada celda. El tamaño de la calibración sale del nombre del archivo (`..._n<N>.json`) porque el JSON no lo trae.
+- **Resultados negativos tal cual.** Las comparaciones pareadas se muestran completas (todas las métricas, favorables o no) con una lectura calculada (`mejora`, `empeora`, `sin diferencia clara`, `solo contexto`) según la dirección que declara el JSON y si el IC excluye el cero. Se omite solo `fifo_vs_priority`, que es el espejo exacto de `priority_vs_fifo` (`load_facts` verifica que lo sea). Los grupos de equidad se listan completos hasta 12 por dimensión; con más (comunas, servicios) se listan los 10 más expuestos o con mayor brecha, y el informe dice cuántos grupos hay.
+- **Referencia de las brechas de equidad de la simulación.** El total ponderado por entradas de la dimensión (igual que el panel); las medias de grupo son medias entre réplicas.
+- **Redondeo.** Mitad hacia arriba con `Decimal` (no el redondeo bancario de `round`), para que `-5,25` se escriba `-5,3`.
+- **Determinismo.** Sin hora de generación; la procedencia usa los `generated_at` de los JSON y el último commit que tocó `results/` (`git log -1 --format=%H -- results/`, `null` si no hay git). Ese hash cambia cuando se commitean resultados nuevos: hay que regenerar el informe después de esa confirmación para que lo refleje.
+- **HTML autocontenido.** CSS en línea con los tokens de `docs/design.md` (sin JS, sin fuentes externas: la pila nombra Atkinson Hyperlegible Next y cae a la del sistema), aviso fijo arriba, tablas con scroll horizontal.
+- **Narrativa pendiente (P15-T2).** Cada sección tiene una frase neutra y un comentario `{# narrativa: ... #}` que dice qué debe explicar. La prosa de T2 debe usar marcadores `{{ ... }}`, nunca cifras.
+
 ---
 
 ## Referencias

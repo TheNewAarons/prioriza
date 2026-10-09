@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<style>
+/* Tokens de docs/design.md §3, copiados en línea para que la página sea autocontenida. */
+:root {
+  --paper: #F6F8F7; --surface: #FFFFFF; --zone: #E9EFED;
+  --ink: #1C2B2E; --ink-muted: #4B5B5F; --rule: #C9D3D1;
+  --scrub: #17655F; --scrub-deep: #0E4743; --scrub-tint: #D7EAE7;
+  --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --strip-h: 40px;
+}
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 1rem; line-height: 1.5; }
+.strip { position: fixed; top: 0; left: 0; right: 0; min-height: var(--strip-h); display: flex; align-items: center;
+  padding: var(--s1) var(--s6); background: var(--ink); color: #FFFFFF; font-size: 0.8125rem; line-height: 1.45; font-weight: 600; z-index: 10; }
+main { max-width: 1280px; margin: 0; padding: calc(var(--strip-h) + var(--s7)) var(--s6) var(--s7); }
+main > * { max-width: 72ch; }
+main > .table-wrap { max-width: 100%; }
+h1 { font-size: 1.9375rem; line-height: 1.2; font-weight: 700; margin: 0 0 var(--s5); }
+h2 { font-size: 1.5625rem; line-height: 1.25; font-weight: 600; margin: var(--s7) 0 var(--s4); padding-top: var(--s4); border-top: 2px solid var(--rule); }
+h3 { font-size: 1.25rem; line-height: 1.3; font-weight: 600; margin: var(--s6) 0 var(--s3); }
+h4 { font-size: 1rem; line-height: 1.5; font-weight: 700; margin: var(--s5) 0 var(--s2); }
+p, li { margin: 0 0 var(--s3); }
+ul { padding-left: var(--s5); }
+a { color: var(--scrub); }
+a:hover, a:focus { color: var(--scrub-deep); }
+a:focus-visible { outline: 2px solid var(--scrub-deep); outline-offset: 2px; }
+blockquote { margin: 0 0 var(--s5); padding: var(--s3) var(--s4); background: var(--scrub-tint); border-left: 4px solid var(--scrub); }
+blockquote p { margin: 0; }
+code { background: var(--zone); padding: 0 var(--s1); border-radius: 4px; font-size: 0.9375em; overflow-wrap: anywhere; }
+pre { background: var(--surface); border: 1px solid var(--rule); padding: var(--s4); overflow-x: auto; max-width: 100%; }
+pre code { background: none; padding: 0; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.8125rem; overflow-wrap: normal; }
+.table-wrap { overflow-x: auto; margin: 0 0 var(--s5); border: 1px solid var(--rule); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 0.875rem; line-height: 1.45; }
+th, td { padding: var(--s2) var(--s3); border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { background: var(--zone); font-weight: 600; text-align: left; }
+th[style*="right"], td[style*="right"] { text-align: right; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+@media (max-width: 576px) {
+  main { padding: calc(var(--strip-h) + var(--s7)) var(--s4) var(--s6); }
+  .strip { padding: var(--s1) var(--s4); }
+}
+@media print { .strip { position: static; } main { padding-top: var(--s4); } }
+</style>
+</head>
+<body>
+<div class="strip" role="note">{{ disclaimer }}</div>
+<main>
+{{ body }}
+</main>
+</body>
+</html>

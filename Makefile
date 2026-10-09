@@ -46,8 +46,10 @@ DEMO_ARGS ?=
 demo:
 	scripts/demo.sh $(DEMO_ARGS)
 
+REPORT_ARGS ?=
+
 report:
-	@echo "report: pendiente"
+	uv run --package reports prioriza-report $(REPORT_ARGS)
 
 PRIORIZA_API_USERS_FILE ?= api/config/users.json
 API_PORT ?= 8000

@@ -1,0 +1,441 @@
+{#- Plantilla del informe de resultados. Regla central: ninguna cifra escrita a mano; todo sale de `facts`
+    con los filtros de reports.fmt. Fuera de las etiquetas Jinja solo se admiten los rótulos p90, p50,
+    IC 95 % y 0-14 (lo verifica un test). Los comentarios `narrativa` marcan lo que debe explicar la
+    prosa de cada sección (P15-T2); la prosa usa solo marcadores ({{ ... }}), nunca cifras. -#}
+{% macro yn(x) %}{{ "sí" if x else "no" }}{% endmacro %}
+{% macro maybe(x, digits=3) %}{{ x | sig(digits) if x is not none else "sin dato" }}{% endmacro %}
+{% set reading_text = {"better": "mejora", "worse": "empeora", "unclear": "sin diferencia clara", "context": "solo contexto"} %}
+{% set care_text = {"consultation": "Consulta nueva de especialidad", "surgery": "Intervención quirúrgica", "ges": "Garantías GES retrasadas"} %}
+{% set review_text = {"pending": "pendiente de revisión humana", "approved": "aprobado", "rejected": "rechazado"} %}
+{% set sim = simulation %}
+{% set sched = scheduler %}
+# Informe de resultados de Prioriza
+
+> **Aviso.** {{ disclaimer }}
+
+## Qué es este informe
+
+{# narrativa: explicar en dos o tres frases qué comparan las políticas (orden de llegada, solo prioridad, optimizada, optimizada con sobrecupo), que el sistema apoya y no decide, y que todo plan requiere revisión humana antes de usarse. #}
+Este informe compara cuatro políticas de atención para la corrida sintética `{{ sched.run.id }}`: orden de llegada (línea de base), solo prioridad clínica, programación optimizada respetando la capacidad y los plazos, y programación optimizada con sobrecupo controlado. El sistema apoya la decisión pero no la toma: cada plan se genera bajo demanda y permanece pendiente de revisión humana antes de cualquier uso. Todas las cifras provienen de `results/` sin escritura manual.
+
+Las corridas que alimentan el informe no tienen el mismo tamaño:
+
+| Resultado | Entradas de la corrida | Corrida |
+|---|---:|---|
+{% for f in provenance.files %}
+| {{ f.file | cell }} | {{ f.sizes | show }} | {{ f.run_ids | map("short") | list | show }} |
+{% endfor %}
+
+{% if not sim.is_canonical_size %}
+**Atención.** La simulación corrió con una población de {{ sim.run.size | num }} entradas y el plan canónico usa {{ sim.canonical_size | num }}. Las cifras absolutas de la simulación no son comparables con las del plan canónico; solo se comparan entre las políticas de la misma simulación.
+{% else %}
+La simulación y el plan canónico usan la misma población de {{ sim.run.size | num }} entradas.
+{% endif %}
+
+## Contexto y fuentes
+
+{# narrativa: explicar el problema (tamaño y espera de las listas no GES y de las garantías GES retrasadas), que la población es sintética y se calibra contra estos agregados públicos, y qué significa que algunos chequeos de calibración no pasen. #}
+Al momento de corte de la {{ context.reference_document }} ({{ context.reference_period | date }}), el sistema público de Chile registraba las entradas en espera, las garantías GES retrasadas y las medianas de espera que muestra la tabla de esta sección. La población de esta corrida es sintética: generada de forma controlada con semilla fija y calibrada a partir de datos públicos agregados para reproducir el tamaño, composición y tiempos de espera observados. Los chequeos de calibración muestran si el simulador replica fielmente estos agregados; cuando alguno falla (especialmente si es informativo y no estricto), indica una limitación en la reproducción que debe interpretarse al examinar los resultados. Fuentes de calibración: {% for s in context.sources %}`{{ s.source_id }}`{{ " (" ~ (s.period | date) ~ ")" if s.period is not none else "" }}{{ ", " if not loop.last else "." }}{% endfor %}
+
+| Lista | Registros | Personas | Espera media (días) | Mediana de espera (días) |
+|---|---:|---:|---:|---:|
+{% for r in context.national %}
+| {{ care_text[r.key] }} | {{ r.waiting_count | num }} | {{ r.persons_count | num if r.persons_count is not none else "sin dato" }} | {{ r.mean_wait_days | num if r.mean_wait_days is not none else "sin dato" }} | {{ r.median_wait_days | num if r.median_wait_days is not none else "sin dato" }} |
+{% endfor %}
+
+### Calibración de la población sintética
+
+La población de la corrida `{{ calibration.run_id }}` ({{ calibration.size | num }} entradas, semilla {{ calibration.seed | raw }}, escenario `{{ calibration.scenario }}`) se contrastó con los objetivos públicos. Chequeos estrictos que pasan: {{ calibration.summary.strict_passed | num }}; estrictos que fallan: {{ calibration.summary.strict_failed | num }}; informativos que fallan: {{ calibration.summary.soft_failed | num }}; omitidos: {{ calibration.summary.skipped | num }}. Resultado global: {{ "pasa" if calibration.passed else "no pasa" }}.
+
+| Grupo | Chequeos | Pasan | Estrictos que fallan | Informativos que fallan |
+|---|---:|---:|---:|---:|
+{% for g in calibration.by_group %}
+| {{ g.group }} | {{ g.checks | num }} | {{ g.passed | num }} | {{ g.strict_failed | num }} | {{ g.soft_failed | num }} |
+{% endfor %}
+
+{% if calibration.failed %}
+Chequeos que no pasan (se muestran tal cual):
+
+| Chequeo | Severidad | Métrica | Observado | Objetivo | Tolerancia | Detalle |
+|---|---|---|---:|---:|---:|---|
+{% for c in calibration.failed %}
+| {{ c.name | cell }} | {{ c.severity }} | {{ c.metric | cell }} | {{ maybe(c.observed) }} | {{ maybe(c.target) }} | {{ maybe(c.tolerance) }} | {{ c.detail | cell }} |
+{% endfor %}
+{% else %}
+Todos los chequeos pasan.
+{% endif %}
+
+Detalle de todos los chequeos:
+
+| Chequeo | Severidad | Métrica | Observado | Objetivo | Tolerancia | Pasa |
+|---|---|---|---:|---:|---:|---|
+{% for c in calibration.checks %}
+| {{ c.name | cell }} | {{ c.severity }} | {{ c.metric | cell }} | {{ maybe(c.observed) }} | {{ maybe(c.target) }} | {{ maybe(c.tolerance) }} | {{ yn(c.passed) }} |
+{% endfor %}
+
+{% for n in calibration.notes %}
+- {{ n | cell }}
+{% endfor %}
+
+## Priorización
+
+{# narrativa: explicar cómo se combinan los componentes del puntaje, que la prioridad clínica es un dato de entrada definido por profesionales y nunca se infiere, qué hace la regla GES estricta y qué muestra la tabla de efectos por política. #}
+Reglas `{{ priority.rules_id }}`, versión {{ priority.rules_version }}. El puntaje de cada paciente combina tres componentes: prioridad clínica declarada (entrada definida por profesionales, nunca inferida del sistema), días de espera acumulados y cercanía a los plazos de garantía GES. La prioridad clínica es un dato exógeno y auditable; el sistema respeta lo que declare el gestor. La regla GES estricta adelanta las garantías vencidas o que vencen pronto por sobre el resto de la cola, salvo las entradas de máxima prioridad, que van antes (cesión a máxima prioridad). La tabla siguiente muestra cómo cada política afecta el cumplimiento de estas obligaciones y la atención de máxima prioridad.
+
+| Componente | Campo | Peso | Participación | Parámetros |
+|---|---|---:|---:|---|
+{% for c in priority.components %}
+| {{ c.label | cell }} | `{{ c.field }}` | {{ c.weight | num }} | {{ c.share | pct(0) }} | {{ ((c.mapping if c.mapping is not none else c.transform) | show) | cell }} |
+{% endfor %}
+
+Regla GES estricta: activa: {{ yn(priority.ges_strict.enabled) }}; vencidas o por vencer en {{ priority.ges_strict.due_soon_days | num }} días o menos van antes que el resto, ordenadas por `{{ priority.ges_strict.order_within }}`; ceden el paso las prioridades {{ priority.ges_strict.yield_to_priorities | show }}.
+
+{% if priority.matches_plan %}
+Las reglas versionadas coinciden con las que usó el plan canónico (versión {{ priority.plan_rules_version }}).
+{% else %}
+**Atención.** Las reglas versionadas hoy no coinciden con las que usó el plan canónico (versión {{ priority.plan_rules_version }}): los pesos mostrados pueden ser distintos de los del plan.
+{% endif %}
+
+Efecto en el plan canónico ({{ sched.horizon_start | date }} a {{ sched.horizon_end_exclusive | date }}, exclusivo):
+
+| Política | Agendadas | Máxima prioridad agendadas | GES con obligación | GES cumplidas | GES agendadas antes del plazo | GES sin cumplir |
+|---|---:|---:|---:|---:|---:|---:|
+{% for r in sched.rows %}
+| {{ r.label }} | {{ r.scheduled | num }} | {{ r.q1_scheduled | num }} | {{ r.ges_obligated | num }} | {{ r.ges_met | num }} | {{ r.ges_on_time | num }} | {{ r.ges_unmet | num }} |
+{% endfor %}
+
+## Modelo de inasistencias
+
+{# narrativa: explicar qué predice el modelo, por qué se eligió el modelo principal, qué miden AUC, Brier y la calibración, cómo se lee el IC del Δ Brier contra el baseline y qué dice la brecha por grupo respecto de la verdad sintética. Recalcar que con datos sintéticos validan el pipeline, no el desempeño real. #}
+Modelo principal: `{{ noshow.primary }}` (versión `{{ noshow.model_version }}`), {{ "calibrado" if noshow.primary_is_calibrated else "sin calibrar" }}. Predice la probabilidad de que un paciente no se presente a su cita (inasistencia), usando solo las variables permitidas: {% for v in noshow.features.categorical + noshow.features.numeric %}`{{ v }}`{{ ", " if not loop.last else "." }}{% endfor %} Edad, previsión, comuna y servicio de salud no entran al modelo (se usan solo para medir equidad; motivos en la tabla de variables excluidas). Criterio de selección del modelo principal: {{ noshow.selection_criterion }}{{ "" if noshow.selection_criterion.endswith(".") else "." }} Con datos sintéticos se valida la canalización (ingesta, features, entrenamiento, calibración, persistencia) pero no el desempeño en la población real. AUC mide la capacidad de separar asistencias de inasistencias; Brier es el error cuadrático medio; la calibración compara la probabilidad predicha contra la tasa observada. El intervalo de confianza del Δ Brier contra el baseline ({{ noshow.vs_baseline.n_boot | num }} remuestreos por {{ noshow.vs_baseline.resampling_unit_label }}) excluye el cero: {{ yn(noshow.vs_baseline.significant_at_95) }}. Las brechas por grupo contra la verdad sintética muestran si el modelo da estimaciones sesgadas en grupos específicos; diferencias negativas indican sobrestimación.
+
+{{ noshow.caveat }}
+
+Partición temporal (sin barajar):
+
+| Parte | Citas | Desde | Hasta | Tasa de inasistencia |
+|---|---:|---|---|---:|
+{% for part, label in [("train", "Entrenamiento"), ("calibration", "Calibración"), ("test", "Prueba")] %}
+| {{ label }} | {{ noshow.split[part].n | num }} | {{ noshow.split[part].first | date }} | {{ noshow.split[part].last | date }} | {{ noshow.split[part].no_show_rate | pct(1) }} |
+{% endfor %}
+
+Métricas en el conjunto de prueba:
+
+| Modelo | AUC | Brier | ECE | Pérdida logarítmica | Probabilidad media predicha | Tasa observada |
+|---|---:|---:|---:|---:|---:|---:|
+{% for m in noshow.models %}
+| `{{ m.model }}`{{ " (principal)" if m.is_primary else "" }} | {{ m.auc | num(3) }} | {{ m.brier | num(4) }} | {{ m.ece | num(4) }} | {{ m.log_loss | num(4) }} | {{ m.mean_predicted | pct(1) }} | {{ m.observed_rate | pct(1) }} |
+{% endfor %}
+| Referencia con la probabilidad verdadera del generador | {{ noshow.oracle.auc | num(3) }} | {{ noshow.oracle.brier | num(4) }} | {{ noshow.oracle.ece | num(4) }} | {{ noshow.oracle.log_loss | num(4) }} | sin dato | sin dato |
+
+Diferencia de Brier del modelo principal contra el baseline por especialidad: {{ noshow.vs_baseline.brier_difference | signed(4) }} (IC 95 % {{ noshow.vs_baseline.ci95_low | signed(4) }} a {{ noshow.vs_baseline.ci95_high | signed(4) }}; {{ noshow.vs_baseline.n_boot | num }} remuestreos por {{ noshow.vs_baseline.resampling_unit_label }}). Mejora al baseline: {{ yn(noshow.vs_baseline.beats_baseline_brier) }}; el IC 95 % excluye el cero: {{ yn(noshow.vs_baseline.significant_at_95) }}.
+
+Calibración del modelo principal en prueba (por decil de probabilidad predicha):
+
+| Probabilidad media predicha | Tasa observada | Citas |
+|---:|---:|---:|
+{% for p in noshow.curve %}
+| {{ p.mean_predicted | pct(1) }} | {{ p.observed_rate | pct(1) }} | {{ p.n | num }} |
+{% endfor %}
+
+Brier por modelo en el conjunto de calibración (criterio de selección):
+
+| Modelo | Brier |
+|---|---:|
+{% for name, value in noshow.brier_calibration_set.items() %}
+| `{{ name }}` | {{ value | num(4) }} |
+{% endfor %}
+
+### Equidad del modelo
+
+{{ noshow.fairness.description }} Se reportan grupos con al menos {{ noshow.fairness.min_n | num }} citas de prueba. La brecha es la probabilidad media predicha menos la probabilidad verdadera media del generador.
+
+{% for d in noshow.fairness.dimensions %}
+**{{ d.dimension }}**: {{ d.n_groups | num }} grupos evaluados de {{ d.n_groups_total | num }}; mayor brecha absoluta contra la verdad: {{ d.max_abs_gap_vs_truth | pp(2) }}, en el grupo {{ d.worst.group | label }}.{{ " " ~ d.note if d.note is not none else "" }}
+
+{% if d.truncated %}
+Se listan los {{ d.shown | length | num }} grupos con mayor brecha absoluta.
+
+{% endif %}
+| Grupo | Citas | Tasa observada | Predicha media | Verdad media | Brecha contra la verdad |
+|---|---:|---:|---:|---:|---:|
+{% for g in d.shown %}
+| {{ g.group | label }} | {{ g.n | num }} | {{ g.observed_rate | pct(1) }} | {{ g.mean_predicted | pct(1) }} | {{ g.mean_true_prob | pct(1) }} | {{ g.gap_vs_truth | pp(2) }} |
+{% endfor %}
+
+{% endfor %}
+### Variables
+
+Variables usadas. Categóricas: {{ noshow.features.categorical | join(", ") }}. Numéricas: {{ noshow.features.numeric | join(", ") }}.{{ " Eliminadas por ser constantes en el entrenamiento: " ~ (noshow.features.dropped_constant | join(", ")) ~ "." if noshow.features.dropped_constant else "" }}
+
+Variables excluidas del modelo y motivo:
+
+| Variable | Motivo |
+|---|---|
+{% for e in noshow.features.excluded %}
+| `{{ e.name }}` | {{ e.reason | cell }} |
+{% endfor %}
+
+Riesgo de proxies entre las variables usadas:
+
+| Variable | Riesgo |
+|---|---|
+{% for e in noshow.features.proxy_risks %}
+| `{{ e.name }}` | {{ e.reason | cell }} |
+{% endfor %}
+
+## Programador
+
+{# narrativa: explicar qué asigna el programador (pacientes a cupos de consulta y pabellón respetando capacidad y plazos), el orden lexicográfico de sus objetivos, cómo se usa el sobrecupo controlado, qué significan los estados del solver y qué cambia frente a las políticas voraces. #}
+Plan canónico de la corrida `{{ sched.run.id }}` ({{ sched.run.size | num }} entradas en espera), horizonte de {{ sched.horizon_weeks | num }} semanas, estado de revisión: {{ review_text[sched.review_status] if sched.review_status in review_text else sched.review_status }}. El programador asigna pacientes a cupos de consulta y bloques de pabellón respetando la capacidad disponible ({{ sched.capacity.cne_units | num }} cupos en {{ sched.capacity.cne_sessions | num }} sesiones, {{ sched.capacity.or_minutes | num }} minutos en {{ sched.capacity.or_blocks | num }} bloques) y los plazos legales de garantía. Maximiza objetivos en orden lexicográfico: primero atender máxima prioridad, luego cumplir GES, luego maximizar puntaje total. El sobrecupo controlado agrega citas en sesiones de consulta usando la probabilidad predicha de inasistencia, con la condición de que el riesgo de que asistan más pacientes que cupos en cada sesión no supere α = {{ sched.optimized.overbooking_alpha | num(2) }}. Los estados del solver indican si probó el óptimo de cada fase (OPTIMAL, dentro de la brecha relativa configurada), si encontró una solución sin probar que es la mejor (FEASIBLE, con su brecha) o si se quedó con la solución de partida sin cota útil (UNKNOWN); en todos los casos el plan es factible y verificado. Modelo usado: `{{ sched.noshow_model_version }}`.
+
+| Política | Agendadas | Consultas | Cirugías | Máxima prioridad agendadas | GES cumplidas | GES antes del plazo | Citas con sobrecupo | Puntaje total | Estado del solver | Brecha |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|
+{% for r in sched.rows %}
+| {{ r.label }} | {{ r.scheduled | num }} | {{ r.scheduled_cne | num }} | {{ r.scheduled_or | num }} | {{ r.q1_scheduled | num }} | {{ r.ges_met | num }} | {{ r.ges_on_time | num }} | {{ r.overbooked_flags | num }} | {{ r.sum_coef | num }} | {{ r.solver_status }} | {{ r.gap | pct(2) if r.gap is not none else "no aplica" }} |
+{% endfor %}
+
+Diferencia de la optimizada frente a las políticas voraces:
+
+| Métrica | Contra solo prioridad | Contra orden de llegada |
+|---|---:|---:|
+{% for key, label in [("scheduled", "Agendadas"), ("q1_scheduled", "Máxima prioridad agendadas"), ("ges_met", "GES cumplidas"), ("ges_on_time", "GES antes del plazo"), ("sum_coef", "Puntaje total")] %}
+| {{ label }} | {{ sched.delta_optimized_vs_priority[key].diff | signed }}{{ " (" ~ (sched.delta_optimized_vs_priority[key].relative | pct(1)) ~ ")" if sched.delta_optimized_vs_priority[key].relative is not none else "" }} | {{ sched.delta_optimized_vs_fifo[key].diff | signed }}{{ " (" ~ (sched.delta_optimized_vs_fifo[key].relative | pct(1)) ~ ")" if sched.delta_optimized_vs_fifo[key].relative is not none else "" }} |
+{% endfor %}
+
+Detalle de la optimizada: {{ sched.optimized.candidates | num }} candidatas de {{ sched.optimized.entries_waiting | num }} en espera ({{ sched.optimized.not_candidate | num }} fuera del conjunto de candidatas). Sobrecupo: nivel alfa {{ sched.optimized.overbooking_alpha | num(2) }}, {{ sched.optimized.overbooking_blocks | num }} bloques con sobrecupo, {{ sched.optimized.added_by_overbooking | num }} citas agregadas por sobrecupo, riesgo exacto máximo {{ sched.optimized.overbooking_max_risk_exact | pct(2) }}. GES sin cumplir por causa:
+
+| Causa | GES |
+|---|---:|
+{% for cause, n in sched.optimized.ges_unmet_by_cause.items() %}
+| `{{ cause }}` | {{ n | num }} |
+{% endfor %}
+
+Tiempo y estados del solver (optimizada): {{ sched.optimized.subproblems | num }} subproblemas, {{ sched.optimized.wall_time_plan_s | num(1) }} s de pared en el plan final más {{ sched.optimized.wall_time_discarded_s | num(1) }} s de una primera pasada descartada ({{ sched.optimized.wall_time_total_s | num(1) }} s en total); límite configurado de {{ sched.time_limit_s | num }} s para todo el plan, repartido entre subproblemas; con la primera pasada descartada el total puede superarlo. Estado global: `{{ sched.optimized.solver_status }}`. Colas que alcanzaron la frontera de candidatas: {{ sched.optimized.frontier_reached | num }}, y {{ sched.optimized.frontier_still_reached | num }} siguieron en la frontera tras ampliarla.
+
+| Fase | Subproblemas por estado | Total | Brecha máxima de la fase |
+|---|---|---:|---:|
+{% for ph in sched.optimized.status_by_phase %}
+| {{ ph.phase }} | {% for status, n in ph.counts.items() %}{{ status }}: {{ n | num }}{{ ", " if not loop.last else "" }}{% endfor %} | {{ ph.total | num }} | {{ sched.optimized.gap_by_phase[ph.phase] | pct(3) if sched.optimized.gap_by_phase[ph.phase] is defined and sched.optimized.gap_by_phase[ph.phase] is not none else "no aplica" }} |
+{% endfor %}
+
+{% if sched.warnings %}
+Avisos del programador:
+
+{% for w in sched.warnings %}
+- {{ w | cell }}
+{% endfor %}
+
+{% endif %}
+### Benchmark por tamaño y horizonte
+
+{# narrativa: explicar qué mide el benchmark (tiempo, estado del solver y brecha al crecer el problema), cómo leer la comparación contra la voraz de solo prioridad y qué pasa con las celdas que no llegan a óptimo o cuya calibración no pasa. #}
+El benchmark mide el rendimiento del programador al crecer el tamaño ({% for n in benchmark.sizes %}{{ n | num }}{{ ", " if not loop.last else "" }}{% endfor %} entradas) y el horizonte ({% for h in benchmark.horizons %}{{ h | num }}{{ ", " if not loop.last else "" }}{% endfor %} semanas): tiempo real de pared, estado final del solver y brecha del óptimo. Máquina: {{ benchmark.machine.platform }}, {{ benchmark.machine.cpu_count | num }} núcleos, Python {{ benchmark.machine.python }}, OR-Tools {{ benchmark.machine.ortools }}; CP-SAT {{ "en modo determinista" if benchmark.deterministic else "no determinista" }} con {{ benchmark.threads | num }} {{ "hilo" if benchmark.threads == 1 else "hilos" }}, límite de {{ benchmark.time_limit_s | num }} s para todo el plan (repartido entre subproblemas y fases), semilla {{ benchmark.seed | raw }}. La comparación contra la política voraz de solo prioridad muestra el valor añadido de la optimización en celdas que alcanzan óptimo probado. Las celdas con estado FEASIBLE (sin prueba de optimalidad) reportan brecha positiva; algunas no pasan calibración estricta (se listan en cada celda), lo que indica limitación en la reproducción de agregados en esa población sintética.
+
+| Entradas | Semanas | Estado | Brecha | Tiempo mediano (s) | Repeticiones | Candidatas | Subproblemas | Frontera sin resolver | Calibración de la corrida |
+|---:|---:|---|---:|---:|---:|---:|---:|---:|---|
+{% for c in benchmark.cells %}
+| {{ c.size | num }} | {{ c.weeks | num }} | {{ c.status }} | {{ c.gap | pct(3) if c.gap is not none else "no aplica" }} | {{ c.wall_time_s_median | num(2) }} | {{ c.repeats | num }} | {{ c.candidates | num }} | {{ c.subproblems | num }} | {{ c.frontier_still_reached | num }} | {{ "pasa" if c.calibration_passed else "no pasa: " ~ (c.calibration_strict_failed | join(", ")) }} |
+{% endfor %}
+
+Optimizada frente a la voraz de solo prioridad en cada celda:
+
+| Entradas | Semanas | Agendadas (optimizada) | Δ agendadas | Δ máxima prioridad agendadas | Δ GES cumplidas | Δ GES antes del plazo | Δ puntaje total | No peor en el orden lexicográfico | Sin sobrecupo, no peor |
+|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
+{% for c in benchmark.cells %}
+| {{ c.size | num }} | {{ c.weeks | num }} | {{ c.optimized.scheduled | num }} | {{ c.delta_vs_priority.scheduled | signed }} | {{ c.delta_vs_priority.q1_scheduled | signed }} | {{ c.delta_vs_priority.ges_met | signed }} | {{ c.delta_vs_priority.ges_on_time | signed }} | {{ c.delta_vs_priority.sum_coef | signed }} | {{ yn(c.not_worse_lexicographic) }} | {{ yn(c.without_overbooking_not_worse_lexicographic) }} |
+{% endfor %}
+
+#### Ablación de técnicas
+
+Tiempo mediano de pared en segundos y estado final del solver, por variante y celda (entradas y semanas). Cada variante apaga una técnica de la formulación.
+
+| Variante | {% for c in benchmark.cells %}{{ c.size | num }} entradas, {{ c.weeks | num }} sem | {% endfor %}{{ "" }}
+|---|{% for c in benchmark.cells %}---:|{% endfor %}{{ "" }}
+{% for v in benchmark.variants %}
+| {{ v.label }} | {% for c in benchmark.cells %}{% set cv = c.variants | selectattr("variant", "equalto", v.name) | first %}{{ cv.wall_time_s_median | num(2) }} s, {{ cv.status }} | {% endfor %}{{ "" }}
+{% endfor %}
+
+Puntaje total y brecha de cada variante en la celda más grande ({{ benchmark.largest_cell.size | num }} entradas, {{ benchmark.largest_cell.weeks | num }} semanas):
+
+| Variante | Estado | Brecha | Agendadas | Puntaje total | Tiempo mediano (s) | Repeticiones |
+|---|---|---:|---:|---:|---:|---:|
+{% for c in benchmark.cells if c.size == benchmark.largest_cell.size and c.weeks == benchmark.largest_cell.weeks %}
+{% for cv in c.variants %}
+| {{ cv.label }} | {{ cv.status }} | {{ cv.gap | pct(3) if cv.gap is not none else "no aplica" }} | {{ cv.scheduled | num }} | {{ cv.sum_coef | num }} | {{ cv.wall_time_s_median | num(2) }} | {{ cv.repeats | num }} |
+{% endfor %}
+{% endfor %}
+
+## Simulación
+
+{# narrativa: explicar cómo se simulan las semanas (llegadas, programación semanal con cada política, asistencia según la verdad sintética), qué significan las réplicas y el IC 95 %, cómo leer las comparaciones pareadas (política menos base) y que las diferencias desfavorables se reportan igual que las favorables. #}
+Simulación de {{ sim.config.weeks | num }} semanas con {{ sim.n_replicas | num }} réplicas (semillas {{ sim.replica_seeds | join(", ") }}). Cada semana, nuevos pacientes llegan a la lista, la política programa con el horizonte disponible ({{ sim.config.horizon_weeks | num }} semanas), y los pacientes asisten o no según su probabilidad verdadera (de `{{ sim.truth_source }}`, sin usar la predicción). Réplicas con semillas distintas reproducen variabilidad; cada métrica reporta media e IC 95 % entre réplicas. Población de {{ sim.run.size | num }} entradas (corrida `{{ sim.run.id }}`, semilla {{ sim.run.seed | raw }}), multiplicador de capacidad {{ sim.config.capacity_multiplier | num(2) }}, tasa de abandono semanal {{ sim.config.abandon_weekly_rate | pct(1) }}, salida tras {{ sim.config.max_no_shows | num }} inasistencias. Las comparaciones pareadas muestran la diferencia media entre políticas (por ejemplo, "Optimizada menos Prioridad"); dirección "mejor" significa que el IC 95 % está fuera de cero y el signo favorece la métrica; "peor" indica lo contrario. Las diferencias desfavorables (p. ej., donde la optimizada no gana) se reportan tal cual.
+
+{% if not sim.is_canonical_size %}
+**Atención.** Esta simulación usa {{ sim.run.size | num }} entradas; el plan canónico usa {{ sim.canonical_size | num }}. Las cifras de esta sección no son extrapolables al tamaño canónico.
+
+{% endif %}
+### Medias por política
+
+Media entre réplicas con su IC 95 %.
+
+| Métrica | {% for p in sim.policies %}{{ sim.policy_labels[p] }} | {% endfor %}{{ "" }}
+|---|{% for p in sim.policies %}---:|{% endfor %}{{ "" }}
+{% for m in sim.metrics %}
+| {{ m.label }} | {% for p in sim.policies %}{{ m.by_policy[p] | ci(m.kind) }} | {% endfor %}{{ "" }}
+{% endfor %}
+
+### Comparaciones pareadas
+
+Diferencia pareada (política menos base) en las mismas réplicas, con IC 95 %. La lectura dice si el IC excluye el cero a favor ("mejora") o en contra ("empeora") según la dirección de la métrica; las diferencias desfavorables se muestran igual que las favorables. La comparación de orden de llegada contra solo prioridad es el espejo con signo invertido de la de solo prioridad contra orden de llegada y no se repite.
+
+{% for c in sim.comparisons %}
+#### {{ c.policy_label }} frente a {{ c.base_label }}
+
+Métricas que mejoran: {{ c.n_better | num }}; que empeoran: {{ c.n_worse | num }}; sin diferencia clara: {{ c.n_unclear | num }}.{{ " Empeoran: " ~ (c.worse_labels | join("; ")) ~ "." if c.worse_labels else "" }}
+
+| Métrica | Diferencia media | Réplicas en que mejora | Lectura |
+|---|---:|---:|---|
+{% for r in c.rows %}
+| {{ r.label }} | {{ r.stat | ci(r.kind, with_sign=true) }} | {{ (r.better_in | num) ~ " de " ~ (c.n_replicas | num) if r.better_in is not none else "no aplica" }} | {{ reading_text[r.reading] }} |
+{% endfor %}
+
+{% endfor %}
+### Cobertura de la oferta
+
+{# narrativa: explicar por qué una parte del stock no tiene ninguna sesión de su celda (servicio y especialidad) en el periodo simulado y que ninguna política puede atenderlo. #}
+Algunas combinaciones de servicio y especialidad (celdas) no reciben ningún bloque de oferta en el periodo simulado, lo que deja parte del stock sin posibilidad de ser atendido: ninguna política puede programar citas en cupos que no existen. La tabla muestra la cobertura de la oferta sintética: qué fracción del stock cae en celdas que reciben al menos un bloque.
+
+| Tipo de atención | Bloques de oferta | Celdas | Celdas con algún bloque | Stock | Stock en celdas con bloque |
+|---|---:|---:|---:|---:|---:|
+{% for s in sim.supply %}
+| {{ care_text[s.care_type] }} | {{ s.blocks | num }} | {{ s.cells | num }} | {{ s.cells_with_block | num }} ({{ s.cells_share | pct(1) }}) | {{ s.stock | num }} | {{ s.stock_in_cells_with_block | num }} ({{ s.stock_share | pct(1) }}) |
+{% endfor %}
+
+### Programador dentro de la simulación
+
+| Política | Planes semanales | Estados del solver por fase | Brecha máxima | Tiempo de pared del solver (s) |
+|---|---:|---|---:|---:|
+{% for s in sim.scheduler %}
+| {{ s.label }} | {{ s.plans | num }} | {% if s.uses_solver %}{% for ph in s.status_by_phase %}{{ ph.phase }}: {% for status, n in ph.counts.items() %}{{ status }} {{ n | num }}{{ ", " if not loop.last else "" }}{% endfor %}{{ "; " if not loop.last else "" }}{% endfor %}{% else %}no usa el solver{% endif %} | {{ s.max_gap | pct(3) if s.max_gap is not none else "no aplica" }} | {{ s.wall_time_total_s | num(1) }} |
+{% endfor %}
+
+Tiempo de simulación por política:
+
+| Política | Media por réplica (s) | Total (s) |
+|---|---:|---:|
+{% for t in sim.timing %}
+| {{ t.label }} | {{ t.mean_s | num(1) }} | {{ t.total_s | num(1) }} |
+{% endfor %}
+
+## Equidad
+
+{# narrativa: explicar qué se mide (exposición al sobrecupo, tasa de atención y espera por grupo), contra qué referencia se calcula la brecha, que la comuna del sintético no tiene efecto propio, y nombrar sin suavizar los grupos más expuestos o desfavorecidos. #}
+Se miden desigualdades por comuna, grupo etario y previsión en el programador y la simulación: exposición al sobrecupo (proporción de citas en cupos con overbooking), tasa de atención (agendadas sobre entradas) y mediana de espera. Brechas se calculan contra el total ponderado por entradas; la comuna del sintético es un atributo del paciente sin correlato económico o de distancia, por lo que no tiene efecto causal propio. Se nombran sin suavizar los grupos más expuestos o que quedan en desventaja frente a otros: el informe no filtra resultados por signo.
+
+### Plan canónico
+
+Referencia (todas las entradas):
+
+| Política | Tasa de agendamiento | Exposición al sobrecupo | Citas marcadas | Riesgo medio de los expuestos |
+|---|---:|---:|---:|---:|
+{% for p in ["fifo", "priority", "optimized"] %}
+| {{ labels.policies[p] }} | {{ equity.scheduler.reference[p].scheduled_rate | pct(2) }} | {{ equity.scheduler.reference[p].exposure_share | pct(1) }} | {{ equity.scheduler.reference[p].flagged_share | pct(1) }} | {{ equity.scheduler.reference[p].mean_risk_exposed | pct(1) }} |
+{% endfor %}
+
+La exposición al sobrecupo es la proporción de las citas de consulta agendadas que caen en un bloque con sobrecupo; la tasa de agendamiento es agendadas sobre entradas del grupo. Se listan grupos con al menos {{ sched.min_group_n | num }} entradas.
+
+{% for d in equity.scheduler.dimensions %}
+#### {{ d.dimension }}
+
+Grupo más expuesto al sobrecupo: {{ d.most_exposed.value | label }} ({{ d.most_exposed.exposure_share | pct(1) }}, {{ d.most_exposed.exposure_gap | pp(1) }} respecto del total, {{ d.most_exposed.entries | num }} entradas). Mayor desvío de exposición respecto del total: {{ d.widest_exposure.value | label }} ({{ d.widest_exposure.exposure_gap | pp(1) }}). Mayor desvío de la tasa de agendamiento de la optimizada respecto del total: {{ d.widest_scheduled_gap.gap | pp(2) }} ({{ d.widest_scheduled_gap.value | label }}). Grupos donde la optimizada agenda menos que solo prioridad: {{ d.n_worse_than_priority | num }} de {{ d.n_groups | num }}; peor caso: {{ d.worst_delta_vs_priority.value | label }} ({{ d.worst_delta_vs_priority.delta_vs_priority | pp(2) }}). {{ d.n_groups | num }} grupos evaluados de {{ d.n_groups_total | num }}.
+
+{% if d.truncated %}
+Se listan los {{ d.shown | length | num }} grupos más expuestos.
+
+{% endif %}
+| Grupo | Entradas | Agendamiento, orden de llegada | Agendamiento, solo prioridad | Agendamiento, optimizada | Δ optimizada contra solo prioridad | Exposición al sobrecupo | Desvío de exposición | Citas marcadas | Riesgo medio de los expuestos |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+{% for g in d.shown %}
+| {{ g.value | label }} | {{ g.entries | num }} | {{ g.scheduled_rate.fifo | pct(2) }} | {{ g.scheduled_rate.priority | pct(2) }} | {{ g.scheduled_rate.optimized | pct(2) }} | {{ g.delta_vs_priority | pp(2) }} | {{ g.exposure_share | pct(1) }} | {{ g.exposure_gap | pp(1) }} | {{ g.flagged_share | pct(1) }} | {{ g.mean_risk_exposed | pct(1) }} |
+{% endfor %}
+
+{% endfor %}
+### Simulación
+
+Medias entre {{ sim.n_replicas | num }} réplicas, población de {{ sim.run.size | num }} entradas. La exposición al sobrecupo es la proporción de citas en sesiones con sobrecupo. Las brechas son contra el total de la dimensión ponderado por entradas.
+
+{% for d in equity.simulation %}
+#### {{ d.dimension }}
+
+Grupo más expuesto al sobrecupo ({{ labels.policies["optimized_overbooking"] }}): {{ d.most_exposed.value | label }} ({{ d.most_exposed.exposure | pct(1) }}, {{ d.most_exposed.gap | pp(1) }} respecto del total, {{ d.most_exposed.entries | num }} entradas). {{ d.n_groups | num }} grupos evaluados.
+
+| Política | Mayor desvío de la tasa de atención | Grupo | Menor tasa de atención | Grupo | Mayor desvío de la exposición | Grupo |
+|---|---:|---|---:|---|---:|---|
+{% for p in sim.policies %}
+| {{ labels.policies[p] }} | {{ d.gaps[p].attention_rate.gap | pp(1) }} | {{ d.gaps[p].attention_rate.group | label if d.gaps[p].attention_rate.group is not none else "ninguno" }} | {{ d.lowest_attention[p].attention_rate | pct(1) }} | {{ d.lowest_attention[p].value | label }} | {{ d.gaps[p].overbooking_exposure.gap | pp(1) }} | {{ d.gaps[p].overbooking_exposure.group | label if d.gaps[p].overbooking_exposure.group is not none else "ninguno" }} |
+{% endfor %}
+
+{% if d.truncated %}
+Se listan los {{ d.shown | length | num }} grupos más expuestos al sobrecupo.
+
+{% endif %}
+| Grupo | Entradas | {% for p in sim.policies %}Atención, {{ labels.policies[p] }} | {% endfor %}Exposición al sobrecupo | Mediana de espera de atendidos, {{ labels.policies["optimized_overbooking"] }} | GES incumplidas, {{ labels.policies["optimized_overbooking"] }} |
+|---|---:|{% for p in sim.policies %}---:|{% endfor %}---:|---:|---:|
+{% for g in d.shown %}
+| {{ g.value | label }} | {{ g.entries | num }} | {% for p in sim.policies %}{{ g.by_policy[p].attention_rate | pct(1) }} | {% endfor %}{{ g.by_policy["optimized_overbooking"].overbooking_exposure | pct(1) }} | {{ g.by_policy["optimized_overbooking"].wait_median | num(1) }} | {{ g.by_policy["optimized_overbooking"].ges_breached | num(1) }} |
+{% endfor %}
+
+{% endfor %}
+## Limitaciones
+
+{# narrativa: explicar por qué los resultados valen para el mundo sintético y no para la red real, qué supuestos del generador no están verificados con datos públicos y qué no cubre este informe (validación clínica, institucional y de gestión). #}
+Los datos son sintéticos, calibrados a agregados públicos pero no derivados de ellos. Las conclusiones del informe valen únicamente para el mundo simulado: no son extrapolables a la red de salud real sin validación institucional e implementación cuidadosa. El sistema apoya la decisión pero no la toma; no hay validación clínica de los supuestos ni autorización de cambios en política de atención. Varios parámetros del generador (distribuciones de espera, composición por edad y previsión, tasas de inasistencia sintéticas) se derivan de datos públicos agregados pero no se comparan directamente con la realidad celda a celda; otros no tienen fuente pública y se listan abajo como supuestos sin verificar.
+
+Supuestos del generador sin verificar con una fuente pública: {{ limitations.n_unverified | num }} de {{ limitations.n_parameters | num }}.
+
+{% for name in limitations.unverified_assumptions %}
+- `{{ name }}`
+{% endfor %}
+
+Limitaciones declaradas por la simulación:
+
+{% for l in limitations.simulation %}
+- {{ l | cell }}
+{% endfor %}
+
+{% if limitations.scheduler_warnings %}
+Avisos del plan canónico:
+
+{% for w in limitations.scheduler_warnings %}
+- {{ w | cell }}
+{% endfor %}
+
+{% endif %}
+Advertencia del modelo de inasistencias: {{ limitations.noshow_caveat }}
+
+## Metodología reproducible
+
+{# narrativa: explicar el orden de los pasos, que las semillas son fijas y que, con los mismos resultados, el informe se regenera byte a byte; indicar cómo verificar una cifra contra el JSON de origen. #}
+El informe es determinista: dadas las mismas entradas (archivos en `results/`), se regenera byte a byte sin marcas de tiempo. Cada paso usa una semilla fija leída de los JSON para reproducibilidad: semilla única para la población sintética, para el entrenamiento del modelo y para la simulación de réplicas. Para verificar una cifra, búscala en el JSON de origen que indica la tabla de procedencia. Los pasos se corren en orden: síntesis, entrenamiento, programación, benchmark, simulación, reporte. Comandos, con argumentos y semillas leídos de los resultados:
+
+```
+make synth SIZE={{ method.synth.size | raw }} SEED={{ method.synth.seed | raw }}
+make train-noshow SIZE={{ method.train.size | raw }} SEED={{ method.train.seed | raw }} SCENARIO={{ method.train.scenario }}
+make schedule SIZE={{ method.schedule.size | raw }} SEED={{ method.schedule.seed | raw }} SCENARIO={{ method.schedule.scenario }} WEEKS={{ method.schedule.weeks | raw }}
+make bench-scheduler BENCH_ARGS="--sizes {{ method.bench.sizes | arg }} --weeks {{ method.bench.horizons | arg }} --seed {{ method.bench.seed | raw }} --scenario {{ method.bench.scenario }} --time-limit {{ method.bench.time_limit_s | arg }} --repeats {{ method.bench.repeats | raw }}"
+make simulate SIM_ARGS="--size {{ method.simulate.size | raw }} --seed {{ method.simulate.seed | raw }} --scenario {{ method.simulate.scenario }} --weeks {{ method.simulate.weeks | raw }} --replica-seeds {{ method.simulate.replica_seeds | arg }} --horizon-weeks {{ method.simulate.horizon_weeks | raw }} --time-limit {{ method.simulate.time_limit_s | arg }} --capacity-multiplier {{ method.simulate.capacity_multiplier | arg }} --abandon-weekly-rate {{ method.simulate.abandon_weekly_rate | arg }} --policies {{ method.simulate.policies | arg }}"
+make report
+```
+
+Archivos de origen:
+
+| Archivo | Generado | Versión de código | Corridas | Semilla |
+|---|---|---|---:|---:|
+{% for f in provenance.files %}
+| `{{ f.file }}` | {{ f.generated_at | date if f.generated_at is not none else "sin marca de tiempo" }} | {{ f.code_version if f.code_version is not none else "sin dato" }} | {{ f.run_ids | length | num }} | {{ f.seed | raw }} |
+{% endfor %}
+
+Último commit que modificó `results/`: {{ "`" ~ provenance.results_commit ~ "`" if provenance.results_commit is not none else "no disponible (sin repositorio git)" }}.
+
+Este informe se genera con `prioriza-report` y es determinista: con los mismos resultados produce los mismos bytes, sin hora de generación.

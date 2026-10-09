@@ -1,0 +1,25 @@
+[project]
+name = "reports"
+version = "0.1.0"
+description = "Informe de resultados de Prioriza (Markdown y HTML) generado desde results/."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "shared",
+    "priority",
+    "synthetic",
+    "jinja2>=3.1",
+    "markdown-it-py>=3.0",
+    "typer>=0.12",
+]
+
+[project.scripts]
+prioriza-report = "reports.cli:run"
+
+[tool.uv.sources]
+shared = { workspace = true }
+priority = { workspace = true }
+synthetic = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
