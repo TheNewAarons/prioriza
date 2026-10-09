@@ -22,9 +22,18 @@ services:
       context: .
       dockerfile: api/Dockerfile
     env_file: .env
-    environment: *app-env
     ports:
       - "${API_PORT:-8000}:8000"
+    environment:
+      <<: *app-env
+      PRIORIZA_API_USERS_FILE: /app/config/users.json
+    volumes:
+      # Datos, modelos y resultados en solo lectura (los genera el host con make synth/train/simulate).
+      - ./data:/app/data:ro
+      - ./models:/app/models:ro
+      - ./results:/app/results:ro
+      # Usuarios: copia api/users.example.json a api/config/users.json y cambia las claves.
+      - ./api/config:/app/config:ro
     depends_on:
       db:
         condition: service_healthy

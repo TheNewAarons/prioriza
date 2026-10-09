@@ -1,0 +1,5 @@
+{
+  "EJEMPLO-clave-gestor-no-usar-en-produccion": {"user": "gestora.ejemplo", "role": "gestor"},
+  "EJEMPLO-clave-revisor-no-usar-en-produccion": {"user": "revisor.ejemplo", "role": "revisor"},
+  "EJEMPLO-clave-lectura-no-usar-en-produccion": {"user": "lectura.ejemplo", "role": "lectura"}
+}
