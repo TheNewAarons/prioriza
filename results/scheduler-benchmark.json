@@ -1,0 +1,5562 @@
+{
+  "cells": [
+    {
+      "data": {
+        "calibration_passed": false,
+        "calibration_strict_failed": [
+          "C3.iq.mediana",
+          "C5.nacional.media(mapeados)"
+        ],
+        "noshow_model_version": "noshow-4f0429cd-7344b442",
+        "run_id": "9fedfa46-6290-526e-b089-acde04679d61",
+        "supply_horizon_weeks": 2
+      },
+      "greedy": {
+        "fifo": {
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "sum_coef": 214761,
+          "wall_time_s": 0.006368542031850666
+        },
+        "priority": {
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "sum_coef": 216821,
+          "wall_time_s": 0.007643292017746717
+        }
+      },
+      "horizon_weeks": 2,
+      "optimized": {
+        "all": {
+          "flags": {},
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "solver": {
+            "candidates": 81,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 9e-08,
+            "deterministic_time_total": 9e-08,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": null
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 5,
+            "max_variables": 13,
+            "overbooking_levels_kept": 0,
+            "overbooking_levels_nominal": 24,
+            "pairs_in_model": 81,
+            "solve_wall_s": 0.011641334043815732,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 9e-08,
+                "phases": 17,
+                "subproblems": 9,
+                "wall_time_s": 0.001159
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 5
+              },
+              "2": {
+                "OPTIMAL": 3
+              },
+              "3a": {
+                "OPTIMAL": 9
+              }
+            },
+            "subproblems": 9,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 216821,
+          "wall_time_s_runs": [
+            0.01419187500141561,
+            0.011641334043815732,
+            0.011209083022549748
+          ]
+        },
+        "none": {
+          "flags": {
+            "hints": false,
+            "objective_cut": false,
+            "overbooking_hint": false,
+            "prune_overbooking_levels": false,
+            "symmetry_breaking": false,
+            "warm_start_frontier": false
+          },
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "solver": {
+            "candidates": 81,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 2.0170000000000002e-05,
+            "deterministic_time_total": 2.0170000000000002e-05,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 23,
+            "max_variables": 17,
+            "overbooking_levels_kept": 24,
+            "overbooking_levels_nominal": 24,
+            "pairs_in_model": 81,
+            "solve_wall_s": 0.018184749991632998,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 2.0170000000000002e-05,
+                "phases": 25,
+                "subproblems": 9,
+                "wall_time_s": 0.002138
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 5
+              },
+              "2": {
+                "OPTIMAL": 3
+              },
+              "3a": {
+                "OPTIMAL": 9
+              },
+              "3b": {
+                "OPTIMAL": 8
+              }
+            },
+            "subproblems": 9,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 216821,
+          "wall_time_s_runs": [
+            0.018184749991632998
+          ]
+        },
+        "without_hints": {
+          "flags": {
+            "hints": false
+          },
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "solver": {
+            "candidates": 81,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 9e-08,
+            "deterministic_time_total": 9e-08,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": null
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 5,
+            "max_variables": 13,
+            "overbooking_levels_kept": 0,
+            "overbooking_levels_nominal": 24,
+            "pairs_in_model": 81,
+            "solve_wall_s": 0.011555082979612052,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 9e-08,
+                "phases": 17,
+                "subproblems": 9,
+                "wall_time_s": 0.001238
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 5
+              },
+              "2": {
+                "OPTIMAL": 3
+              },
+              "3a": {
+                "OPTIMAL": 9
+              }
+            },
+            "subproblems": 9,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 216821,
+          "wall_time_s_runs": [
+            0.011555082979612052
+          ]
+        },
+        "without_objective_cut": {
+          "flags": {
+            "objective_cut": false
+          },
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "solver": {
+            "candidates": 81,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 5.7e-07,
+            "deterministic_time_total": 5.7e-07,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": null
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 4,
+            "max_variables": 13,
+            "overbooking_levels_kept": 0,
+            "overbooking_levels_nominal": 24,
+            "pairs_in_model": 81,
+            "solve_wall_s": 0.011297291028313339,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 5.7e-07,
+                "phases": 17,
+                "subproblems": 9,
+                "wall_time_s": 0.000974
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 5
+              },
+              "2": {
+                "OPTIMAL": 3
+              },
+              "3a": {
+                "OPTIMAL": 9
+              }
+            },
+            "subproblems": 9,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 216821,
+          "wall_time_s_runs": [
+            0.011297291028313339
+          ]
+        },
+        "without_overbooking_hint": {
+          "flags": {
+            "overbooking_hint": false
+          },
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "solver": {
+            "candidates": 81,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 9e-08,
+            "deterministic_time_total": 9e-08,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": null
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 5,
+            "max_variables": 13,
+            "overbooking_levels_kept": 0,
+            "overbooking_levels_nominal": 24,
+            "pairs_in_model": 81,
+            "solve_wall_s": 0.01260491699213162,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 9e-08,
+                "phases": 17,
+                "subproblems": 9,
+                "wall_time_s": 0.001307
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 5
+              },
+              "2": {
+                "OPTIMAL": 3
+              },
+              "3a": {
+                "OPTIMAL": 9
+              }
+            },
+            "subproblems": 9,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 216821,
+          "wall_time_s_runs": [
+            0.01260491699213162
+          ]
+        },
+        "without_prune_overbooking_levels": {
+          "flags": {
+            "prune_overbooking_levels": false
+          },
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "solver": {
+            "candidates": 81,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 1.969e-05,
+            "deterministic_time_total": 1.969e-05,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 24,
+            "max_variables": 17,
+            "overbooking_levels_kept": 24,
+            "overbooking_levels_nominal": 24,
+            "pairs_in_model": 81,
+            "solve_wall_s": 0.01839929196285084,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 1.969e-05,
+                "phases": 25,
+                "subproblems": 9,
+                "wall_time_s": 0.0024170000000000003
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 5
+              },
+              "2": {
+                "OPTIMAL": 3
+              },
+              "3a": {
+                "OPTIMAL": 9
+              },
+              "3b": {
+                "OPTIMAL": 8
+              }
+            },
+            "subproblems": 9,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 216821,
+          "wall_time_s_runs": [
+            0.01839929196285084
+          ]
+        },
+        "without_symmetry_breaking": {
+          "flags": {
+            "symmetry_breaking": false
+          },
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "solver": {
+            "candidates": 81,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 9e-08,
+            "deterministic_time_total": 9e-08,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": null
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 5,
+            "max_variables": 13,
+            "overbooking_levels_kept": 0,
+            "overbooking_levels_nominal": 24,
+            "pairs_in_model": 81,
+            "solve_wall_s": 0.011160707974340767,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 9e-08,
+                "phases": 17,
+                "subproblems": 9,
+                "wall_time_s": 0.001212
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 5
+              },
+              "2": {
+                "OPTIMAL": 3
+              },
+              "3a": {
+                "OPTIMAL": 9
+              }
+            },
+            "subproblems": 9,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 216821,
+          "wall_time_s_runs": [
+            0.011160707974340767
+          ]
+        },
+        "without_warm_start_frontier": {
+          "flags": {
+            "warm_start_frontier": false
+          },
+          "ges_met": 2,
+          "ges_obligated": 31,
+          "ges_on_time": 0,
+          "overbooked_flags": 0,
+          "q1_scheduled": 8,
+          "scheduled": 79,
+          "scheduled_cne": 78,
+          "scheduled_or": 1,
+          "solver": {
+            "candidates": 81,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 9e-08,
+            "deterministic_time_total": 9e-08,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": null
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 5,
+            "max_variables": 13,
+            "overbooking_levels_kept": 0,
+            "overbooking_levels_nominal": 24,
+            "pairs_in_model": 81,
+            "solve_wall_s": 0.01346683397423476,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 9e-08,
+                "phases": 17,
+                "subproblems": 9,
+                "wall_time_s": 0.001345
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 5
+              },
+              "2": {
+                "OPTIMAL": 3
+              },
+              "3a": {
+                "OPTIMAL": 9
+              }
+            },
+            "subproblems": 9,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 216821,
+          "wall_time_s_runs": [
+            0.01346683397423476
+          ]
+        }
+      },
+      "optimized_vs_priority": {
+        "delta": {
+          "ges_met": 0,
+          "ges_on_time": 0,
+          "q1_scheduled": 0,
+          "scheduled": 0,
+          "scheduled_cne": 0,
+          "scheduled_or": 0,
+          "sum_coef": 0
+        },
+        "lexicographic_optimized": [
+          8,
+          2,
+          216821
+        ],
+        "lexicographic_priority": [
+          8,
+          2,
+          216821
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.0,
+          "ges_on_time": null,
+          "q1_scheduled": 0.0,
+          "scheduled": 0.0,
+          "scheduled_cne": 0.0,
+          "scheduled_or": 0.0,
+          "sum_coef": 0.0
+        }
+      },
+      "optimized_without_overbooking": {
+        "ges_met": 2,
+        "ges_obligated": 31,
+        "ges_on_time": 0,
+        "overbooked_flags": 0,
+        "q1_scheduled": 8,
+        "scheduled": 79,
+        "scheduled_cne": 78,
+        "scheduled_or": 1,
+        "solver": {
+          "candidates": 81,
+          "deterministic_plan_within_time_limit": true,
+          "deterministic_time_plan": 9e-08,
+          "deterministic_time_total": 9e-08,
+          "frontier": {
+            "expanded": false,
+            "reached": [],
+            "still_reached": []
+          },
+          "gap": 0.0,
+          "gap_by_phase": {
+            "3a": 0.0,
+            "3b": null
+          },
+          "largest_subproblem_pairs": 13,
+          "max_constraints": 5,
+          "max_variables": 13,
+          "overbooking_levels_kept": 0,
+          "overbooking_levels_nominal": 0,
+          "pairs_in_model": 81,
+          "solve_wall_s": 0.013436999986879528,
+          "solve_wall_within_time_limit": true,
+          "solver_time": {
+            "discarded_first_pass": {
+              "deterministic_time": 0,
+              "phases": 0,
+              "subproblems": 0,
+              "wall_time_s": 0
+            },
+            "plan": {
+              "deterministic_time": 9e-08,
+              "phases": 17,
+              "subproblems": 9,
+              "wall_time_s": 0.001315
+            }
+          },
+          "status": "OPTIMAL",
+          "status_by_phase": {
+            "1": {
+              "OPTIMAL": 5
+            },
+            "2": {
+              "OPTIMAL": 3
+            },
+            "3a": {
+              "OPTIMAL": 9
+            }
+          },
+          "subproblems": 9,
+          "symmetry_block_classes": 0,
+          "symmetry_blocks_in_classes": 0,
+          "symmetry_entries_in_classes": 0,
+          "symmetry_entry_classes": 0,
+          "warnings_worse_than_baseline": 0
+        },
+        "sum_coef": 216821
+      },
+      "optimized_without_overbooking_vs_priority": {
+        "delta": {
+          "ges_met": 0,
+          "ges_on_time": 0,
+          "q1_scheduled": 0,
+          "scheduled": 0,
+          "scheduled_cne": 0,
+          "scheduled_or": 0,
+          "sum_coef": 0
+        },
+        "lexicographic_optimized": [
+          8,
+          2,
+          216821
+        ],
+        "lexicographic_priority": [
+          8,
+          2,
+          216821
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.0,
+          "ges_on_time": null,
+          "q1_scheduled": 0.0,
+          "scheduled": 0.0,
+          "scheduled_cne": 0.0,
+          "scheduled_or": 0.0,
+          "sum_coef": 0.0
+        }
+      },
+      "problem": {
+        "blocks_cne": 8,
+        "blocks_or": 1,
+        "capacity_cne_units": 96,
+        "capacity_or_min": 306,
+        "entries": 1000,
+        "entries_with_pairs": 83,
+        "ges_obligated": 31,
+        "pairs_all": 9000,
+        "pairs_compatible": 83,
+        "pairs_same_queue": 83
+      },
+      "size": 1000,
+      "times_s": {
+        "build_instance": 0.10918291698908433,
+        "generate": 0.1633166249957867,
+        "train_noshow": 0.8554190829745494
+      }
+    },
+    {
+      "data": {
+        "calibration_passed": false,
+        "calibration_strict_failed": [
+          "C3.iq.mediana",
+          "C5.nacional.media(mapeados)"
+        ],
+        "noshow_model_version": "noshow-4f0429cd-b2b6326c",
+        "run_id": "e0e261f1-5ad0-547c-9672-a19a18257a4b",
+        "supply_horizon_weeks": 4
+      },
+      "greedy": {
+        "fifo": {
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 0,
+          "q1_scheduled": 9,
+          "scheduled": 113,
+          "scheduled_cne": 109,
+          "scheduled_or": 4,
+          "sum_coef": 297889,
+          "wall_time_s": 0.006994207971729338
+        },
+        "priority": {
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 0,
+          "q1_scheduled": 10,
+          "scheduled": 113,
+          "scheduled_cne": 109,
+          "scheduled_or": 4,
+          "sum_coef": 305120,
+          "wall_time_s": 0.007343625009525567
+        }
+      },
+      "horizon_weeks": 4,
+      "optimized": {
+        "all": {
+          "flags": {},
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 1,
+          "q1_scheduled": 10,
+          "scheduled": 114,
+          "scheduled_cne": 110,
+          "scheduled_or": 4,
+          "solver": {
+            "candidates": 117,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 2.9e-06,
+            "deterministic_time_total": 2.9e-06,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 21,
+            "max_variables": 16,
+            "overbooking_levels_kept": 1,
+            "overbooking_levels_nominal": 39,
+            "pairs_in_model": 117,
+            "solve_wall_s": 0.017232416023034602,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 2.9e-06,
+                "phases": 32,
+                "subproblems": 17,
+                "wall_time_s": 0.002151
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 7
+              },
+              "2": {
+                "OPTIMAL": 7
+              },
+              "3a": {
+                "OPTIMAL": 17
+              },
+              "3b": {
+                "OPTIMAL": 1
+              }
+            },
+            "subproblems": 17,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 305657,
+          "wall_time_s_runs": [
+            0.017232416023034602,
+            0.017482041963376105,
+            0.01688608300173655
+          ]
+        },
+        "none": {
+          "flags": {
+            "hints": false,
+            "objective_cut": false,
+            "overbooking_hint": false,
+            "prune_overbooking_levels": false,
+            "symmetry_breaking": false,
+            "warm_start_frontier": false
+          },
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 1,
+          "q1_scheduled": 10,
+          "scheduled": 114,
+          "scheduled_cne": 110,
+          "scheduled_or": 4,
+          "solver": {
+            "candidates": 117,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 3.054e-05,
+            "deterministic_time_total": 3.054e-05,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 24,
+            "max_variables": 18,
+            "overbooking_levels_kept": 39,
+            "overbooking_levels_nominal": 39,
+            "pairs_in_model": 117,
+            "solve_wall_s": 0.020074750005733222,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 3.054e-05,
+                "phases": 44,
+                "subproblems": 17,
+                "wall_time_s": 0.002807
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 7
+              },
+              "2": {
+                "OPTIMAL": 7
+              },
+              "3a": {
+                "OPTIMAL": 17
+              },
+              "3b": {
+                "OPTIMAL": 13
+              }
+            },
+            "subproblems": 17,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 305657,
+          "wall_time_s_runs": [
+            0.020074750005733222
+          ]
+        },
+        "without_hints": {
+          "flags": {
+            "hints": false
+          },
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 1,
+          "q1_scheduled": 10,
+          "scheduled": 114,
+          "scheduled_cne": 110,
+          "scheduled_or": 4,
+          "solver": {
+            "candidates": 117,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 2.9e-06,
+            "deterministic_time_total": 2.9e-06,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 21,
+            "max_variables": 16,
+            "overbooking_levels_kept": 1,
+            "overbooking_levels_nominal": 39,
+            "pairs_in_model": 117,
+            "solve_wall_s": 0.015321083017624915,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 2.9e-06,
+                "phases": 32,
+                "subproblems": 17,
+                "wall_time_s": 0.002009
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 7
+              },
+              "2": {
+                "OPTIMAL": 7
+              },
+              "3a": {
+                "OPTIMAL": 17
+              },
+              "3b": {
+                "OPTIMAL": 1
+              }
+            },
+            "subproblems": 17,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 305657,
+          "wall_time_s_runs": [
+            0.015321083017624915
+          ]
+        },
+        "without_objective_cut": {
+          "flags": {
+            "objective_cut": false
+          },
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 1,
+          "q1_scheduled": 10,
+          "scheduled": 114,
+          "scheduled_cne": 110,
+          "scheduled_or": 4,
+          "solver": {
+            "candidates": 117,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 4.02e-06,
+            "deterministic_time_total": 4.02e-06,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 20,
+            "max_variables": 16,
+            "overbooking_levels_kept": 1,
+            "overbooking_levels_nominal": 39,
+            "pairs_in_model": 117,
+            "solve_wall_s": 0.014941749977879226,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 4.02e-06,
+                "phases": 32,
+                "subproblems": 17,
+                "wall_time_s": 0.001608
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 7
+              },
+              "2": {
+                "OPTIMAL": 7
+              },
+              "3a": {
+                "OPTIMAL": 17
+              },
+              "3b": {
+                "OPTIMAL": 1
+              }
+            },
+            "subproblems": 17,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 305657,
+          "wall_time_s_runs": [
+            0.014941749977879226
+          ]
+        },
+        "without_overbooking_hint": {
+          "flags": {
+            "overbooking_hint": false
+          },
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 1,
+          "q1_scheduled": 10,
+          "scheduled": 114,
+          "scheduled_cne": 110,
+          "scheduled_or": 4,
+          "solver": {
+            "candidates": 117,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 3.06e-06,
+            "deterministic_time_total": 3.06e-06,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 21,
+            "max_variables": 16,
+            "overbooking_levels_kept": 1,
+            "overbooking_levels_nominal": 39,
+            "pairs_in_model": 117,
+            "solve_wall_s": 0.016483708983287215,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 3.06e-06,
+                "phases": 32,
+                "subproblems": 17,
+                "wall_time_s": 0.002161
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 7
+              },
+              "2": {
+                "OPTIMAL": 7
+              },
+              "3a": {
+                "OPTIMAL": 17
+              },
+              "3b": {
+                "OPTIMAL": 1
+              }
+            },
+            "subproblems": 17,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 305657,
+          "wall_time_s_runs": [
+            0.016483708983287215
+          ]
+        },
+        "without_prune_overbooking_levels": {
+          "flags": {
+            "prune_overbooking_levels": false
+          },
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 1,
+          "q1_scheduled": 10,
+          "scheduled": 114,
+          "scheduled_cne": 110,
+          "scheduled_or": 4,
+          "solver": {
+            "candidates": 117,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 2.942e-05,
+            "deterministic_time_total": 2.942e-05,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 25,
+            "max_variables": 18,
+            "overbooking_levels_kept": 39,
+            "overbooking_levels_nominal": 39,
+            "pairs_in_model": 117,
+            "solve_wall_s": 0.02350908302469179,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 2.942e-05,
+                "phases": 44,
+                "subproblems": 17,
+                "wall_time_s": 0.0035600000000000002
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 7
+              },
+              "2": {
+                "OPTIMAL": 7
+              },
+              "3a": {
+                "OPTIMAL": 17
+              },
+              "3b": {
+                "OPTIMAL": 13
+              }
+            },
+            "subproblems": 17,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 305657,
+          "wall_time_s_runs": [
+            0.02350908302469179
+          ]
+        },
+        "without_symmetry_breaking": {
+          "flags": {
+            "symmetry_breaking": false
+          },
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 1,
+          "q1_scheduled": 10,
+          "scheduled": 114,
+          "scheduled_cne": 110,
+          "scheduled_or": 4,
+          "solver": {
+            "candidates": 117,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 2.9e-06,
+            "deterministic_time_total": 2.9e-06,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 21,
+            "max_variables": 16,
+            "overbooking_levels_kept": 1,
+            "overbooking_levels_nominal": 39,
+            "pairs_in_model": 117,
+            "solve_wall_s": 0.0158167079789564,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 2.9e-06,
+                "phases": 32,
+                "subproblems": 17,
+                "wall_time_s": 0.002043
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 7
+              },
+              "2": {
+                "OPTIMAL": 7
+              },
+              "3a": {
+                "OPTIMAL": 17
+              },
+              "3b": {
+                "OPTIMAL": 1
+              }
+            },
+            "subproblems": 17,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 305657,
+          "wall_time_s_runs": [
+            0.0158167079789564
+          ]
+        },
+        "without_warm_start_frontier": {
+          "flags": {
+            "warm_start_frontier": false
+          },
+          "ges_met": 5,
+          "ges_obligated": 35,
+          "ges_on_time": 1,
+          "overbooked_flags": 1,
+          "q1_scheduled": 10,
+          "scheduled": 114,
+          "scheduled_cne": 110,
+          "scheduled_or": 4,
+          "solver": {
+            "candidates": 117,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 2.9e-06,
+            "deterministic_time_total": 2.9e-06,
+            "frontier": {
+              "expanded": false,
+              "reached": [],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 13,
+            "max_constraints": 21,
+            "max_variables": 16,
+            "overbooking_levels_kept": 1,
+            "overbooking_levels_nominal": 39,
+            "pairs_in_model": 117,
+            "solve_wall_s": 0.016077667009085417,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0,
+                "phases": 0,
+                "subproblems": 0,
+                "wall_time_s": 0
+              },
+              "plan": {
+                "deterministic_time": 2.9e-06,
+                "phases": 32,
+                "subproblems": 17,
+                "wall_time_s": 0.002035
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 7
+              },
+              "2": {
+                "OPTIMAL": 7
+              },
+              "3a": {
+                "OPTIMAL": 17
+              },
+              "3b": {
+                "OPTIMAL": 1
+              }
+            },
+            "subproblems": 17,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 305657,
+          "wall_time_s_runs": [
+            0.016077667009085417
+          ]
+        }
+      },
+      "optimized_vs_priority": {
+        "delta": {
+          "ges_met": 0,
+          "ges_on_time": 0,
+          "q1_scheduled": 0,
+          "scheduled": 1,
+          "scheduled_cne": 1,
+          "scheduled_or": 0,
+          "sum_coef": 537
+        },
+        "lexicographic_optimized": [
+          10,
+          5,
+          305657
+        ],
+        "lexicographic_priority": [
+          10,
+          5,
+          305120
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.0,
+          "ges_on_time": 0.0,
+          "q1_scheduled": 0.0,
+          "scheduled": 0.008849557522123894,
+          "scheduled_cne": 0.009174311926605505,
+          "scheduled_or": 0.0,
+          "sum_coef": 0.0017599632931305715
+        }
+      },
+      "optimized_without_overbooking": {
+        "ges_met": 5,
+        "ges_obligated": 35,
+        "ges_on_time": 1,
+        "overbooked_flags": 0,
+        "q1_scheduled": 10,
+        "scheduled": 113,
+        "scheduled_cne": 109,
+        "scheduled_or": 4,
+        "solver": {
+          "candidates": 117,
+          "deterministic_plan_within_time_limit": true,
+          "deterministic_time_plan": 1.7000000000000001e-07,
+          "deterministic_time_total": 1.7000000000000001e-07,
+          "frontier": {
+            "expanded": false,
+            "reached": [],
+            "still_reached": []
+          },
+          "gap": 0.0,
+          "gap_by_phase": {
+            "3a": 0.0,
+            "3b": null
+          },
+          "largest_subproblem_pairs": 13,
+          "max_constraints": 5,
+          "max_variables": 14,
+          "overbooking_levels_kept": 0,
+          "overbooking_levels_nominal": 0,
+          "pairs_in_model": 117,
+          "solve_wall_s": 0.014738750003743917,
+          "solve_wall_within_time_limit": true,
+          "solver_time": {
+            "discarded_first_pass": {
+              "deterministic_time": 0,
+              "phases": 0,
+              "subproblems": 0,
+              "wall_time_s": 0
+            },
+            "plan": {
+              "deterministic_time": 1.7000000000000001e-07,
+              "phases": 31,
+              "subproblems": 17,
+              "wall_time_s": 0.0018900000000000002
+            }
+          },
+          "status": "OPTIMAL",
+          "status_by_phase": {
+            "1": {
+              "OPTIMAL": 7
+            },
+            "2": {
+              "OPTIMAL": 7
+            },
+            "3a": {
+              "OPTIMAL": 17
+            }
+          },
+          "subproblems": 17,
+          "symmetry_block_classes": 0,
+          "symmetry_blocks_in_classes": 0,
+          "symmetry_entries_in_classes": 0,
+          "symmetry_entry_classes": 0,
+          "warnings_worse_than_baseline": 0
+        },
+        "sum_coef": 305120
+      },
+      "optimized_without_overbooking_vs_priority": {
+        "delta": {
+          "ges_met": 0,
+          "ges_on_time": 0,
+          "q1_scheduled": 0,
+          "scheduled": 0,
+          "scheduled_cne": 0,
+          "scheduled_or": 0,
+          "sum_coef": 0
+        },
+        "lexicographic_optimized": [
+          10,
+          5,
+          305120
+        ],
+        "lexicographic_priority": [
+          10,
+          5,
+          305120
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.0,
+          "ges_on_time": 0.0,
+          "q1_scheduled": 0.0,
+          "scheduled": 0.0,
+          "scheduled_cne": 0.0,
+          "scheduled_or": 0.0,
+          "sum_coef": 0.0
+        }
+      },
+      "problem": {
+        "blocks_cne": 13,
+        "blocks_or": 4,
+        "capacity_cne_units": 156,
+        "capacity_or_min": 1224,
+        "entries": 1000,
+        "entries_with_pairs": 122,
+        "ges_obligated": 35,
+        "pairs_all": 17000,
+        "pairs_compatible": 122,
+        "pairs_same_queue": 122
+      },
+      "size": 1000,
+      "times_s": {
+        "build_instance": 0.06749941705493256,
+        "generate": 0.1516051249927841,
+        "train_noshow": 0.7799715000437573
+      }
+    },
+    {
+      "data": {
+        "calibration_passed": true,
+        "calibration_strict_failed": [],
+        "noshow_model_version": "noshow-4f0429cd-e9e978e4",
+        "run_id": "08c2871c-349a-54c8-b45d-65017ffcd9d0",
+        "supply_horizon_weeks": 2
+      },
+      "greedy": {
+        "fifo": {
+          "ges_met": 16,
+          "ges_obligated": 299,
+          "ges_on_time": 1,
+          "overbooked_flags": 0,
+          "q1_scheduled": 39,
+          "scheduled": 693,
+          "scheduled_cne": 645,
+          "scheduled_or": 48,
+          "sum_coef": 2593566,
+          "wall_time_s": 0.054579459014348686
+        },
+        "priority": {
+          "ges_met": 78,
+          "ges_obligated": 299,
+          "ges_on_time": 5,
+          "overbooked_flags": 0,
+          "q1_scheduled": 140,
+          "scheduled": 687,
+          "scheduled_cne": 645,
+          "scheduled_or": 42,
+          "sum_coef": 3088815,
+          "wall_time_s": 0.055417667026631534
+        }
+      },
+      "horizon_weeks": 2,
+      "optimized": {
+        "all": {
+          "flags": {},
+          "ges_met": 85,
+          "ges_obligated": 299,
+          "ges_on_time": 12,
+          "overbooked_flags": 19,
+          "q1_scheduled": 140,
+          "scheduled": 707,
+          "scheduled_cne": 664,
+          "scheduled_or": 43,
+          "solver": {
+            "candidates": 1608,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.000545665,
+            "deterministic_time_total": 0.0005497049999999999,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 112,
+            "max_constraints": 79,
+            "max_variables": 128,
+            "overbooking_levels_kept": 34,
+            "overbooking_levels_nominal": 162,
+            "pairs_in_model": 1608,
+            "solve_wall_s": 0.1717525830026716,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 4.0399999999999994e-06,
+                "phases": 3,
+                "subproblems": 2,
+                "wall_time_s": 0.000438
+              },
+              "plan": {
+                "deterministic_time": 0.000545665,
+                "phases": 164,
+                "subproblems": 57,
+                "wall_time_s": 0.022811
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 43
+              },
+              "2": {
+                "OPTIMAL": 34
+              },
+              "3a": {
+                "OPTIMAL": 57
+              },
+              "3b": {
+                "OPTIMAL": 30
+              }
+            },
+            "subproblems": 57,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 3142758,
+          "wall_time_s_runs": [
+            0.17327183397719637,
+            0.1717525830026716,
+            0.1711550839827396
+          ]
+        },
+        "none": {
+          "flags": {
+            "hints": false,
+            "objective_cut": false,
+            "overbooking_hint": false,
+            "prune_overbooking_levels": false,
+            "symmetry_breaking": false,
+            "warm_start_frontier": false
+          },
+          "ges_met": 85,
+          "ges_obligated": 299,
+          "ges_on_time": 12,
+          "overbooked_flags": 19,
+          "q1_scheduled": 140,
+          "scheduled": 707,
+          "scheduled_cne": 664,
+          "scheduled_or": 43,
+          "solver": {
+            "candidates": 1608,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.0007411482,
+            "deterministic_time_total": 0.0007411782000000001,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 112,
+            "max_constraints": 104,
+            "max_variables": 144,
+            "overbooking_levels_kept": 150,
+            "overbooking_levels_nominal": 162,
+            "pairs_in_model": 1608,
+            "solve_wall_s": 0.16900366701884195,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 3.0000000000000004e-08,
+                "phases": 3,
+                "subproblems": 2,
+                "wall_time_s": 0.000302
+              },
+              "plan": {
+                "deterministic_time": 0.0007411482,
+                "phases": 169,
+                "subproblems": 57,
+                "wall_time_s": 0.024608
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 43
+              },
+              "2": {
+                "OPTIMAL": 34
+              },
+              "3a": {
+                "OPTIMAL": 57
+              },
+              "3b": {
+                "OPTIMAL": 35
+              }
+            },
+            "subproblems": 57,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 3142758,
+          "wall_time_s_runs": [
+            0.16900366701884195
+          ]
+        },
+        "without_hints": {
+          "flags": {
+            "hints": false
+          },
+          "ges_met": 85,
+          "ges_obligated": 299,
+          "ges_on_time": 12,
+          "overbooked_flags": 19,
+          "q1_scheduled": 140,
+          "scheduled": 707,
+          "scheduled_cne": 664,
+          "scheduled_or": 43,
+          "solver": {
+            "candidates": 1608,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.000545665,
+            "deterministic_time_total": 0.0005497049999999999,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 112,
+            "max_constraints": 79,
+            "max_variables": 128,
+            "overbooking_levels_kept": 34,
+            "overbooking_levels_nominal": 162,
+            "pairs_in_model": 1608,
+            "solve_wall_s": 0.15509866597130895,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 4.0399999999999994e-06,
+                "phases": 3,
+                "subproblems": 2,
+                "wall_time_s": 0.00042500000000000003
+              },
+              "plan": {
+                "deterministic_time": 0.000545665,
+                "phases": 164,
+                "subproblems": 57,
+                "wall_time_s": 0.022128000000000002
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 43
+              },
+              "2": {
+                "OPTIMAL": 34
+              },
+              "3a": {
+                "OPTIMAL": 57
+              },
+              "3b": {
+                "OPTIMAL": 30
+              }
+            },
+            "subproblems": 57,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 3142758,
+          "wall_time_s_runs": [
+            0.15509866597130895
+          ]
+        },
+        "without_objective_cut": {
+          "flags": {
+            "objective_cut": false
+          },
+          "ges_met": 85,
+          "ges_obligated": 299,
+          "ges_on_time": 12,
+          "overbooked_flags": 19,
+          "q1_scheduled": 140,
+          "scheduled": 707,
+          "scheduled_cne": 664,
+          "scheduled_or": 43,
+          "solver": {
+            "candidates": 1608,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.0006452282,
+            "deterministic_time_total": 0.0006452582000000001,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 112,
+            "max_constraints": 78,
+            "max_variables": 128,
+            "overbooking_levels_kept": 34,
+            "overbooking_levels_nominal": 162,
+            "pairs_in_model": 1608,
+            "solve_wall_s": 0.16870924999238923,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 3.0000000000000004e-08,
+                "phases": 3,
+                "subproblems": 2,
+                "wall_time_s": 0.00031
+              },
+              "plan": {
+                "deterministic_time": 0.0006452282,
+                "phases": 164,
+                "subproblems": 57,
+                "wall_time_s": 0.022126
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 43
+              },
+              "2": {
+                "OPTIMAL": 34
+              },
+              "3a": {
+                "OPTIMAL": 57
+              },
+              "3b": {
+                "OPTIMAL": 30
+              }
+            },
+            "subproblems": 57,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 3142758,
+          "wall_time_s_runs": [
+            0.16870924999238923
+          ]
+        },
+        "without_overbooking_hint": {
+          "flags": {
+            "overbooking_hint": false
+          },
+          "ges_met": 85,
+          "ges_obligated": 299,
+          "ges_on_time": 12,
+          "overbooked_flags": 19,
+          "q1_scheduled": 140,
+          "scheduled": 707,
+          "scheduled_cne": 664,
+          "scheduled_or": 43,
+          "solver": {
+            "candidates": 1608,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.00055593,
+            "deterministic_time_total": 0.00055997,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 112,
+            "max_constraints": 79,
+            "max_variables": 128,
+            "overbooking_levels_kept": 34,
+            "overbooking_levels_nominal": 162,
+            "pairs_in_model": 1608,
+            "solve_wall_s": 0.17062945797806606,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 4.0399999999999994e-06,
+                "phases": 3,
+                "subproblems": 2,
+                "wall_time_s": 0.000419
+              },
+              "plan": {
+                "deterministic_time": 0.00055593,
+                "phases": 164,
+                "subproblems": 57,
+                "wall_time_s": 0.022538000000000002
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 43
+              },
+              "2": {
+                "OPTIMAL": 34
+              },
+              "3a": {
+                "OPTIMAL": 57
+              },
+              "3b": {
+                "OPTIMAL": 30
+              }
+            },
+            "subproblems": 57,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 3142758,
+          "wall_time_s_runs": [
+            0.17062945797806606
+          ]
+        },
+        "without_prune_overbooking_levels": {
+          "flags": {
+            "prune_overbooking_levels": false
+          },
+          "ges_met": 85,
+          "ges_obligated": 299,
+          "ges_on_time": 12,
+          "overbooked_flags": 19,
+          "q1_scheduled": 140,
+          "scheduled": 707,
+          "scheduled_cne": 664,
+          "scheduled_or": 43,
+          "solver": {
+            "candidates": 1608,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.000637685,
+            "deterministic_time_total": 0.000641725,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 112,
+            "max_constraints": 105,
+            "max_variables": 144,
+            "overbooking_levels_kept": 150,
+            "overbooking_levels_nominal": 162,
+            "pairs_in_model": 1608,
+            "solve_wall_s": 0.22196087503107265,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 4.0399999999999994e-06,
+                "phases": 3,
+                "subproblems": 2,
+                "wall_time_s": 0.0004270000000000001
+              },
+              "plan": {
+                "deterministic_time": 0.000637685,
+                "phases": 169,
+                "subproblems": 57,
+                "wall_time_s": 0.025686
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 43
+              },
+              "2": {
+                "OPTIMAL": 34
+              },
+              "3a": {
+                "OPTIMAL": 57
+              },
+              "3b": {
+                "OPTIMAL": 35
+              }
+            },
+            "subproblems": 57,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 3142758,
+          "wall_time_s_runs": [
+            0.22196087503107265
+          ]
+        },
+        "without_symmetry_breaking": {
+          "flags": {
+            "symmetry_breaking": false
+          },
+          "ges_met": 85,
+          "ges_obligated": 299,
+          "ges_on_time": 12,
+          "overbooked_flags": 19,
+          "q1_scheduled": 140,
+          "scheduled": 707,
+          "scheduled_cne": 664,
+          "scheduled_or": 43,
+          "solver": {
+            "candidates": 1608,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.000545665,
+            "deterministic_time_total": 0.0005497049999999999,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 112,
+            "max_constraints": 79,
+            "max_variables": 128,
+            "overbooking_levels_kept": 34,
+            "overbooking_levels_nominal": 162,
+            "pairs_in_model": 1608,
+            "solve_wall_s": 0.1694164159707725,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 4.0399999999999994e-06,
+                "phases": 3,
+                "subproblems": 2,
+                "wall_time_s": 0.00042500000000000003
+              },
+              "plan": {
+                "deterministic_time": 0.000545665,
+                "phases": 164,
+                "subproblems": 57,
+                "wall_time_s": 0.022493000000000003
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 43
+              },
+              "2": {
+                "OPTIMAL": 34
+              },
+              "3a": {
+                "OPTIMAL": 57
+              },
+              "3b": {
+                "OPTIMAL": 30
+              }
+            },
+            "subproblems": 57,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 3142758,
+          "wall_time_s_runs": [
+            0.1694164159707725
+          ]
+        },
+        "without_warm_start_frontier": {
+          "flags": {
+            "warm_start_frontier": false
+          },
+          "ges_met": 85,
+          "ges_obligated": 299,
+          "ges_on_time": 12,
+          "overbooked_flags": 19,
+          "q1_scheduled": 140,
+          "scheduled": 707,
+          "scheduled_cne": 664,
+          "scheduled_or": 43,
+          "solver": {
+            "candidates": 1608,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.000549515,
+            "deterministic_time_total": 0.000553555,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 0.0,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0
+            },
+            "largest_subproblem_pairs": 112,
+            "max_constraints": 79,
+            "max_variables": 128,
+            "overbooking_levels_kept": 34,
+            "overbooking_levels_nominal": 162,
+            "pairs_in_model": 1608,
+            "solve_wall_s": 0.1754465830163099,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 4.0399999999999994e-06,
+                "phases": 3,
+                "subproblems": 2,
+                "wall_time_s": 0.000429
+              },
+              "plan": {
+                "deterministic_time": 0.000549515,
+                "phases": 164,
+                "subproblems": 57,
+                "wall_time_s": 0.023132
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 43
+              },
+              "2": {
+                "OPTIMAL": 34
+              },
+              "3a": {
+                "OPTIMAL": 57
+              },
+              "3b": {
+                "OPTIMAL": 30
+              }
+            },
+            "subproblems": 57,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 3142758,
+          "wall_time_s_runs": [
+            0.1754465830163099
+          ]
+        }
+      },
+      "optimized_vs_priority": {
+        "delta": {
+          "ges_met": 7,
+          "ges_on_time": 7,
+          "q1_scheduled": 0,
+          "scheduled": 20,
+          "scheduled_cne": 19,
+          "scheduled_or": 1,
+          "sum_coef": 53943
+        },
+        "lexicographic_optimized": [
+          140,
+          85,
+          3142758
+        ],
+        "lexicographic_priority": [
+          140,
+          78,
+          3088815
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.08974358974358974,
+          "ges_on_time": 1.4,
+          "q1_scheduled": 0.0,
+          "scheduled": 0.02911208151382824,
+          "scheduled_cne": 0.02945736434108527,
+          "scheduled_or": 0.023809523809523808,
+          "sum_coef": 0.01746397890453135
+        }
+      },
+      "optimized_without_overbooking": {
+        "ges_met": 85,
+        "ges_obligated": 299,
+        "ges_on_time": 12,
+        "overbooked_flags": 0,
+        "q1_scheduled": 140,
+        "scheduled": 688,
+        "scheduled_cne": 645,
+        "scheduled_or": 43,
+        "solver": {
+          "candidates": 1608,
+          "deterministic_plan_within_time_limit": true,
+          "deterministic_time_plan": 0.00023532500000000001,
+          "deterministic_time_total": 0.000239365,
+          "frontier": {
+            "expanded": true,
+            "reached": [
+              "s:17|iq:traumatologia",
+              "s:20|iq:traumatologia"
+            ],
+            "still_reached": []
+          },
+          "gap": 0.0,
+          "gap_by_phase": {
+            "3a": 0.0,
+            "3b": null
+          },
+          "largest_subproblem_pairs": 112,
+          "max_constraints": 16,
+          "max_variables": 118,
+          "overbooking_levels_kept": 0,
+          "overbooking_levels_nominal": 0,
+          "pairs_in_model": 1608,
+          "solve_wall_s": 0.12904595799045637,
+          "solve_wall_within_time_limit": true,
+          "solver_time": {
+            "discarded_first_pass": {
+              "deterministic_time": 4.0399999999999994e-06,
+              "phases": 3,
+              "subproblems": 2,
+              "wall_time_s": 0.00043599999999999997
+            },
+            "plan": {
+              "deterministic_time": 0.00023532500000000001,
+              "phases": 134,
+              "subproblems": 57,
+              "wall_time_s": 0.013854000000000002
+            }
+          },
+          "status": "OPTIMAL",
+          "status_by_phase": {
+            "1": {
+              "OPTIMAL": 43
+            },
+            "2": {
+              "OPTIMAL": 34
+            },
+            "3a": {
+              "OPTIMAL": 57
+            }
+          },
+          "subproblems": 57,
+          "symmetry_block_classes": 0,
+          "symmetry_blocks_in_classes": 0,
+          "symmetry_entries_in_classes": 0,
+          "symmetry_entry_classes": 0,
+          "warnings_worse_than_baseline": 0
+        },
+        "sum_coef": 3088791
+      },
+      "optimized_without_overbooking_vs_priority": {
+        "delta": {
+          "ges_met": 7,
+          "ges_on_time": 7,
+          "q1_scheduled": 0,
+          "scheduled": 1,
+          "scheduled_cne": 0,
+          "scheduled_or": 1,
+          "sum_coef": -24
+        },
+        "lexicographic_optimized": [
+          140,
+          85,
+          3088791
+        ],
+        "lexicographic_priority": [
+          140,
+          78,
+          3088815
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.08974358974358974,
+          "ges_on_time": 1.4,
+          "q1_scheduled": 0.0,
+          "scheduled": 0.001455604075691412,
+          "scheduled_cne": 0.0,
+          "scheduled_or": 0.023809523809523808,
+          "sum_coef": -7.769970037053044e-06
+        }
+      },
+      "problem": {
+        "blocks_cne": 54,
+        "blocks_or": 31,
+        "capacity_cne_units": 648,
+        "capacity_or_min": 9486,
+        "entries": 10000,
+        "entries_with_pairs": 2726,
+        "ges_obligated": 299,
+        "pairs_all": 850000,
+        "pairs_compatible": 2726,
+        "pairs_same_queue": 2838
+      },
+      "size": 10000,
+      "times_s": {
+        "build_instance": 0.3120730830123648,
+        "generate": 0.33241558400914073,
+        "train_noshow": 1.6466881670057774
+      }
+    },
+    {
+      "data": {
+        "calibration_passed": true,
+        "calibration_strict_failed": [],
+        "noshow_model_version": "noshow-4f0429cd-2b720fb5",
+        "run_id": "7dc0d40f-9895-564a-b9f8-cbb1115a8826",
+        "supply_horizon_weeks": 4
+      },
+      "greedy": {
+        "fifo": {
+          "ges_met": 24,
+          "ges_obligated": 362,
+          "ges_on_time": 3,
+          "overbooked_flags": 0,
+          "q1_scheduled": 75,
+          "scheduled": 1339,
+          "scheduled_cne": 1217,
+          "scheduled_or": 122,
+          "sum_coef": 4744672,
+          "wall_time_s": 0.07004591700388119
+        },
+        "priority": {
+          "ges_met": 90,
+          "ges_obligated": 362,
+          "ges_on_time": 7,
+          "overbooked_flags": 0,
+          "q1_scheduled": 212,
+          "scheduled": 1334,
+          "scheduled_cne": 1217,
+          "scheduled_or": 117,
+          "sum_coef": 5554794,
+          "wall_time_s": 0.06764445803128183
+        }
+      },
+      "horizon_weeks": 4,
+      "optimized": {
+        "all": {
+          "flags": {},
+          "ges_met": 99,
+          "ges_obligated": 362,
+          "ges_on_time": 15,
+          "overbooked_flags": 28,
+          "q1_scheduled": 212,
+          "scheduled": 1369,
+          "scheduled_cne": 1245,
+          "scheduled_or": 124,
+          "solver": {
+            "candidates": 2913,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.02627448238557705,
+            "deterministic_time_total": 0.03469707247476926,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:15|cne_medical:oftalmologia",
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 3.5457434590783976e-07,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 4.4933440095187e-07
+            },
+            "largest_subproblem_pairs": 267,
+            "max_constraints": 226,
+            "max_variables": 306,
+            "overbooking_levels_kept": 50,
+            "overbooking_levels_nominal": 306,
+            "pairs_in_model": 3057,
+            "solve_wall_s": 0.4064811250427738,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.00842259008919221,
+                "phases": 9,
+                "subproblems": 3,
+                "wall_time_s": 0.028523
+              },
+              "plan": {
+                "deterministic_time": 0.02627448238557705,
+                "phases": 222,
+                "subproblems": 90,
+                "wall_time_s": 0.10391800000000001
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 63
+              },
+              "2": {
+                "OPTIMAL": 38
+              },
+              "3a": {
+                "OPTIMAL": 90
+              },
+              "3b": {
+                "OPTIMAL": 29
+              },
+              "4": {
+                "OPTIMAL": 2
+              }
+            },
+            "subproblems": 90,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 5640566,
+          "wall_time_s_runs": [
+            0.407288416987285,
+            0.40455058397492394,
+            0.4064811250427738
+          ]
+        },
+        "none": {
+          "flags": {
+            "hints": false,
+            "objective_cut": false,
+            "overbooking_hint": false,
+            "prune_overbooking_levels": false,
+            "symmetry_breaking": false,
+            "warm_start_frontier": false
+          },
+          "ges_met": 99,
+          "ges_obligated": 362,
+          "ges_on_time": 15,
+          "overbooked_flags": 28,
+          "q1_scheduled": 212,
+          "scheduled": 1369,
+          "scheduled_cne": 1245,
+          "scheduled_or": 124,
+          "solver": {
+            "candidates": 2913,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.028482563733226267,
+            "deterministic_time_total": 0.0369024421407417,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:15|cne_medical:oftalmologia",
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 1.4537746638633635e-05,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 1.6253320285749228e-05
+            },
+            "largest_subproblem_pairs": 267,
+            "max_constraints": 276,
+            "max_variables": 339,
+            "overbooking_levels_kept": 278,
+            "overbooking_levels_nominal": 306,
+            "pairs_in_model": 3057,
+            "solve_wall_s": 0.4215420419932343,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.00841987840751543,
+                "phases": 9,
+                "subproblems": 3,
+                "wall_time_s": 0.031332
+              },
+              "plan": {
+                "deterministic_time": 0.028482563733226267,
+                "phases": 235,
+                "subproblems": 90,
+                "wall_time_s": 0.13064800000000001
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 63
+              },
+              "2": {
+                "OPTIMAL": 38
+              },
+              "3a": {
+                "OPTIMAL": 90
+              },
+              "3b": {
+                "OPTIMAL": 42
+              },
+              "4": {
+                "OPTIMAL": 2
+              }
+            },
+            "subproblems": 90,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 5640551,
+          "wall_time_s_runs": [
+            0.4215420419932343
+          ]
+        },
+        "without_hints": {
+          "flags": {
+            "hints": false
+          },
+          "ges_met": 99,
+          "ges_obligated": 362,
+          "ges_on_time": 15,
+          "overbooked_flags": 28,
+          "q1_scheduled": 212,
+          "scheduled": 1369,
+          "scheduled_cne": 1245,
+          "scheduled_or": 124,
+          "solver": {
+            "candidates": 2913,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.02429788927961568,
+            "deterministic_time_total": 0.03165527048414198,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:15|cne_medical:oftalmologia",
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 3.545745973539516e-06,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 4.493348047550406e-06
+            },
+            "largest_subproblem_pairs": 267,
+            "max_constraints": 226,
+            "max_variables": 306,
+            "overbooking_levels_kept": 50,
+            "overbooking_levels_nominal": 306,
+            "pairs_in_model": 3057,
+            "solve_wall_s": 0.40309612499549985,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.007357381204526299,
+                "phases": 9,
+                "subproblems": 3,
+                "wall_time_s": 0.026629000000000003
+              },
+              "plan": {
+                "deterministic_time": 0.02429788927961568,
+                "phases": 222,
+                "subproblems": 90,
+                "wall_time_s": 0.10126900000000001
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 63
+              },
+              "2": {
+                "OPTIMAL": 38
+              },
+              "3a": {
+                "OPTIMAL": 90
+              },
+              "3b": {
+                "OPTIMAL": 29
+              },
+              "4": {
+                "OPTIMAL": 2
+              }
+            },
+            "subproblems": 90,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 5640562,
+          "wall_time_s_runs": [
+            0.40309612499549985
+          ]
+        },
+        "without_objective_cut": {
+          "flags": {
+            "objective_cut": false
+          },
+          "ges_met": 99,
+          "ges_obligated": 362,
+          "ges_on_time": 15,
+          "overbooked_flags": 28,
+          "q1_scheduled": 212,
+          "scheduled": 1369,
+          "scheduled_cne": 1245,
+          "scheduled_or": 124,
+          "solver": {
+            "candidates": 2913,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.021165817485577044,
+            "deterministic_time_total": 0.028868805663658084,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:15|cne_medical:oftalmologia",
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 3.5457434590783976e-07,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 4.4933440095187e-07
+            },
+            "largest_subproblem_pairs": 267,
+            "max_constraints": 225,
+            "max_variables": 306,
+            "overbooking_levels_kept": 50,
+            "overbooking_levels_nominal": 306,
+            "pairs_in_model": 3057,
+            "solve_wall_s": 0.3948739590123296,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.0077029881780810395,
+                "phases": 9,
+                "subproblems": 3,
+                "wall_time_s": 0.026698000000000003
+              },
+              "plan": {
+                "deterministic_time": 0.021165817485577044,
+                "phases": 222,
+                "subproblems": 90,
+                "wall_time_s": 0.09704
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 63
+              },
+              "2": {
+                "OPTIMAL": 38
+              },
+              "3a": {
+                "OPTIMAL": 90
+              },
+              "3b": {
+                "OPTIMAL": 29
+              },
+              "4": {
+                "OPTIMAL": 2
+              }
+            },
+            "subproblems": 90,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 5640566,
+          "wall_time_s_runs": [
+            0.3948739590123296
+          ]
+        },
+        "without_overbooking_hint": {
+          "flags": {
+            "overbooking_hint": false
+          },
+          "ges_met": 99,
+          "ges_obligated": 362,
+          "ges_on_time": 15,
+          "overbooked_flags": 28,
+          "q1_scheduled": 212,
+          "scheduled": 1369,
+          "scheduled_cne": 1245,
+          "scheduled_or": 124,
+          "solver": {
+            "candidates": 2913,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.026833760359858256,
+            "deterministic_time_total": 0.03449743471819332,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:15|cne_medical:oftalmologia",
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 1.7374426333673375e-05,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 2.201784074181251e-05
+            },
+            "largest_subproblem_pairs": 267,
+            "max_constraints": 226,
+            "max_variables": 306,
+            "overbooking_levels_kept": 50,
+            "overbooking_levels_nominal": 306,
+            "pairs_in_model": 3057,
+            "solve_wall_s": 0.445356540963985,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.007663674358335061,
+                "phases": 9,
+                "subproblems": 3,
+                "wall_time_s": 0.026792000000000003
+              },
+              "plan": {
+                "deterministic_time": 0.026833760359858256,
+                "phases": 222,
+                "subproblems": 90,
+                "wall_time_s": 0.111225
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 63
+              },
+              "2": {
+                "OPTIMAL": 38
+              },
+              "3a": {
+                "OPTIMAL": 90
+              },
+              "3b": {
+                "OPTIMAL": 29
+              },
+              "4": {
+                "OPTIMAL": 2
+              }
+            },
+            "subproblems": 90,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 5640474,
+          "wall_time_s_runs": [
+            0.445356540963985
+          ]
+        },
+        "without_prune_overbooking_levels": {
+          "flags": {
+            "prune_overbooking_levels": false
+          },
+          "ges_met": 99,
+          "ges_obligated": 362,
+          "ges_on_time": 15,
+          "overbooked_flags": 28,
+          "q1_scheduled": 212,
+          "scheduled": 1369,
+          "scheduled_cne": 1245,
+          "scheduled_or": 124,
+          "solver": {
+            "candidates": 2913,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.03502219479651904,
+            "deterministic_time_total": 0.04510985594335401,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:15|cne_medical:oftalmologia",
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 2.322515081721505e-05,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 2.5965937843094775e-05
+            },
+            "largest_subproblem_pairs": 267,
+            "max_constraints": 277,
+            "max_variables": 339,
+            "overbooking_levels_kept": 278,
+            "overbooking_levels_nominal": 306,
+            "pairs_in_model": 3057,
+            "solve_wall_s": 0.48658774996874854,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.010087661146834973,
+                "phases": 9,
+                "subproblems": 3,
+                "wall_time_s": 0.037881000000000005
+              },
+              "plan": {
+                "deterministic_time": 0.03502219479651904,
+                "phases": 235,
+                "subproblems": 90,
+                "wall_time_s": 0.14283700000000002
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 63
+              },
+              "2": {
+                "OPTIMAL": 38
+              },
+              "3a": {
+                "OPTIMAL": 90
+              },
+              "3b": {
+                "OPTIMAL": 42
+              },
+              "4": {
+                "OPTIMAL": 2
+              }
+            },
+            "subproblems": 90,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 5640437,
+          "wall_time_s_runs": [
+            0.48658774996874854
+          ]
+        },
+        "without_symmetry_breaking": {
+          "flags": {
+            "symmetry_breaking": false
+          },
+          "ges_met": 99,
+          "ges_obligated": 362,
+          "ges_on_time": 15,
+          "overbooked_flags": 28,
+          "q1_scheduled": 212,
+          "scheduled": 1369,
+          "scheduled_cne": 1245,
+          "scheduled_or": 124,
+          "solver": {
+            "candidates": 2913,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.02627448238557705,
+            "deterministic_time_total": 0.03469707247476926,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:15|cne_medical:oftalmologia",
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 3.5457434590783976e-07,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 4.4933440095187e-07
+            },
+            "largest_subproblem_pairs": 267,
+            "max_constraints": 226,
+            "max_variables": 306,
+            "overbooking_levels_kept": 50,
+            "overbooking_levels_nominal": 306,
+            "pairs_in_model": 3057,
+            "solve_wall_s": 0.40236812498187646,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.00842259008919221,
+                "phases": 9,
+                "subproblems": 3,
+                "wall_time_s": 0.028575000000000003
+              },
+              "plan": {
+                "deterministic_time": 0.02627448238557705,
+                "phases": 222,
+                "subproblems": 90,
+                "wall_time_s": 0.103755
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 63
+              },
+              "2": {
+                "OPTIMAL": 38
+              },
+              "3a": {
+                "OPTIMAL": 90
+              },
+              "3b": {
+                "OPTIMAL": 29
+              },
+              "4": {
+                "OPTIMAL": 2
+              }
+            },
+            "subproblems": 90,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 5640566,
+          "wall_time_s_runs": [
+            0.40236812498187646
+          ]
+        },
+        "without_warm_start_frontier": {
+          "flags": {
+            "warm_start_frontier": false
+          },
+          "ges_met": 99,
+          "ges_obligated": 362,
+          "ges_on_time": 15,
+          "overbooked_flags": 28,
+          "q1_scheduled": 212,
+          "scheduled": 1369,
+          "scheduled_cne": 1245,
+          "scheduled_or": 124,
+          "solver": {
+            "candidates": 2913,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 0.02514963843480546,
+            "deterministic_time_total": 0.033572228523997674,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:15|cne_medical:oftalmologia",
+                "s:17|iq:traumatologia",
+                "s:20|iq:traumatologia"
+              ],
+              "still_reached": []
+            },
+            "gap": 2.2515470965147825e-05,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 2.8532734460443744e-05
+            },
+            "largest_subproblem_pairs": 267,
+            "max_constraints": 226,
+            "max_variables": 306,
+            "overbooking_levels_kept": 50,
+            "overbooking_levels_nominal": 306,
+            "pairs_in_model": 3057,
+            "solve_wall_s": 0.40814233396667987,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.00842259008919221,
+                "phases": 9,
+                "subproblems": 3,
+                "wall_time_s": 0.028472
+              },
+              "plan": {
+                "deterministic_time": 0.02514963843480546,
+                "phases": 222,
+                "subproblems": 90,
+                "wall_time_s": 0.10483700000000001
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 63
+              },
+              "2": {
+                "OPTIMAL": 38
+              },
+              "3a": {
+                "OPTIMAL": 90
+              },
+              "3b": {
+                "OPTIMAL": 29
+              },
+              "4": {
+                "OPTIMAL": 2
+              }
+            },
+            "subproblems": 90,
+            "symmetry_block_classes": 0,
+            "symmetry_blocks_in_classes": 0,
+            "symmetry_entries_in_classes": 0,
+            "symmetry_entry_classes": 0,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 5640566,
+          "wall_time_s_runs": [
+            0.40814233396667987
+          ]
+        }
+      },
+      "optimized_vs_priority": {
+        "delta": {
+          "ges_met": 9,
+          "ges_on_time": 8,
+          "q1_scheduled": 0,
+          "scheduled": 35,
+          "scheduled_cne": 28,
+          "scheduled_or": 7,
+          "sum_coef": 85772
+        },
+        "lexicographic_optimized": [
+          212,
+          99,
+          5640566
+        ],
+        "lexicographic_priority": [
+          212,
+          90,
+          5554794
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.1,
+          "ges_on_time": 1.1428571428571428,
+          "q1_scheduled": 0.0,
+          "scheduled": 0.02623688155922039,
+          "scheduled_cne": 0.023007395234182416,
+          "scheduled_or": 0.05982905982905983,
+          "sum_coef": 0.015441076662788935
+        }
+      },
+      "optimized_without_overbooking": {
+        "ges_met": 99,
+        "ges_obligated": 362,
+        "ges_on_time": 15,
+        "overbooked_flags": 0,
+        "q1_scheduled": 212,
+        "scheduled": 1341,
+        "scheduled_cne": 1217,
+        "scheduled_or": 124,
+        "solver": {
+          "candidates": 2913,
+          "deterministic_plan_within_time_limit": true,
+          "deterministic_time_plan": 0.004162772358620692,
+          "deterministic_time_total": 0.005735034576802529,
+          "frontier": {
+            "expanded": true,
+            "reached": [
+              "s:15|cne_medical:oftalmologia",
+              "s:17|iq:traumatologia",
+              "s:20|iq:traumatologia"
+            ],
+            "still_reached": []
+          },
+          "gap": 0.0,
+          "gap_by_phase": {
+            "3a": 0.0,
+            "3b": null
+          },
+          "largest_subproblem_pairs": 267,
+          "max_constraints": 108,
+          "max_variables": 278,
+          "overbooking_levels_kept": 0,
+          "overbooking_levels_nominal": 0,
+          "pairs_in_model": 3057,
+          "solve_wall_s": 0.2286815419793129,
+          "solve_wall_within_time_limit": true,
+          "solver_time": {
+            "discarded_first_pass": {
+              "deterministic_time": 0.001572262218181838,
+              "phases": 7,
+              "subproblems": 3,
+              "wall_time_s": 0.008622000000000001
+            },
+            "plan": {
+              "deterministic_time": 0.004162772358620692,
+              "phases": 193,
+              "subproblems": 90,
+              "wall_time_s": 0.036643
+            }
+          },
+          "status": "OPTIMAL",
+          "status_by_phase": {
+            "1": {
+              "OPTIMAL": 63
+            },
+            "2": {
+              "OPTIMAL": 38
+            },
+            "3a": {
+              "OPTIMAL": 90
+            },
+            "4": {
+              "OPTIMAL": 2
+            }
+          },
+          "subproblems": 90,
+          "symmetry_block_classes": 0,
+          "symmetry_blocks_in_classes": 0,
+          "symmetry_entries_in_classes": 0,
+          "symmetry_entry_classes": 0,
+          "warnings_worse_than_baseline": 0
+        },
+        "sum_coef": 5570535
+      },
+      "optimized_without_overbooking_vs_priority": {
+        "delta": {
+          "ges_met": 9,
+          "ges_on_time": 8,
+          "q1_scheduled": 0,
+          "scheduled": 7,
+          "scheduled_cne": 0,
+          "scheduled_or": 7,
+          "sum_coef": 15741
+        },
+        "lexicographic_optimized": [
+          212,
+          99,
+          5570535
+        ],
+        "lexicographic_priority": [
+          212,
+          90,
+          5554794
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.1,
+          "ges_on_time": 1.1428571428571428,
+          "q1_scheduled": 0.0,
+          "scheduled": 0.005247376311844078,
+          "scheduled_cne": 0.0,
+          "scheduled_or": 0.05982905982905983,
+          "sum_coef": 0.0028337684529795345
+        }
+      },
+      "problem": {
+        "blocks_cne": 102,
+        "blocks_or": 67,
+        "capacity_cne_units": 1224,
+        "capacity_or_min": 20502,
+        "entries": 10000,
+        "entries_with_pairs": 4035,
+        "ges_obligated": 362,
+        "pairs_all": 1690000,
+        "pairs_compatible": 4204,
+        "pairs_same_queue": 4341
+      },
+      "size": 10000,
+      "times_s": {
+        "build_instance": 0.30210741696646437,
+        "generate": 0.3263872910174541,
+        "train_noshow": 1.3700707500101998
+      }
+    },
+    {
+      "data": {
+        "calibration_passed": true,
+        "calibration_strict_failed": [],
+        "noshow_model_version": "noshow-4f0429cd-5cb57495",
+        "run_id": "062f5290-3a5f-5350-be7d-aeb766ced96e",
+        "supply_horizon_weeks": 2
+      },
+      "greedy": {
+        "fifo": {
+          "ges_met": 81,
+          "ges_obligated": 1554,
+          "ges_on_time": 2,
+          "overbooked_flags": 0,
+          "q1_scheduled": 190,
+          "scheduled": 3439,
+          "scheduled_cne": 3120,
+          "scheduled_or": 319,
+          "sum_coef": 14739682,
+          "wall_time_s": 0.48558670800412074
+        },
+        "priority": {
+          "ges_met": 337,
+          "ges_obligated": 1554,
+          "ges_on_time": 16,
+          "overbooked_flags": 0,
+          "q1_scheduled": 1596,
+          "scheduled": 3438,
+          "scheduled_cne": 3120,
+          "scheduled_or": 318,
+          "sum_coef": 18688732,
+          "wall_time_s": 0.4629369580070488
+        }
+      },
+      "horizon_weeks": 2,
+      "optimized": {
+        "all": {
+          "flags": {},
+          "ges_met": 364,
+          "ges_obligated": 1554,
+          "ges_on_time": 54,
+          "overbooked_flags": 108,
+          "q1_scheduled": 1606,
+          "scheduled": 3577,
+          "scheduled_cne": 3228,
+          "scheduled_or": 349,
+          "solver": {
+            "candidates": 9361,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 18.293487169059762,
+            "deterministic_time_total": 21.215226798956596,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:11|iq:traumatologia",
+                "s:13|iq:dermatologia",
+                "s:14|iq:neurocirugia",
+                "s:19|cne_medical:oftalmologia",
+                "s:22|cne_dental:ortodoncia_y_ortopedia_dentomaxilofacial",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|cne_medical:oftalmologia",
+                "s:3|iq:traumatologia",
+                "s:5|cne_medical:oftalmologia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:9|cne_medical:oftalmologia",
+                "s:9|iq:neurocirugia"
+              ],
+              "still_reached": [
+                "s:11|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0002771068830795162,
+            "gap_by_phase": {
+              "3a": 2.524473159843527e-05,
+              "3b": 0.0003281948360040981
+            },
+            "largest_subproblem_pairs": 930,
+            "max_constraints": 699,
+            "max_variables": 1176,
+            "overbooking_levels_kept": 175,
+            "overbooking_levels_nominal": 780,
+            "pairs_in_model": 13023,
+            "solve_wall_s": 20.22957095800666,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 2.9217396298968334,
+                "phases": 52,
+                "subproblems": 17,
+                "wall_time_s": 2.244246
+              },
+              "plan": {
+                "deterministic_time": 18.293487169059762,
+                "phases": 548,
+                "subproblems": 183,
+                "wall_time_s": 16.318208000000002
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 159
+              },
+              "2": {
+                "OPTIMAL": 100
+              },
+              "3a": {
+                "OPTIMAL": 183
+              },
+              "3b": {
+                "OPTIMAL": 73
+              },
+              "4": {
+                "OPTIMAL": 33
+              }
+            },
+            "subproblems": 183,
+            "symmetry_block_classes": 4,
+            "symmetry_blocks_in_classes": 8,
+            "symmetry_entries_in_classes": 71,
+            "symmetry_entry_classes": 35,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 19494283,
+          "wall_time_s_runs": [
+            20.22957095800666,
+            20.206032667018007,
+            20.241748916974757
+          ]
+        },
+        "none": {
+          "flags": {
+            "hints": false,
+            "objective_cut": false,
+            "overbooking_hint": false,
+            "prune_overbooking_levels": false,
+            "symmetry_breaking": false,
+            "warm_start_frontier": false
+          },
+          "ges_met": 364,
+          "ges_obligated": 1554,
+          "ges_on_time": 54,
+          "overbooked_flags": 108,
+          "q1_scheduled": 1606,
+          "scheduled": 3577,
+          "scheduled_cne": 3228,
+          "scheduled_or": 349,
+          "solver": {
+            "candidates": 9332,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 21.939949837471932,
+            "deterministic_time_total": 22.911707481518768,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:11|iq:traumatologia",
+                "s:13|iq:dermatologia",
+                "s:14|iq:neurocirugia",
+                "s:22|cne_dental:ortodoncia_y_ortopedia_dentomaxilofacial",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|cne_medical:oftalmologia",
+                "s:3|iq:traumatologia",
+                "s:5|cne_medical:oftalmologia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:9|cne_medical:oftalmologia",
+                "s:9|iq:neurocirugia"
+              ],
+              "still_reached": [
+                "s:11|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.000568445513130445,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0006387604277740712
+            },
+            "largest_subproblem_pairs": 930,
+            "max_constraints": 814,
+            "max_variables": 1255,
+            "overbooking_levels_kept": 698,
+            "overbooking_levels_nominal": 780,
+            "pairs_in_model": 12994,
+            "solve_wall_s": 21.9737217919901,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.9717576440468368,
+                "phases": 47,
+                "subproblems": 16,
+                "wall_time_s": 1.030375
+              },
+              "plan": {
+                "deterministic_time": 21.939949837471932,
+                "phases": 561,
+                "subproblems": 183,
+                "wall_time_s": 19.417436000000002
+              }
+            },
+            "status": "UNKNOWN",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 159
+              },
+              "2": {
+                "OPTIMAL": 100
+              },
+              "3a": {
+                "OPTIMAL": 183
+              },
+              "3b": {
+                "FEASIBLE": 1,
+                "OPTIMAL": 85
+              },
+              "4": {
+                "OPTIMAL": 32,
+                "UNKNOWN": 1
+              }
+            },
+            "subproblems": 183,
+            "symmetry_block_classes": 4,
+            "symmetry_blocks_in_classes": 8,
+            "symmetry_entries_in_classes": 71,
+            "symmetry_entry_classes": 35,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 19493519,
+          "wall_time_s_runs": [
+            21.9737217919901
+          ]
+        },
+        "without_hints": {
+          "flags": {
+            "hints": false
+          },
+          "ges_met": 364,
+          "ges_obligated": 1554,
+          "ges_on_time": 54,
+          "overbooked_flags": 108,
+          "q1_scheduled": 1606,
+          "scheduled": 3577,
+          "scheduled_cne": 3228,
+          "scheduled_or": 349,
+          "solver": {
+            "candidates": 9332,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 15.940340112915909,
+            "deterministic_time_total": 16.93289906344608,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:11|iq:traumatologia",
+                "s:13|iq:dermatologia",
+                "s:14|iq:neurocirugia",
+                "s:22|cne_dental:ortodoncia_y_ortopedia_dentomaxilofacial",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|cne_medical:oftalmologia",
+                "s:3|iq:traumatologia",
+                "s:5|cne_medical:oftalmologia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:9|cne_medical:oftalmologia",
+                "s:9|iq:neurocirugia"
+              ],
+              "still_reached": [
+                "s:11|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0005710091801101256,
+            "gap_by_phase": {
+              "3a": 0.0,
+              "3b": 0.0006766620881083218
+            },
+            "largest_subproblem_pairs": 930,
+            "max_constraints": 699,
+            "max_variables": 1176,
+            "overbooking_levels_kept": 175,
+            "overbooking_levels_nominal": 780,
+            "pairs_in_model": 12994,
+            "solve_wall_s": 15.918316833034623,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 0.9925589505301726,
+                "phases": 47,
+                "subproblems": 16,
+                "wall_time_s": 1.118288
+              },
+              "plan": {
+                "deterministic_time": 15.940340112915909,
+                "phases": 548,
+                "subproblems": 183,
+                "wall_time_s": 13.358136
+              }
+            },
+            "status": "UNKNOWN",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 159
+              },
+              "2": {
+                "OPTIMAL": 100
+              },
+              "3a": {
+                "OPTIMAL": 183
+              },
+              "3b": {
+                "FEASIBLE": 2,
+                "OPTIMAL": 71
+              },
+              "4": {
+                "OPTIMAL": 32,
+                "UNKNOWN": 1
+              }
+            },
+            "subproblems": 183,
+            "symmetry_block_classes": 4,
+            "symmetry_blocks_in_classes": 8,
+            "symmetry_entries_in_classes": 71,
+            "symmetry_entry_classes": 35,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 19493742,
+          "wall_time_s_runs": [
+            15.918316833034623
+          ]
+        },
+        "without_objective_cut": {
+          "flags": {
+            "objective_cut": false
+          },
+          "ges_met": 364,
+          "ges_obligated": 1554,
+          "ges_on_time": 54,
+          "overbooked_flags": 108,
+          "q1_scheduled": 1606,
+          "scheduled": 3577,
+          "scheduled_cne": 3228,
+          "scheduled_or": 349,
+          "solver": {
+            "candidates": 9361,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 22.241512184331462,
+            "deterministic_time_total": 24.233446190519548,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:11|iq:traumatologia",
+                "s:13|iq:dermatologia",
+                "s:14|iq:neurocirugia",
+                "s:19|cne_medical:oftalmologia",
+                "s:22|cne_dental:ortodoncia_y_ortopedia_dentomaxilofacial",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|cne_medical:oftalmologia",
+                "s:3|iq:traumatologia",
+                "s:5|cne_medical:oftalmologia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:9|cne_medical:oftalmologia",
+                "s:9|iq:neurocirugia"
+              ],
+              "still_reached": [
+                "s:11|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0004415216682388641,
+            "gap_by_phase": {
+              "3a": 2.524473159843527e-05,
+              "3b": 0.0005230313105119689
+            },
+            "largest_subproblem_pairs": 930,
+            "max_constraints": 698,
+            "max_variables": 1176,
+            "overbooking_levels_kept": 175,
+            "overbooking_levels_nominal": 780,
+            "pairs_in_model": 13023,
+            "solve_wall_s": 23.636436583998147,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 1.9919340061880846,
+                "phases": 52,
+                "subproblems": 17,
+                "wall_time_s": 1.788305
+              },
+              "plan": {
+                "deterministic_time": 22.241512184331462,
+                "phases": 548,
+                "subproblems": 183,
+                "wall_time_s": 20.232416
+              }
+            },
+            "status": "FEASIBLE",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 159
+              },
+              "2": {
+                "OPTIMAL": 100
+              },
+              "3a": {
+                "OPTIMAL": 183
+              },
+              "3b": {
+                "FEASIBLE": 2,
+                "OPTIMAL": 71
+              },
+              "4": {
+                "OPTIMAL": 33
+              }
+            },
+            "subproblems": 183,
+            "symmetry_block_classes": 4,
+            "symmetry_blocks_in_classes": 8,
+            "symmetry_entries_in_classes": 71,
+            "symmetry_entry_classes": 35,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 19493947,
+          "wall_time_s_runs": [
+            23.636436583998147
+          ]
+        },
+        "without_overbooking_hint": {
+          "flags": {
+            "overbooking_hint": false
+          },
+          "ges_met": 364,
+          "ges_obligated": 1554,
+          "ges_on_time": 54,
+          "overbooked_flags": 108,
+          "q1_scheduled": 1606,
+          "scheduled": 3577,
+          "scheduled_cne": 3228,
+          "scheduled_or": 349,
+          "solver": {
+            "candidates": 9332,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 20.058217161734216,
+            "deterministic_time_total": 22.396179508634614,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:11|iq:traumatologia",
+                "s:13|iq:dermatologia",
+                "s:14|iq:neurocirugia",
+                "s:22|cne_dental:ortodoncia_y_ortopedia_dentomaxilofacial",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|cne_medical:oftalmologia",
+                "s:3|iq:traumatologia",
+                "s:5|cne_medical:oftalmologia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:9|cne_medical:oftalmologia",
+                "s:9|iq:neurocirugia"
+              ],
+              "still_reached": [
+                "s:11|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0001557843013743489,
+            "gap_by_phase": {
+              "3a": 2.524473159843527e-05,
+              "3b": 0.00018442406837428118
+            },
+            "largest_subproblem_pairs": 930,
+            "max_constraints": 699,
+            "max_variables": 1176,
+            "overbooking_levels_kept": 175,
+            "overbooking_levels_nominal": 780,
+            "pairs_in_model": 12994,
+            "solve_wall_s": 21.75981858302839,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 2.3379623469003965,
+                "phases": 47,
+                "subproblems": 16,
+                "wall_time_s": 2.1655200000000003
+              },
+              "plan": {
+                "deterministic_time": 20.058217161734216,
+                "phases": 548,
+                "subproblems": 183,
+                "wall_time_s": 17.956438000000002
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 159
+              },
+              "2": {
+                "OPTIMAL": 100
+              },
+              "3a": {
+                "OPTIMAL": 183
+              },
+              "3b": {
+                "OPTIMAL": 73
+              },
+              "4": {
+                "OPTIMAL": 33
+              }
+            },
+            "subproblems": 183,
+            "symmetry_block_classes": 4,
+            "symmetry_blocks_in_classes": 8,
+            "symmetry_entries_in_classes": 71,
+            "symmetry_entry_classes": 35,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 19494904,
+          "wall_time_s_runs": [
+            21.75981858302839
+          ]
+        },
+        "without_prune_overbooking_levels": {
+          "flags": {
+            "prune_overbooking_levels": false
+          },
+          "ges_met": 364,
+          "ges_obligated": 1554,
+          "ges_on_time": 54,
+          "overbooked_flags": 107,
+          "q1_scheduled": 1606,
+          "scheduled": 3576,
+          "scheduled_cne": 3227,
+          "scheduled_or": 349,
+          "solver": {
+            "candidates": 9361,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 27.584116270544495,
+            "deterministic_time_total": 29.32597261149456,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:11|iq:traumatologia",
+                "s:13|iq:dermatologia",
+                "s:14|iq:neurocirugia",
+                "s:19|cne_medical:oftalmologia",
+                "s:22|cne_dental:ortodoncia_y_ortopedia_dentomaxilofacial",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|cne_medical:oftalmologia",
+                "s:3|iq:traumatologia",
+                "s:5|cne_medical:oftalmologia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:9|cne_medical:oftalmologia",
+                "s:9|iq:neurocirugia"
+              ],
+              "still_reached": [
+                "s:11|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.001254222203381889,
+            "gap_by_phase": {
+              "3a": 2.524473159843527e-05,
+              "3b": 0.0014092650120086842
+            },
+            "largest_subproblem_pairs": 930,
+            "max_constraints": 815,
+            "max_variables": 1255,
+            "overbooking_levels_kept": 698,
+            "overbooking_levels_nominal": 780,
+            "pairs_in_model": 13023,
+            "solve_wall_s": 26.98544054100057,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 1.7418563409500651,
+                "phases": 52,
+                "subproblems": 17,
+                "wall_time_s": 1.708831
+              },
+              "plan": {
+                "deterministic_time": 27.584116270544495,
+                "phases": 561,
+                "subproblems": 183,
+                "wall_time_s": 23.467544
+              }
+            },
+            "status": "FEASIBLE",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 159
+              },
+              "2": {
+                "OPTIMAL": 100
+              },
+              "3a": {
+                "OPTIMAL": 183
+              },
+              "3b": {
+                "FEASIBLE": 4,
+                "OPTIMAL": 82
+              },
+              "4": {
+                "OPTIMAL": 33
+              }
+            },
+            "subproblems": 183,
+            "symmetry_block_classes": 4,
+            "symmetry_blocks_in_classes": 8,
+            "symmetry_entries_in_classes": 71,
+            "symmetry_entry_classes": 35,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 19485383,
+          "wall_time_s_runs": [
+            26.98544054100057
+          ]
+        },
+        "without_symmetry_breaking": {
+          "flags": {
+            "symmetry_breaking": false
+          },
+          "ges_met": 364,
+          "ges_obligated": 1554,
+          "ges_on_time": 54,
+          "overbooked_flags": 108,
+          "q1_scheduled": 1606,
+          "scheduled": 3577,
+          "scheduled_cne": 3228,
+          "scheduled_or": 349,
+          "solver": {
+            "candidates": 9361,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 16.998010122170157,
+            "deterministic_time_total": 19.80009963908147,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:11|iq:traumatologia",
+                "s:13|iq:dermatologia",
+                "s:14|iq:neurocirugia",
+                "s:19|cne_medical:oftalmologia",
+                "s:22|cne_dental:ortodoncia_y_ortopedia_dentomaxilofacial",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|cne_medical:oftalmologia",
+                "s:3|iq:traumatologia",
+                "s:5|cne_medical:oftalmologia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:9|cne_medical:oftalmologia",
+                "s:9|iq:neurocirugia"
+              ],
+              "still_reached": [
+                "s:11|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0002684820581504233,
+            "gap_by_phase": {
+              "3a": 2.6456932409336388e-05,
+              "3b": 0.0003165742099367222
+            },
+            "largest_subproblem_pairs": 930,
+            "max_constraints": 699,
+            "max_variables": 1176,
+            "overbooking_levels_kept": 175,
+            "overbooking_levels_nominal": 780,
+            "pairs_in_model": 13023,
+            "solve_wall_s": 18.96482933399966,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 2.802089516911313,
+                "phases": 52,
+                "subproblems": 17,
+                "wall_time_s": 2.110648
+              },
+              "plan": {
+                "deterministic_time": 16.998010122170157,
+                "phases": 548,
+                "subproblems": 183,
+                "wall_time_s": 15.186748000000001
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 159
+              },
+              "2": {
+                "OPTIMAL": 100
+              },
+              "3a": {
+                "OPTIMAL": 183
+              },
+              "3b": {
+                "OPTIMAL": 73
+              },
+              "4": {
+                "OPTIMAL": 33
+              }
+            },
+            "subproblems": 183,
+            "symmetry_block_classes": 4,
+            "symmetry_blocks_in_classes": 8,
+            "symmetry_entries_in_classes": 71,
+            "symmetry_entry_classes": 35,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 19494785,
+          "wall_time_s_runs": [
+            18.96482933399966
+          ]
+        },
+        "without_warm_start_frontier": {
+          "flags": {
+            "warm_start_frontier": false
+          },
+          "ges_met": 364,
+          "ges_obligated": 1554,
+          "ges_on_time": 54,
+          "overbooked_flags": 108,
+          "q1_scheduled": 1606,
+          "scheduled": 3577,
+          "scheduled_cne": 3228,
+          "scheduled_or": 349,
+          "solver": {
+            "candidates": 9361,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 16.398583888582277,
+            "deterministic_time_total": 19.32032351847911,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:11|iq:traumatologia",
+                "s:13|iq:dermatologia",
+                "s:14|iq:neurocirugia",
+                "s:19|cne_medical:oftalmologia",
+                "s:22|cne_dental:ortodoncia_y_ortopedia_dentomaxilofacial",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|cne_medical:oftalmologia",
+                "s:3|iq:traumatologia",
+                "s:5|cne_medical:oftalmologia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:9|cne_medical:oftalmologia",
+                "s:9|iq:neurocirugia"
+              ],
+              "still_reached": [
+                "s:11|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.00024683483820340553,
+            "gap_by_phase": {
+              "3a": 2.524473159843527e-05,
+              "3b": 0.00029232038070580937
+            },
+            "largest_subproblem_pairs": 930,
+            "max_constraints": 699,
+            "max_variables": 1176,
+            "overbooking_levels_kept": 175,
+            "overbooking_levels_nominal": 780,
+            "pairs_in_model": 13023,
+            "solve_wall_s": 18.803500290960073,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 2.9217396298968334,
+                "phases": 52,
+                "subproblems": 17,
+                "wall_time_s": 2.247468
+              },
+              "plan": {
+                "deterministic_time": 16.398583888582277,
+                "phases": 548,
+                "subproblems": 183,
+                "wall_time_s": 14.863961000000002
+              }
+            },
+            "status": "OPTIMAL",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 159
+              },
+              "2": {
+                "OPTIMAL": 100
+              },
+              "3a": {
+                "OPTIMAL": 183
+              },
+              "3b": {
+                "OPTIMAL": 73
+              },
+              "4": {
+                "OPTIMAL": 33
+              }
+            },
+            "subproblems": 183,
+            "symmetry_block_classes": 4,
+            "symmetry_blocks_in_classes": 8,
+            "symmetry_entries_in_classes": 71,
+            "symmetry_entry_classes": 35,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 19494817,
+          "wall_time_s_runs": [
+            18.803500290960073
+          ]
+        }
+      },
+      "optimized_vs_priority": {
+        "delta": {
+          "ges_met": 27,
+          "ges_on_time": 38,
+          "q1_scheduled": 10,
+          "scheduled": 139,
+          "scheduled_cne": 108,
+          "scheduled_or": 31,
+          "sum_coef": 805551
+        },
+        "lexicographic_optimized": [
+          1606,
+          364,
+          19494283
+        ],
+        "lexicographic_priority": [
+          1596,
+          337,
+          18688732
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.08011869436201781,
+          "ges_on_time": 2.375,
+          "q1_scheduled": 0.006265664160401002,
+          "scheduled": 0.040430482838859805,
+          "scheduled_cne": 0.03461538461538462,
+          "scheduled_or": 0.09748427672955975,
+          "sum_coef": 0.04310356636287577
+        }
+      },
+      "optimized_without_overbooking": {
+        "ges_met": 364,
+        "ges_obligated": 1554,
+        "ges_on_time": 54,
+        "overbooked_flags": 0,
+        "q1_scheduled": 1606,
+        "scheduled": 3469,
+        "scheduled_cne": 3120,
+        "scheduled_or": 349,
+        "solver": {
+          "candidates": 9197,
+          "deterministic_plan_within_time_limit": true,
+          "deterministic_time_plan": 0.17696914976896114,
+          "deterministic_time_total": 0.19276773037343237,
+          "frontier": {
+            "expanded": true,
+            "reached": [
+              "s:10|iq:dermatologia",
+              "s:11|iq:traumatologia",
+              "s:13|iq:dermatologia",
+              "s:14|iq:neurocirugia",
+              "s:23|iq:urologia_y_nefrologia",
+              "s:24|iq:dermatologia",
+              "s:29|iq:urologia_y_nefrologia",
+              "s:2|iq:traumatologia",
+              "s:33|iq:traumatologia",
+              "s:3|iq:traumatologia",
+              "s:5|cne_medical:oftalmologia",
+              "s:6|iq:urologia_y_nefrologia",
+              "s:9|iq:neurocirugia"
+            ],
+            "still_reached": [
+              "s:11|iq:traumatologia",
+              "s:33|iq:traumatologia",
+              "s:3|iq:traumatologia"
+            ]
+          },
+          "gap": 2.524473159843527e-05,
+          "gap_by_phase": {
+            "3a": 2.524473159843527e-05,
+            "3b": null
+          },
+          "largest_subproblem_pairs": 930,
+          "max_constraints": 296,
+          "max_variables": 984,
+          "overbooking_levels_kept": 0,
+          "overbooking_levels_nominal": 0,
+          "pairs_in_model": 12681,
+          "solve_wall_s": 1.4144914590287954,
+          "solve_wall_within_time_limit": true,
+          "solver_time": {
+            "discarded_first_pass": {
+              "deterministic_time": 0.015798580604471237,
+              "phases": 29,
+              "subproblems": 13,
+              "wall_time_s": 0.031345000000000005
+            },
+            "plan": {
+              "deterministic_time": 0.17696914976896114,
+              "phases": 475,
+              "subproblems": 183,
+              "wall_time_s": 0.43943800000000005
+            }
+          },
+          "status": "OPTIMAL",
+          "status_by_phase": {
+            "1": {
+              "OPTIMAL": 159
+            },
+            "2": {
+              "OPTIMAL": 100
+            },
+            "3a": {
+              "OPTIMAL": 183
+            },
+            "4": {
+              "OPTIMAL": 33
+            }
+          },
+          "subproblems": 183,
+          "symmetry_block_classes": 4,
+          "symmetry_blocks_in_classes": 8,
+          "symmetry_entries_in_classes": 55,
+          "symmetry_entry_classes": 27,
+          "warnings_worse_than_baseline": 0
+        },
+        "sum_coef": 18974256
+      },
+      "optimized_without_overbooking_vs_priority": {
+        "delta": {
+          "ges_met": 27,
+          "ges_on_time": 38,
+          "q1_scheduled": 10,
+          "scheduled": 31,
+          "scheduled_cne": 0,
+          "scheduled_or": 31,
+          "sum_coef": 285524
+        },
+        "lexicographic_optimized": [
+          1606,
+          364,
+          18974256
+        ],
+        "lexicographic_priority": [
+          1596,
+          337,
+          18688732
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.08011869436201781,
+          "ges_on_time": 2.375,
+          "q1_scheduled": 0.006265664160401002,
+          "scheduled": 0.009016870273414777,
+          "scheduled_cne": 0.0,
+          "scheduled_or": 0.09748427672955975,
+          "sum_coef": 0.015277869038948174
+        }
+      },
+      "problem": {
+        "blocks_cne": 260,
+        "blocks_or": 165,
+        "capacity_cne_units": 3120,
+        "capacity_or_min": 50490,
+        "entries": 50000,
+        "entries_with_pairs": 29929,
+        "ges_obligated": 1554,
+        "pairs_all": 21250000,
+        "pairs_compatible": 44450,
+        "pairs_same_queue": 45453
+      },
+      "size": 50000,
+      "times_s": {
+        "build_instance": 1.0754840000299737,
+        "generate": 1.0667031249613501,
+        "train_noshow": 2.215569957974367
+      }
+    },
+    {
+      "data": {
+        "calibration_passed": true,
+        "calibration_strict_failed": [],
+        "noshow_model_version": "noshow-4f0429cd-cda8fe4e",
+        "run_id": "01f43e87-f60e-53d5-8b1c-c8384df57518",
+        "supply_horizon_weeks": 4
+      },
+      "greedy": {
+        "fifo": {
+          "ges_met": 128,
+          "ges_obligated": 1978,
+          "ges_on_time": 4,
+          "overbooked_flags": 0,
+          "q1_scheduled": 405,
+          "scheduled": 6917,
+          "scheduled_cne": 6264,
+          "scheduled_or": 653,
+          "sum_coef": 28110540,
+          "wall_time_s": 0.8319222499849275
+        },
+        "priority": {
+          "ges_met": 525,
+          "ges_obligated": 1978,
+          "ges_on_time": 40,
+          "overbooked_flags": 0,
+          "q1_scheduled": 2224,
+          "scheduled": 6916,
+          "scheduled_cne": 6264,
+          "scheduled_or": 652,
+          "sum_coef": 34894830,
+          "wall_time_s": 0.7428118750103749
+        }
+      },
+      "horizon_weeks": 4,
+      "optimized": {
+        "all": {
+          "flags": {},
+          "ges_met": 700,
+          "ges_obligated": 1978,
+          "ges_on_time": 227,
+          "overbooked_flags": 276,
+          "q1_scheduled": 2231,
+          "scheduled": 7244,
+          "scheduled_cne": 6540,
+          "scheduled_or": 704,
+          "solver": {
+            "candidates": 18568,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 68.0318624214126,
+            "deterministic_time_total": 78.13221571054106,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:10|iq:plastica_y_reparadora",
+                "s:11|iq:traumatologia",
+                "s:12|iq:otorrinolaringologia",
+                "s:13|cne_medical:ginecologia_oncologica",
+                "s:13|iq:dermatologia",
+                "s:13|iq:urologia_y_nefrologia",
+                "s:14|iq:plastica_y_reparadora",
+                "s:15|iq:cirugia_de_cabeza_y_cuello",
+                "s:16|cne_medical:neurologia_adulto",
+                "s:16|cne_medical:oftalmologia",
+                "s:16|cne_medical:urologia",
+                "s:16|iq:cirugia_digestiva",
+                "s:16|iq:otorrinolaringologia",
+                "s:17|iq:traumatologia",
+                "s:17|iq:urologia_y_nefrologia",
+                "s:18|iq:plastica_y_reparadora",
+                "s:19|iq:traumatologia",
+                "s:20|iq:cirugia_digestiva",
+                "s:21|iq:neurocirugia",
+                "s:23|iq:traumatologia",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia",
+                "s:5|iq:urologia_y_nefrologia",
+                "s:6|iq:neurocirugia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:8|iq:otorrinolaringologia",
+                "s:9|cne_medical:ginecologia_oncologica",
+                "s:9|cne_medical:oftalmologia"
+              ],
+              "still_reached": [
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0018212058769472889,
+            "gap_by_phase": {
+              "3a": 0.0002036626233537141,
+              "3b": 0.002078860456730025
+            },
+            "largest_subproblem_pairs": 4443,
+            "max_constraints": 2269,
+            "max_variables": 5216,
+            "overbooking_levels_kept": 380,
+            "overbooking_levels_nominal": 1566,
+            "pairs_in_model": 37748,
+            "solve_wall_s": 76.10335645801388,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 10.100353289128465,
+                "phases": 104,
+                "subproblems": 36,
+                "wall_time_s": 10.096677000000001
+              },
+              "plan": {
+                "deterministic_time": 68.0318624214126,
+                "phases": 583,
+                "subproblems": 188,
+                "wall_time_s": 61.665261
+              }
+            },
+            "status": "FEASIBLE",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 157
+              },
+              "2": {
+                "OPTIMAL": 108
+              },
+              "3a": {
+                "OPTIMAL": 188
+              },
+              "3b": {
+                "FEASIBLE": 10,
+                "OPTIMAL": 55
+              },
+              "4": {
+                "OPTIMAL": 65
+              }
+            },
+            "subproblems": 188,
+            "symmetry_block_classes": 32,
+            "symmetry_blocks_in_classes": 70,
+            "symmetry_entries_in_classes": 124,
+            "symmetry_entry_classes": 61,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 36252936,
+          "wall_time_s_runs": [
+            76.08924341696547,
+            76.10335645801388,
+            76.13108108303277
+          ]
+        },
+        "none": {
+          "flags": {
+            "hints": false,
+            "objective_cut": false,
+            "overbooking_hint": false,
+            "prune_overbooking_levels": false,
+            "symmetry_breaking": false,
+            "warm_start_frontier": false
+          },
+          "ges_met": 700,
+          "ges_obligated": 1978,
+          "ges_on_time": 227,
+          "overbooked_flags": 242,
+          "q1_scheduled": 2231,
+          "scheduled": 7210,
+          "scheduled_cne": 6506,
+          "scheduled_or": 704,
+          "solver": {
+            "candidates": 18568,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 84.51038628134027,
+            "deterministic_time_total": 92.88442086181419,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:10|iq:plastica_y_reparadora",
+                "s:11|iq:traumatologia",
+                "s:12|iq:otorrinolaringologia",
+                "s:13|cne_medical:ginecologia_oncologica",
+                "s:13|iq:dermatologia",
+                "s:13|iq:urologia_y_nefrologia",
+                "s:14|iq:plastica_y_reparadora",
+                "s:15|iq:cirugia_de_cabeza_y_cuello",
+                "s:16|cne_medical:neurologia_adulto",
+                "s:16|cne_medical:oftalmologia",
+                "s:16|cne_medical:urologia",
+                "s:16|iq:cirugia_digestiva",
+                "s:16|iq:otorrinolaringologia",
+                "s:17|iq:traumatologia",
+                "s:17|iq:urologia_y_nefrologia",
+                "s:18|iq:plastica_y_reparadora",
+                "s:19|iq:traumatologia",
+                "s:20|iq:cirugia_digestiva",
+                "s:21|iq:neurocirugia",
+                "s:23|iq:traumatologia",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia",
+                "s:5|iq:urologia_y_nefrologia",
+                "s:6|iq:neurocirugia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:8|iq:otorrinolaringologia",
+                "s:9|cne_medical:ginecologia_oncologica",
+                "s:9|cne_medical:oftalmologia"
+              ],
+              "still_reached": [
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": null,
+            "gap_by_phase": {
+              "3a": 1.0944960607523207e-05,
+              "3b": null
+            },
+            "largest_subproblem_pairs": 4443,
+            "max_constraints": 2614,
+            "max_variables": 5477,
+            "overbooking_levels_kept": 1410,
+            "overbooking_levels_nominal": 1566,
+            "pairs_in_model": 37748,
+            "solve_wall_s": 90.92257049999898,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 8.37403458047391,
+                "phases": 104,
+                "subproblems": 36,
+                "wall_time_s": 8.235604
+              },
+              "plan": {
+                "deterministic_time": 84.51038628134027,
+                "phases": 593,
+                "subproblems": 188,
+                "wall_time_s": 78.95336400000001
+              }
+            },
+            "status": "UNKNOWN",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 157
+              },
+              "2": {
+                "OPTIMAL": 108
+              },
+              "3a": {
+                "OPTIMAL": 188
+              },
+              "3b": {
+                "FEASIBLE": 11,
+                "OPTIMAL": 62,
+                "UNKNOWN": 2
+              },
+              "4": {
+                "OPTIMAL": 62,
+                "UNKNOWN": 3
+              }
+            },
+            "subproblems": 188,
+            "symmetry_block_classes": 32,
+            "symmetry_blocks_in_classes": 70,
+            "symmetry_entries_in_classes": 124,
+            "symmetry_entry_classes": 61,
+            "warnings_worse_than_baseline": 1
+          },
+          "sum_coef": 36110958,
+          "wall_time_s_runs": [
+            90.92257049999898
+          ]
+        },
+        "without_hints": {
+          "flags": {
+            "hints": false
+          },
+          "ges_met": 700,
+          "ges_obligated": 1978,
+          "ges_on_time": 227,
+          "overbooked_flags": 280,
+          "q1_scheduled": 2231,
+          "scheduled": 7248,
+          "scheduled_cne": 6544,
+          "scheduled_or": 704,
+          "solver": {
+            "candidates": 18568,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 64.31445298040165,
+            "deterministic_time_total": 70.58824173233802,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:10|iq:plastica_y_reparadora",
+                "s:11|iq:traumatologia",
+                "s:12|iq:otorrinolaringologia",
+                "s:13|cne_medical:ginecologia_oncologica",
+                "s:13|iq:dermatologia",
+                "s:13|iq:urologia_y_nefrologia",
+                "s:14|iq:plastica_y_reparadora",
+                "s:15|iq:cirugia_de_cabeza_y_cuello",
+                "s:16|cne_medical:neurologia_adulto",
+                "s:16|cne_medical:oftalmologia",
+                "s:16|cne_medical:urologia",
+                "s:16|iq:cirugia_digestiva",
+                "s:16|iq:otorrinolaringologia",
+                "s:17|iq:traumatologia",
+                "s:17|iq:urologia_y_nefrologia",
+                "s:18|iq:plastica_y_reparadora",
+                "s:19|iq:traumatologia",
+                "s:20|iq:cirugia_digestiva",
+                "s:21|iq:neurocirugia",
+                "s:23|iq:traumatologia",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia",
+                "s:5|iq:urologia_y_nefrologia",
+                "s:6|iq:neurocirugia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:8|iq:otorrinolaringologia",
+                "s:9|cne_medical:ginecologia_oncologica",
+                "s:9|cne_medical:oftalmologia"
+              ],
+              "still_reached": [
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0011400788601185466,
+            "gap_by_phase": {
+              "3a": 4.099509829967855e-05,
+              "3b": 0.0013082685856552656
+            },
+            "largest_subproblem_pairs": 4443,
+            "max_constraints": 2269,
+            "max_variables": 5216,
+            "overbooking_levels_kept": 380,
+            "overbooking_levels_nominal": 1566,
+            "pairs_in_model": 37748,
+            "solve_wall_s": 66.46163624996552,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 6.2737887519363715,
+                "phases": 104,
+                "subproblems": 36,
+                "wall_time_s": 6.783495
+              },
+              "plan": {
+                "deterministic_time": 64.31445298040165,
+                "phases": 583,
+                "subproblems": 188,
+                "wall_time_s": 56.17578100000001
+              }
+            },
+            "status": "UNKNOWN",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 157
+              },
+              "2": {
+                "OPTIMAL": 108
+              },
+              "3a": {
+                "OPTIMAL": 188
+              },
+              "3b": {
+                "FEASIBLE": 7,
+                "OPTIMAL": 58
+              },
+              "4": {
+                "OPTIMAL": 62,
+                "UNKNOWN": 3
+              }
+            },
+            "subproblems": 188,
+            "symmetry_block_classes": 32,
+            "symmetry_blocks_in_classes": 70,
+            "symmetry_entries_in_classes": 124,
+            "symmetry_entry_classes": 61,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 36270505,
+          "wall_time_s_runs": [
+            66.46163624996552
+          ]
+        },
+        "without_objective_cut": {
+          "flags": {
+            "objective_cut": false
+          },
+          "ges_met": 700,
+          "ges_obligated": 1978,
+          "ges_on_time": 227,
+          "overbooked_flags": 272,
+          "q1_scheduled": 2231,
+          "scheduled": 7240,
+          "scheduled_cne": 6536,
+          "scheduled_or": 704,
+          "solver": {
+            "candidates": 18568,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 53.06275602072263,
+            "deterministic_time_total": 57.062204578381234,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:10|iq:plastica_y_reparadora",
+                "s:11|iq:traumatologia",
+                "s:12|iq:otorrinolaringologia",
+                "s:13|cne_medical:ginecologia_oncologica",
+                "s:13|iq:dermatologia",
+                "s:13|iq:urologia_y_nefrologia",
+                "s:14|iq:plastica_y_reparadora",
+                "s:15|iq:cirugia_de_cabeza_y_cuello",
+                "s:16|cne_medical:neurologia_adulto",
+                "s:16|cne_medical:oftalmologia",
+                "s:16|cne_medical:urologia",
+                "s:16|iq:cirugia_digestiva",
+                "s:16|iq:otorrinolaringologia",
+                "s:17|iq:traumatologia",
+                "s:17|iq:urologia_y_nefrologia",
+                "s:18|iq:plastica_y_reparadora",
+                "s:19|iq:traumatologia",
+                "s:20|iq:cirugia_digestiva",
+                "s:21|iq:neurocirugia",
+                "s:23|iq:traumatologia",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia",
+                "s:5|iq:urologia_y_nefrologia",
+                "s:6|iq:neurocirugia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:8|iq:otorrinolaringologia",
+                "s:9|cne_medical:ginecologia_oncologica",
+                "s:9|cne_medical:oftalmologia"
+              ],
+              "still_reached": [
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.002212660491714598,
+            "gap_by_phase": {
+              "3a": 0.00019872053432821172,
+              "3b": 0.002531754420742762
+            },
+            "largest_subproblem_pairs": 4443,
+            "max_constraints": 2268,
+            "max_variables": 5216,
+            "overbooking_levels_kept": 380,
+            "overbooking_levels_nominal": 1566,
+            "pairs_in_model": 37748,
+            "solve_wall_s": 58.58073366701137,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 3.9994485576586034,
+                "phases": 104,
+                "subproblems": 36,
+                "wall_time_s": 4.87741
+              },
+              "plan": {
+                "deterministic_time": 53.06275602072263,
+                "phases": 583,
+                "subproblems": 188,
+                "wall_time_s": 49.430265000000006
+              }
+            },
+            "status": "FEASIBLE",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 157
+              },
+              "2": {
+                "OPTIMAL": 108
+              },
+              "3a": {
+                "OPTIMAL": 188
+              },
+              "3b": {
+                "FEASIBLE": 7,
+                "OPTIMAL": 58
+              },
+              "4": {
+                "OPTIMAL": 65
+              }
+            },
+            "subproblems": 188,
+            "symmetry_block_classes": 32,
+            "symmetry_blocks_in_classes": 70,
+            "symmetry_entries_in_classes": 124,
+            "symmetry_entry_classes": 61,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 36232433,
+          "wall_time_s_runs": [
+            58.58073366701137
+          ]
+        },
+        "without_overbooking_hint": {
+          "flags": {
+            "overbooking_hint": false
+          },
+          "ges_met": 700,
+          "ges_obligated": 1978,
+          "ges_on_time": 227,
+          "overbooked_flags": 236,
+          "q1_scheduled": 2231,
+          "scheduled": 7204,
+          "scheduled_cne": 6500,
+          "scheduled_or": 704,
+          "solver": {
+            "candidates": 18775,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 76.91150237689897,
+            "deterministic_time_total": 96.04150801502297,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:10|iq:plastica_y_reparadora",
+                "s:11|iq:traumatologia",
+                "s:12|iq:otorrinolaringologia",
+                "s:13|cne_medical:ginecologia_oncologica",
+                "s:13|iq:dermatologia",
+                "s:13|iq:urologia_y_nefrologia",
+                "s:14|iq:plastica_y_reparadora",
+                "s:15|cne_medical:otorrinolaringologia",
+                "s:15|iq:cirugia_de_cabeza_y_cuello",
+                "s:16|cne_medical:neurologia_adulto",
+                "s:16|cne_medical:oftalmologia",
+                "s:16|cne_medical:urologia",
+                "s:16|iq:cirugia_digestiva",
+                "s:16|iq:otorrinolaringologia",
+                "s:17|iq:traumatologia",
+                "s:17|iq:urologia_y_nefrologia",
+                "s:18|iq:plastica_y_reparadora",
+                "s:19|iq:traumatologia",
+                "s:20|iq:cirugia_digestiva",
+                "s:21|iq:neurocirugia",
+                "s:23|iq:traumatologia",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia",
+                "s:5|iq:urologia_y_nefrologia",
+                "s:6|iq:neurocirugia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:7|cne_medical:oftalmologia",
+                "s:8|iq:otorrinolaringologia",
+                "s:9|cne_medical:ginecologia_oncologica",
+                "s:9|cne_medical:oftalmologia"
+              ],
+              "still_reached": [
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.006875485065801249,
+            "gap_by_phase": {
+              "3a": 0.0001955877685397458,
+              "3b": 0.007903667477617778
+            },
+            "largest_subproblem_pairs": 4443,
+            "max_constraints": 2269,
+            "max_variables": 5216,
+            "overbooking_levels_kept": 380,
+            "overbooking_levels_nominal": 1566,
+            "pairs_in_model": 38576,
+            "solve_wall_s": 95.44681366701843,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 19.130005638124008,
+                "phases": 116,
+                "subproblems": 38,
+                "wall_time_s": 19.450886
+              },
+              "plan": {
+                "deterministic_time": 76.91150237689897,
+                "phases": 583,
+                "subproblems": 188,
+                "wall_time_s": 668.232654
+              }
+            },
+            "status": "FEASIBLE",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 157
+              },
+              "2": {
+                "OPTIMAL": 108
+              },
+              "3a": {
+                "OPTIMAL": 188
+              },
+              "3b": {
+                "FEASIBLE": 11,
+                "OPTIMAL": 54
+              },
+              "4": {
+                "OPTIMAL": 65
+              }
+            },
+            "subproblems": 188,
+            "symmetry_block_classes": 32,
+            "symmetry_blocks_in_classes": 70,
+            "symmetry_entries_in_classes": 122,
+            "symmetry_entry_classes": 60,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 36076324,
+          "wall_time_s_runs": [
+            95.44681366701843
+          ]
+        },
+        "without_prune_overbooking_levels": {
+          "flags": {
+            "prune_overbooking_levels": false
+          },
+          "ges_met": 700,
+          "ges_obligated": 1978,
+          "ges_on_time": 227,
+          "overbooked_flags": 261,
+          "q1_scheduled": 2231,
+          "scheduled": 7229,
+          "scheduled_cne": 6525,
+          "scheduled_or": 704,
+          "solver": {
+            "candidates": 18538,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 81.29344966880878,
+            "deterministic_time_total": 96.85300870515039,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:10|iq:plastica_y_reparadora",
+                "s:11|iq:traumatologia",
+                "s:12|iq:otorrinolaringologia",
+                "s:13|cne_medical:ginecologia_oncologica",
+                "s:13|iq:dermatologia",
+                "s:13|iq:urologia_y_nefrologia",
+                "s:14|iq:plastica_y_reparadora",
+                "s:15|iq:cirugia_de_cabeza_y_cuello",
+                "s:16|cne_medical:neurologia_adulto",
+                "s:16|cne_medical:oftalmologia",
+                "s:16|iq:cirugia_digestiva",
+                "s:16|iq:otorrinolaringologia",
+                "s:17|iq:traumatologia",
+                "s:17|iq:urologia_y_nefrologia",
+                "s:18|iq:plastica_y_reparadora",
+                "s:19|iq:traumatologia",
+                "s:20|iq:cirugia_digestiva",
+                "s:21|iq:neurocirugia",
+                "s:23|iq:traumatologia",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia",
+                "s:5|iq:urologia_y_nefrologia",
+                "s:6|iq:neurocirugia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:8|iq:otorrinolaringologia",
+                "s:9|cne_medical:ginecologia_oncologica",
+                "s:9|cne_medical:oftalmologia"
+              ],
+              "still_reached": [
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.00697925651860978,
+            "gap_by_phase": {
+              "3a": 0.0002036626233537141,
+              "3b": 0.007841723593847211
+            },
+            "largest_subproblem_pairs": 4413,
+            "max_constraints": 2611,
+            "max_variables": 5444,
+            "overbooking_levels_kept": 1410,
+            "overbooking_levels_nominal": 1566,
+            "pairs_in_model": 37718,
+            "solve_wall_s": 97.65833462501178,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 15.559559036341609,
+                "phases": 104,
+                "subproblems": 36,
+                "wall_time_s": 313.243444
+              },
+              "plan": {
+                "deterministic_time": 81.29344966880878,
+                "phases": 593,
+                "subproblems": 188,
+                "wall_time_s": 294.397582
+              }
+            },
+            "status": "FEASIBLE",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 157
+              },
+              "2": {
+                "OPTIMAL": 108
+              },
+              "3a": {
+                "OPTIMAL": 188
+              },
+              "3b": {
+                "FEASIBLE": 16,
+                "OPTIMAL": 59
+              },
+              "4": {
+                "OPTIMAL": 65
+              }
+            },
+            "subproblems": 188,
+            "symmetry_block_classes": 32,
+            "symmetry_blocks_in_classes": 70,
+            "symmetry_entries_in_classes": 124,
+            "symmetry_entry_classes": 61,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 36183402,
+          "wall_time_s_runs": [
+            97.65833462501178
+          ]
+        },
+        "without_symmetry_breaking": {
+          "flags": {
+            "symmetry_breaking": false
+          },
+          "ges_met": 700,
+          "ges_obligated": 1978,
+          "ges_on_time": 227,
+          "overbooked_flags": 276,
+          "q1_scheduled": 2231,
+          "scheduled": 7244,
+          "scheduled_cne": 6540,
+          "scheduled_or": 704,
+          "solver": {
+            "candidates": 18568,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 58.4799101605873,
+            "deterministic_time_total": 70.29836145009908,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:10|iq:plastica_y_reparadora",
+                "s:11|iq:traumatologia",
+                "s:12|iq:otorrinolaringologia",
+                "s:13|cne_medical:ginecologia_oncologica",
+                "s:13|iq:dermatologia",
+                "s:13|iq:urologia_y_nefrologia",
+                "s:14|iq:plastica_y_reparadora",
+                "s:15|iq:cirugia_de_cabeza_y_cuello",
+                "s:16|cne_medical:neurologia_adulto",
+                "s:16|cne_medical:oftalmologia",
+                "s:16|cne_medical:urologia",
+                "s:16|iq:cirugia_digestiva",
+                "s:16|iq:otorrinolaringologia",
+                "s:17|iq:traumatologia",
+                "s:17|iq:urologia_y_nefrologia",
+                "s:18|iq:plastica_y_reparadora",
+                "s:19|iq:traumatologia",
+                "s:20|iq:cirugia_digestiva",
+                "s:21|iq:neurocirugia",
+                "s:23|iq:traumatologia",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia",
+                "s:5|iq:urologia_y_nefrologia",
+                "s:6|iq:neurocirugia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:8|iq:otorrinolaringologia",
+                "s:9|cne_medical:ginecologia_oncologica",
+                "s:9|cne_medical:oftalmologia"
+              ],
+              "still_reached": [
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0016092488309348697,
+            "gap_by_phase": {
+              "3a": 0.00014756104620383714,
+              "3b": 0.0018421287880099036
+            },
+            "largest_subproblem_pairs": 4443,
+            "max_constraints": 2268,
+            "max_variables": 5216,
+            "overbooking_levels_kept": 380,
+            "overbooking_levels_nominal": 1566,
+            "pairs_in_model": 37748,
+            "solve_wall_s": 71.13261970796157,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 11.818451289511772,
+                "phases": 104,
+                "subproblems": 36,
+                "wall_time_s": 12.182232
+              },
+              "plan": {
+                "deterministic_time": 58.4799101605873,
+                "phases": 583,
+                "subproblems": 188,
+                "wall_time_s": 54.763310000000004
+              }
+            },
+            "status": "FEASIBLE",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 157
+              },
+              "2": {
+                "OPTIMAL": 108
+              },
+              "3a": {
+                "OPTIMAL": 188
+              },
+              "3b": {
+                "FEASIBLE": 8,
+                "OPTIMAL": 57
+              },
+              "4": {
+                "OPTIMAL": 65
+              }
+            },
+            "subproblems": 188,
+            "symmetry_block_classes": 32,
+            "symmetry_blocks_in_classes": 70,
+            "symmetry_entries_in_classes": 124,
+            "symmetry_entry_classes": 61,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 36254215,
+          "wall_time_s_runs": [
+            71.13261970796157
+          ]
+        },
+        "without_warm_start_frontier": {
+          "flags": {
+            "warm_start_frontier": false
+          },
+          "ges_met": 700,
+          "ges_obligated": 1978,
+          "ges_on_time": 227,
+          "overbooked_flags": 276,
+          "q1_scheduled": 2231,
+          "scheduled": 7244,
+          "scheduled_cne": 6540,
+          "scheduled_or": 704,
+          "solver": {
+            "candidates": 18568,
+            "deterministic_plan_within_time_limit": true,
+            "deterministic_time_plan": 64.98350685095161,
+            "deterministic_time_total": 75.08386014008008,
+            "frontier": {
+              "expanded": true,
+              "reached": [
+                "s:10|iq:dermatologia",
+                "s:10|iq:plastica_y_reparadora",
+                "s:11|iq:traumatologia",
+                "s:12|iq:otorrinolaringologia",
+                "s:13|cne_medical:ginecologia_oncologica",
+                "s:13|iq:dermatologia",
+                "s:13|iq:urologia_y_nefrologia",
+                "s:14|iq:plastica_y_reparadora",
+                "s:15|iq:cirugia_de_cabeza_y_cuello",
+                "s:16|cne_medical:neurologia_adulto",
+                "s:16|cne_medical:oftalmologia",
+                "s:16|cne_medical:urologia",
+                "s:16|iq:cirugia_digestiva",
+                "s:16|iq:otorrinolaringologia",
+                "s:17|iq:traumatologia",
+                "s:17|iq:urologia_y_nefrologia",
+                "s:18|iq:plastica_y_reparadora",
+                "s:19|iq:traumatologia",
+                "s:20|iq:cirugia_digestiva",
+                "s:21|iq:neurocirugia",
+                "s:23|iq:traumatologia",
+                "s:23|iq:urologia_y_nefrologia",
+                "s:24|iq:dermatologia",
+                "s:29|iq:urologia_y_nefrologia",
+                "s:2|iq:traumatologia",
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia",
+                "s:5|iq:urologia_y_nefrologia",
+                "s:6|iq:neurocirugia",
+                "s:6|iq:urologia_y_nefrologia",
+                "s:8|iq:otorrinolaringologia",
+                "s:9|cne_medical:ginecologia_oncologica",
+                "s:9|cne_medical:oftalmologia"
+              ],
+              "still_reached": [
+                "s:33|iq:traumatologia",
+                "s:3|iq:traumatologia"
+              ]
+            },
+            "gap": 0.0017897606492689481,
+            "gap_by_phase": {
+              "3a": 0.00016635893154973963,
+              "3b": 0.0020523724468959306
+            },
+            "largest_subproblem_pairs": 4443,
+            "max_constraints": 2269,
+            "max_variables": 5216,
+            "overbooking_levels_kept": 380,
+            "overbooking_levels_nominal": 1566,
+            "pairs_in_model": 37748,
+            "solve_wall_s": 72.14448854100192,
+            "solve_wall_within_time_limit": true,
+            "solver_time": {
+              "discarded_first_pass": {
+                "deterministic_time": 10.100353289128465,
+                "phases": 104,
+                "subproblems": 36,
+                "wall_time_s": 10.196072000000001
+              },
+              "plan": {
+                "deterministic_time": 64.98350685095161,
+                "phases": 583,
+                "subproblems": 188,
+                "wall_time_s": 57.573955000000005
+              }
+            },
+            "status": "FEASIBLE",
+            "status_by_phase": {
+              "1": {
+                "OPTIMAL": 157
+              },
+              "2": {
+                "OPTIMAL": 108
+              },
+              "3a": {
+                "OPTIMAL": 188
+              },
+              "3b": {
+                "FEASIBLE": 9,
+                "OPTIMAL": 56
+              },
+              "4": {
+                "OPTIMAL": 65
+              }
+            },
+            "subproblems": 188,
+            "symmetry_block_classes": 32,
+            "symmetry_blocks_in_classes": 70,
+            "symmetry_entries_in_classes": 124,
+            "symmetry_entry_classes": 61,
+            "warnings_worse_than_baseline": 0
+          },
+          "sum_coef": 36253484,
+          "wall_time_s_runs": [
+            72.14448854100192
+          ]
+        }
+      },
+      "optimized_vs_priority": {
+        "delta": {
+          "ges_met": 175,
+          "ges_on_time": 187,
+          "q1_scheduled": 7,
+          "scheduled": 328,
+          "scheduled_cne": 276,
+          "scheduled_or": 52,
+          "sum_coef": 1358106
+        },
+        "lexicographic_optimized": [
+          2231,
+          700,
+          36252936
+        ],
+        "lexicographic_priority": [
+          2224,
+          525,
+          34894830
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.3333333333333333,
+          "ges_on_time": 4.675,
+          "q1_scheduled": 0.003147482014388489,
+          "scheduled": 0.04742625795257374,
+          "scheduled_cne": 0.044061302681992334,
+          "scheduled_or": 0.07975460122699386,
+          "sum_coef": 0.03891997754395135
+        }
+      },
+      "optimized_without_overbooking": {
+        "ges_met": 700,
+        "ges_obligated": 1978,
+        "ges_on_time": 227,
+        "overbooked_flags": 0,
+        "q1_scheduled": 2231,
+        "scheduled": 6968,
+        "scheduled_cne": 6264,
+        "scheduled_or": 704,
+        "solver": {
+          "candidates": 18514,
+          "deterministic_plan_within_time_limit": true,
+          "deterministic_time_plan": 2.712353549930362,
+          "deterministic_time_total": 3.2005424805578375,
+          "frontier": {
+            "expanded": true,
+            "reached": [
+              "s:10|iq:dermatologia",
+              "s:10|iq:plastica_y_reparadora",
+              "s:11|iq:traumatologia",
+              "s:12|iq:otorrinolaringologia",
+              "s:13|cne_medical:ginecologia_oncologica",
+              "s:13|iq:dermatologia",
+              "s:13|iq:urologia_y_nefrologia",
+              "s:14|iq:plastica_y_reparadora",
+              "s:15|iq:cirugia_de_cabeza_y_cuello",
+              "s:16|cne_medical:oftalmologia",
+              "s:16|iq:cirugia_digestiva",
+              "s:16|iq:otorrinolaringologia",
+              "s:17|iq:traumatologia",
+              "s:17|iq:urologia_y_nefrologia",
+              "s:18|iq:plastica_y_reparadora",
+              "s:19|iq:traumatologia",
+              "s:20|iq:cirugia_digestiva",
+              "s:21|iq:neurocirugia",
+              "s:23|iq:traumatologia",
+              "s:23|iq:urologia_y_nefrologia",
+              "s:24|iq:dermatologia",
+              "s:29|iq:urologia_y_nefrologia",
+              "s:2|iq:traumatologia",
+              "s:33|iq:traumatologia",
+              "s:3|iq:traumatologia",
+              "s:5|iq:urologia_y_nefrologia",
+              "s:6|iq:neurocirugia",
+              "s:6|iq:urologia_y_nefrologia",
+              "s:8|iq:otorrinolaringologia",
+              "s:9|cne_medical:ginecologia_oncologica",
+              "s:9|cne_medical:oftalmologia"
+            ],
+            "still_reached": [
+              "s:33|iq:traumatologia",
+              "s:3|iq:traumatologia"
+            ]
+          },
+          "gap": 0.0002036626233537141,
+          "gap_by_phase": {
+            "3a": 0.0002036626233537141,
+            "3b": null
+          },
+          "largest_subproblem_pairs": 4389,
+          "max_constraints": 984,
+          "max_variables": 4428,
+          "overbooking_levels_kept": 0,
+          "overbooking_levels_nominal": 0,
+          "pairs_in_model": 37694,
+          "solve_wall_s": 6.46869524999056,
+          "solve_wall_within_time_limit": true,
+          "solver_time": {
+            "discarded_first_pass": {
+              "deterministic_time": 0.4881889306274755,
+              "phases": 100,
+              "subproblems": 36,
+              "wall_time_s": 0.9741780000000001
+            },
+            "plan": {
+              "deterministic_time": 2.712353549930362,
+              "phases": 518,
+              "subproblems": 188,
+              "wall_time_s": 3.34541
+            }
+          },
+          "status": "OPTIMAL",
+          "status_by_phase": {
+            "1": {
+              "OPTIMAL": 157
+            },
+            "2": {
+              "OPTIMAL": 108
+            },
+            "3a": {
+              "OPTIMAL": 188
+            },
+            "4": {
+              "OPTIMAL": 65
+            }
+          },
+          "subproblems": 188,
+          "symmetry_block_classes": 32,
+          "symmetry_blocks_in_classes": 70,
+          "symmetry_entries_in_classes": 124,
+          "symmetry_entry_classes": 61,
+          "warnings_worse_than_baseline": 0
+        },
+        "sum_coef": 35170944
+      },
+      "optimized_without_overbooking_vs_priority": {
+        "delta": {
+          "ges_met": 175,
+          "ges_on_time": 187,
+          "q1_scheduled": 7,
+          "scheduled": 52,
+          "scheduled_cne": 0,
+          "scheduled_or": 52,
+          "sum_coef": 276114
+        },
+        "lexicographic_optimized": [
+          2231,
+          700,
+          35170944
+        ],
+        "lexicographic_priority": [
+          2224,
+          525,
+          34894830
+        ],
+        "optimized_not_worse_lexicographic": true,
+        "relative": {
+          "ges_met": 0.3333333333333333,
+          "ges_on_time": 4.675,
+          "q1_scheduled": 0.003147482014388489,
+          "scheduled": 0.007518796992481203,
+          "scheduled_cne": 0.0,
+          "scheduled_or": 0.07975460122699386,
+          "sum_coef": 0.007912748106238087
+        }
+      },
+      "problem": {
+        "blocks_cne": 522,
+        "blocks_or": 327,
+        "capacity_cne_units": 6264,
+        "capacity_or_min": 100062,
+        "entries": 50000,
+        "entries_with_pairs": 38450,
+        "ges_obligated": 1978,
+        "pairs_all": 42450000,
+        "pairs_compatible": 80124,
+        "pairs_same_queue": 81016
+      },
+      "size": 50000,
+      "times_s": {
+        "build_instance": 1.0494910419802181,
+        "generate": 1.0148403330240399,
+        "train_noshow": 2.7306973329978064
+      }
+    }
+  ],
+  "code_version": "scheduler-0.1.0",
+  "config_defaults": {
+    "candidate_margin": 2.0,
+    "commit_weeks": 1,
+    "decomposition": "auto",
+    "expand_on_frontier": true,
+    "ges_min_lead_days": 2,
+    "group_limits": {
+      "dimensions": [
+        "age_group",
+        "insurance",
+        "commune_code"
+      ],
+      "enabled": true,
+      "max_gap_pp": 5.0,
+      "max_share": null,
+      "min_group_n": 30,
+      "mode": "relative"
+    },
+    "horizon_weeks": 4,
+    "match_level": "health_service",
+    "max_pairs_per_subproblem": 400000,
+    "max_per_patient_per_day": 1,
+    "min_lead_days": 7,
+    "or_max_fill": 0.85,
+    "or_standby_size": 3,
+    "or_turnover_min": 30,
+    "overbooking": {
+      "alpha": 0.1,
+      "enabled": true,
+      "max_fraction": 0.25,
+      "p_clip_high": 0.95,
+      "p_clip_low": 0.001
+    },
+    "solver": {
+      "deterministic": true,
+      "hints": true,
+      "linearization_level": 2,
+      "log_search_progress": false,
+      "num_workers": 8,
+      "objective_cut": true,
+      "overbooking_hint": true,
+      "prune_overbooking_levels": true,
+      "relative_gap_limit": 0.001,
+      "symmetry_breaking": true,
+      "warm_start_frontier": true
+    },
+    "time_limit_s": 120.0,
+    "weights": {
+      "balance_tolerance": 0.0,
+      "earliness": 0.05,
+      "ges_delay_points_per_day": 1.0
+    }
+  },
+  "disclaimer": "Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.",
+  "generated_at": "2026-10-09T04:36:05+00:00",
+  "machine": {
+    "cpu_count": 8,
+    "machine": "arm64",
+    "ortools": "9.15.6755",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "polars": "1.44.2",
+    "processor": "arm",
+    "python": "3.12.13"
+  },
+  "repeats_all": 3,
+  "scenario": "baseline",
+  "seed": 42,
+  "time_limit_s": 120.0,
+  "variants": {
+    "all": {},
+    "none": {
+      "hints": false,
+      "objective_cut": false,
+      "overbooking_hint": false,
+      "prune_overbooking_levels": false,
+      "symmetry_breaking": false,
+      "warm_start_frontier": false
+    },
+    "without_hints": {
+      "hints": false
+    },
+    "without_objective_cut": {
+      "objective_cut": false
+    },
+    "without_overbooking_hint": {
+      "overbooking_hint": false
+    },
+    "without_prune_overbooking_levels": {
+      "prune_overbooking_levels": false
+    },
+    "without_symmetry_breaking": {
+      "symmetry_breaking": false
+    },
+    "without_warm_start_frontier": {
+      "warm_start_frontier": false
+    }
+  }
+}

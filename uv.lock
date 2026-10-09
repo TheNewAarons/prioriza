@@ -1383,6 +1383,7 @@ dependencies = [
     { name = "priority" },
     { name = "pydantic" },
     { name = "shared" },
+    { name = "synthetic" },
     { name = "typer" },
 ]
 
@@ -1395,6 +1396,7 @@ requires-dist = [
     { name = "priority", editable = "priority" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "shared", editable = "shared" },
+    { name = "synthetic", editable = "synthetic" },
     { name = "typer", specifier = ">=0.12" },
 ]
 

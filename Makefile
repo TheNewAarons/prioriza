@@ -1,4 +1,4 @@
-.PHONY: up down migrate ingest synth train-noshow schedule simulate report dashboard test lint typecheck format sync hooks help
+.PHONY: up down migrate ingest synth train-noshow schedule bench-scheduler simulate report dashboard test lint typecheck format sync hooks help
 
 up:
 	@[ -f .env ] || cp .env.example .env
@@ -30,6 +30,11 @@ SCHEDULE_ARGS ?=
 
 schedule:
 	uv run --package scheduler prioriza-schedule --weeks $(WEEKS) --seed $(SEED) --size $(SIZE) --scenario $(SCENARIO) $(SCHEDULE_ARGS)
+
+BENCH_ARGS ?=
+
+bench-scheduler:
+	uv run --package scheduler prioriza-schedule-bench $(BENCH_ARGS)
 
 simulate:
 	@echo "simulate: pendiente"
@@ -69,6 +74,7 @@ help:
 	@echo "  synth              Genera población sintética calibrada"
 	@echo "  train-noshow       Entrena y calibra el modelo de inasistencias"
 	@echo "  schedule           Corre el programador CP-SAT"
+	@echo "  bench-scheduler    Benchmark del programador CP-SAT"
 	@echo "  simulate           Compara políticas con SimPy"
 	@echo "  report             Genera docs/results.md y .html"
 	@echo "  dashboard          Levanta el panel Dash"

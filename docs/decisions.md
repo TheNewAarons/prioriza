@@ -234,6 +234,23 @@ Formulación completa en [scheduler-formulation.md](scheduler-formulation.md); e
 - **Persistencia sin tocar la lista**: `--persist` guarda `schedule_run` (pendiente de revisión) y sus `appointment`, pero no cambia `waitlist_entry.status`, porque el plan no está aprobado.
 - **Corrección del ejemplo §13**: la variante con GES infactible tenía mal el objetivo (16.772). Cambiar el plazo de E cambia su puntaje P4, y el objetivo correcto es 17.271.
 
+
+## 11. Benchmark y rendimiento del programador
+
+**Fecha**: 2026-10-09
+
+Técnicas en [scheduler-formulation.md §8.6](scheduler-formulation.md#86-técnicas-de-rendimiento-p9); resultados en [scheduler-performance.md](scheduler-performance.md) y `results/scheduler-benchmark.json` (`make bench-scheduler`).
+
+**Dependencias**: `synthetic` (miembro del workspace) pasa a ser dependencia directa de `scheduler`, solo para `scheduler.bench`, que genera las poblaciones del benchmark con `synthetic.pipeline.generate`. No agrega nada al entorno: `scheduler` ya dependía de `noshow`, que depende de `synthetic`. Sin `py.typed`, sus imports llevan `# type: ignore[import-untyped]`. El núcleo del programador sigue sin importarlo.
+
+**Decisiones**:
+- **Oferta del benchmark generada para el horizonte.** Con la oferta de 26 semanas del generador, las corridas de 1.000 y 10.000 entradas tienen 0-1 y 25-59 bloques en las primeras 2-4 semanas (artefacto de `_week_slots`, formulación §11.2): el benchmark mediría problemas triviales. El benchmark genera sus propias corridas con `horizon_weeks` del generador igual a las semanas del plan (la misma oferta semanal, repartida en el horizonte), en `data/bench/` para no crear corridas ambiguas en `data/synthetic/` (`find_run_dir` exige una por semilla, tamaño y escenario). No corrige el generador; esa corrección sigue pendiente antes de la simulación.
+- **La corrida de 1.000 no pasa la calibración estricta del generador** (dos chequeos de medianas nacionales, por tamaño de muestra). Se usa igual, porque el benchmark mide al programador y no la calibración; el JSON registra los chequeos que fallan.
+- **Técnicas activas por defecto, con interruptores solo para medir.** Ninguna cambia el valor óptimo de una fase (lo prueba `test_techniques_do_not_change_optimum` con brecha 0). Con brecha positiva o límite de tiempo, sí pueden cambiar el plan entregado, en cualquier dirección: el benchmark lo reporta por variante.
+- **`canonicalize` no hace nada si `symmetry_breaking` está apagado**: con simetrías apagadas, permutar entradas idénticas podía sacar de la pista a una entrada de `S0` (hallazgo de la revisión).
+- **Comparación con la voraz sin sobrecupo.** El orden lexicográfico de §9.5 (p1 agendados, GES cumplidas, suma de `c_ib`) se evalúa con `optimized` sin sobrecupo, igual que la voraz; las diferencias del plan con sobrecupo se informan una a una, sin agregarlas.
+- **Tiempo determinista como medida principal.** El tiempo real de un mismo plan determinista varió entre 63 y 98 s en la celda mayor durante el desarrollo (M1 con otros procesos activos). El benchmark registra el tiempo real de todo `solve` (mediana de 3 repeticiones de la variante completa; las ablaciones corren una vez) y el tiempo determinista de CP-SAT, del plan y total con las pasadas descartadas por la frontera.
+
 ---
 
 ## Referencias

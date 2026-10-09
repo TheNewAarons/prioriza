@@ -134,3 +134,89 @@ las tablas desde PostgreSQL o parquet. Estas son las interfaces reales del repo 
   Nombres de tests pasados a inglés (CLAUDE.md).
 - Pendiente: revisión de `reviewer` sobre `scheduler/` antes del siguiente prompt (CLAUDE.md); corregir la oferta
   sintética (§11.2) antes de la simulación.
+
+## P9: benchmark y rendimiento del programador (`scheduler/`)
+
+Rama: `feat/scheduler-cpsat` (sigue sobre P8).
+
+- [x] P9-T1 (Asignada a: Tier 1 - Claude) -> Hecha: `scheduler/bench.py` (CLI `prioriza-schedule-bench`),
+  técnicas nuevas en `cpsat.py`/`phases.py` (poda de niveles de sobrecupo, cota del objetivo con la pista, pista voraz
+  con sobrecupo para 3b, arranque en caliente al expandir la frontera) con interruptores en `SolverConfig` para la
+  ablación; `results/scheduler-benchmark.json`.
+- [x] P9-T2 (Asignada a: Tier 3 - Kimi) -> Hecha (Kimi): target `make bench-scheduler`.
+- [x] P9-T3 (Asignada a: Tier 3 - Kimi) -> Hecha (Kimi): `docs/scheduler-performance.md` desde
+  `results/scheduler-benchmark.json`, sin cambiar números.
+
+### P9-T2: instrucciones
+
+Agregar al `Makefile` un target `bench-scheduler` que corra
+`uv run --package scheduler prioriza-schedule-bench $(BENCH_ARGS)` (variable `BENCH_ARGS ?=` vacía por defecto,
+igual que `SCHEDULE_ARGS`), agregarlo a `.PHONY` y a `make help` ("Benchmark del programador CP-SAT"). La CLI ya
+existe: por defecto tamaños 1000,10000,50000, horizontes 2,4, ablación activa, 3 repeticiones, datos en `data/bench/`
+y salida `results/scheduler-benchmark.json`. Agregar `data/bench/` a `.gitignore` (datos reproducibles, como
+`data/synthetic/`). No correr el benchmark (tarda ~20 min); verificar con `make -n bench-scheduler` y
+`uv run --package scheduler prioriza-schedule-bench --help`. No commitear.
+
+### Log
+
+- 2026-10-09, Tier 1 (P9-T1): con la oferta de 26 semanas del generador, las corridas de 1.000 y 10.000 tienen 0-1 y
+  25-59 bloques en 2-4 semanas (artefacto §11.2 de la formulación): el benchmark sería trivial. Se generan corridas
+  propias con `horizon_weeks` del generador = semanas del plan (oferta repartida en el horizonte) en `data/bench/`.
+  Medición previa (código de `6688d66`, 50k × 4 sem): 125 s reales, FEASIBLE, brecha 1,68 %; ~34 s de solver se
+  gastaban en componentes que la expansión de frontera re-resolvía desde cero y no salían en el informe.
+- 2026-10-09, Tier 3 (P9-T2, Kimi): agregado target `make bench-scheduler` al `Makefile` (con `BENCH_ARGS ?=` vacío,
+  en `.PHONY` y en `make help` como "Benchmark del programador CP-SAT") y `data/bench/` al `.gitignore`. Verificado
+  con `make -n bench-scheduler` y `uv run --package scheduler prioriza-schedule-bench --help`; no se corrió el
+  benchmark (~20 min). Sin commit.
+- 2026-10-09, Tier 1 (revisión de P9-T1 por `reviewer`, opus): sin hallazgos ALTOS. Corregidos MEDIO 1 (`canonicalize`
+  con simetrías apagadas podía violar R12 en la pista), MEDIO 2 (comparación lexicográfica: ahora con `optimized` sin
+  sobrecupo frente a la voraz), MEDIO 3 (dependencia `synthetic` en `docs/decisions.md` §11), MEDIO 4 (métricas de
+  tiempo con nombres explícitos: reloj de `solve`, determinista del plan y total), MEDIO 5 (tests: comparación por
+  fase y subproblema con conteo de casos comparados, modo de equidad absoluto, expansión de frontera, pista canónica,
+  CLI con límite corto), BAJO 6-10. El benchmark en curso se detuvo y se relanzó con los arreglos.
+
+- 2026-10-09, Tier 1 (P9-T1): la ablación `none` (sin pistas) en 50k × 4 sem tumbó el benchmark: `_check_against_greedy`
+  lanzaba error porque un subproblema quedó 3 puntos (0,005 %) bajo la voraz con todas las fases en OPTIMAL. Defecto
+  previo a P9: OPTIMAL con `relative_gap_limit = 0,001` no es óptimo probado. Ahora es error solo si la pérdida está en
+  p1/GES o la fase 3a tiene brecha 0; si no, advertencia `worse_than_baseline` (formulación §9.5 actualizada).
+- 2026-10-09, Tier 3 (P9-T3, Kimi): escrito `docs/scheduler-performance.md` (6 secciones, estilo model card, aviso
+  obligatorio) solo con números de `results/scheduler-benchmark.json` (máx. 3 cifras significativas en tiempos/brechas,
+  enteros exactos). Reportados tal cual: empate total en 1.000 × 2, `sum_coef` −24 sin sobrecupo en 10.000 × 2,
+  `without_hints` mejor que `all` en 50.000 × 4 (36.270.505, 70,6 deterministas) y la advertencia
+  `worse_than_baseline` de `none`. Sin commit.
+
+- 2026-10-09, Tier 1 (P9-T1, resultados): `results/scheduler-benchmark.json`. 10.000 entradas: OPTIMAL en 0,17 s
+  (2 sem) y 0,41 s (4 sem), brecha ≤ 3,6e-7. 50.000 × 4: FEASIBLE, brecha 0,18 %, 76 s reales / 78 det. Frente a la
+  voraz `priority`, sin sobrecupo y en orden lexicográfico, nunca peor; en 10.000 × 2 la suma de `c_ib` queda 24 puntos
+  bajo la voraz (gana 7 GES). En la ablación de 50.000 × 4, apagar las pistas dio mejor objetivo (+0,05 %) y menos
+  tiempo; se informa tal cual. Corrida canónica 100k × 4 rehecha (formulación §11.3): 5.952 agendadas (P8: 5.843),
+  144 sobrecupos (P8: 40), exposición al sobrecupo 38-41 % (P8: 10-13 %), 166 s reales (P8: 143 s; sigue sin cumplir
+  120 s). Pendiente: presupuesto de tiempo global (hoy es por pasada y la expansión de frontera lo duplica).
+- 2026-10-09, Tier 1 (revisión de P9-T3): corregidas en `docs/scheduler-performance.md` la descripción del límite de
+  tiempo y de los hilos, la definición de los pares, la frontera (sí sigue alcanzada en 50.000: 3 y 2 colas), la
+  afirmación de que en 10.000 todas las variantes dan el mismo objetivo (en 10.000 × 4 varían 129 puntos) y una
+  referencia equivocada.
+### P9-T3: instrucciones
+
+Escribir `docs/scheduler-performance.md` (español, estilo de `docs/noshow-model-card.md`) solo con números de
+`results/scheduler-benchmark.json`, copiados sin redondear de forma que cambie su sentido (máx. 3 cifras significativas
+en tiempos y brechas; enteros exactos). Aviso obligatorio al inicio. Secciones:
+1. Qué se mide y cómo: celdas (tamaño × horizonte), oferta generada para el horizonte (`docs/decisions.md` §11), semilla,
+   límite de tiempo, máquina (`machine`), qué es tiempo real (`solve_wall_s`, mediana de `repeats_all`) y determinista
+   (`deterministic_time_plan` y `_total`). Que la corrida de 1.000 no pasa la calibración estricta (`data.calibration_strict_failed`).
+2. Tamaño del problema por celda: entradas, bloques CNE/pabellón, `pairs_all`, `pairs_same_queue`, `pairs_compatible`,
+   `pairs_in_model`, subproblemas, subproblema mayor, máx. variables, niveles de sobrecupo nominales vs conservados,
+   clases de simetría.
+3. Tiempo, estado y brecha de `optimized/all` por celda, con `solve_wall_within_time_limit` y
+   `deterministic_plan_within_time_limit`. Decir explícitamente si el tamaño medio (10.000) se resuelve dentro del límite y con qué brecha.
+4. Comparación con la voraz `priority`: tabla de `optimized_vs_priority.delta` (con sobrecupo) y de
+   `optimized_without_overbooking_vs_priority` (delta y `optimized_not_worse_lexicographic`). Reportar tal cual las
+   diferencias pequeñas, nulas o negativas (p. ej. `sum_coef` negativo en alguna celda) y explicar que el orden
+   lexicográfico prioriza p1 y GES antes que el puntaje.
+5. Ablación (celdas de 50.000, y nota de que en 1.000/10.000 todas las variantes dan lo mismo o casi): por variante
+   estado, brecha, `deterministic_time_total`, `sum_coef`, `scheduled`, `warnings_worse_than_baseline`. Reportar tal cual
+   cuando apagar una técnica da mejor objetivo o menos tiempo (p. ej. `without_hints` en 50.000 × 4).
+6. Limitaciones: tiempos de una máquina; brecha de 3b mide en parte la cota; artefactos de la oferta sintética
+   (formulación §11.2); el benchmark no corrige el generador.
+No inventar cifras ni causas que no estén en el JSON o en `docs/scheduler-formulation.md` §8.6/§11 y `docs/decisions.md` §11.
+No tocar otros archivos salvo TASK_PLAN.md (marcar P9-T3 y log). No commitear.
