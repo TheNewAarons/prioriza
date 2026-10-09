@@ -27,6 +27,7 @@ from scheduler.cpsat import (
     coef_sum,
     objective_value,
     overbook_levels,
+    overbooking_fill,
     satisfies,
     solve_phase,
     unmet_ges,
@@ -87,6 +88,9 @@ class SolveOutput:
     subs: list[SubResult]
     warnings: list[str]
     frontier: dict[str, Any]
+    # Subproblemas de la primera pasada que la expansión de frontera reemplazó: no aportan al
+    # plan, pero su tiempo de solver cuenta en el informe.
+    discarded: list[SubResult] = field(default_factory=list)
 
     @property
     def solution(self) -> frozenset[int]:
@@ -107,23 +111,31 @@ def _better(objective: str, a: float, b: float) -> bool:
 class _PhaseRunner:
     """Ejecuta las fases de un subproblema con reparto y arrastre del presupuesto (§8.5)."""
 
-    def __init__(self, ctx: SubContext, result: SubResult, seed: int) -> None:
+    def __init__(
+        self, ctx: SubContext, result: SubResult, seed: int, warm: frozenset[int] | None = None
+    ) -> None:
         self.ctx = ctx
         self.result = result
         self.seed = seed
         self.carry = 0.0
         self.current = result.greedy
+        self.source = "voraz"
+        # Pistas alternativas sin sobrecupo: se usan si cumplen lo fijado y son mejores.
+        self.alternatives: list[tuple[frozenset[int], str]] = [(result.greedy, "voraz")]
+        if warm is not None:
+            self.alternatives.append((warm, "primera pasada"))
 
     def run(self, spec: PhaseSpec, share: float) -> PhaseOutcome:
         budget = share * self.result.budget + self.carry
         budget = max(budget, 0.01)
-        hint, source = self.current, "fase anterior" if self.result.phases else "voraz"
-        greedy = self.result.greedy
-        if hint is not greedy and satisfies(self.ctx, spec, greedy):
-            g_val = objective_value(self.ctx, spec.objective, greedy)
-            h_val = objective_value(self.ctx, spec.objective, hint)
-            if _better(spec.objective, g_val, h_val):
-                hint, source = greedy, "voraz"
+        hint, source = self.current, self.source
+        h_val = objective_value(self.ctx, spec.objective, hint)
+        for alt, alt_source in self.alternatives:
+            if alt is hint or not satisfies(self.ctx, spec, alt):
+                continue
+            a_val = objective_value(self.ctx, spec.objective, alt)
+            if _better(spec.objective, a_val, h_val):
+                hint, source, h_val = alt, alt_source, a_val
         hint = canonicalize(self.ctx, hint, spec.overbooking)
         value = objective_value(self.ctx, spec.objective, hint)
         if value == _trivial_bound(self.ctx, spec):
@@ -150,7 +162,13 @@ class _PhaseRunner:
         self.carry = max(0.0, budget - used)
         self.result.phases.append(out)
         self.current = out.solution
+        self.source = "fase anterior"
         return out
+
+    def start_from(self, solution: frozenset[int], source: str) -> None:
+        """Fija la pista de la próxima fase."""
+        self.current = solution
+        self.source = source
 
     def skip(self, share: float) -> None:
         self.carry += share * self.result.budget
@@ -204,15 +222,25 @@ def exposure_shares(
     return share, {q: g_exp[q] / n for q, n in g_total.items() if n}, dict(g_total)
 
 
-def solve_sub(prep: Prepared, sub: Sub, budget: float) -> SubResult:
-    """Fases 0 a 4 de un subproblema (§8.1)."""
+def solve_sub(
+    prep: Prepared, sub: Sub, budget: float, warm: frozenset[int] | None = None
+) -> SubResult:
+    """Fases 0 a 4 de un subproblema (§8.1).
+
+    ``warm`` es una solución sin sobrecupo de una pasada anterior (expansión de frontera); se
+    ofrece como pista en cada fase en la que cumple lo fijado y mejora a la pista vigente.
+    """
     cfg = prep.config
     ctx = SubContext.build(prep, sub)
+    pairs = set(sub.pairs)
     greedy = canonicalize(
-        ctx, greedy_assign(prep, sub.entries, "priority", set(sub.pairs)), overbooking=False
+        ctx, greedy_assign(prep, sub.entries, "priority", pairs), overbooking=False
     )
     result = SubResult(sub=sub, ctx=ctx, budget=budget, greedy=greedy)
-    runner = _PhaseRunner(ctx, result, prep.instance.seed)
+    if warm is not None:
+        warm = canonicalize(ctx, frozenset(p for p in warm if p in pairs), overbooking=False)
+    runner = _PhaseRunner(ctx, result, prep.instance.seed, warm)
+    fill = cfg.solver.overbooking_hint
     fix = Fixings()
 
     # Fase 1: cesión a p1.
@@ -250,6 +278,8 @@ def solve_sub(prep: Prepared, sub: Sub, budget: float) -> SubResult:
             caps = dict.fromkeys(limited, gl.max_share)
         half = PHASE_SHARES["3b"] / 2 if limited and gl.mode == "relative" else PHASE_SHARES["3b"]
         sol_3a = out.solution
+        if fill:
+            runner.start_from(overbooking_fill(ctx, sol_3a, caps), "voraz con sobrecupo")
         out = runner.run(PhaseSpec("3b", "score", True, fix3b, caps), half)
         share, shares, totals = exposure_shares(prep, out.solution, ctx.entry_groups)
         result.fairness_passes.append(
@@ -259,7 +289,11 @@ def solve_sub(prep: Prepared, sub: Sub, budget: float) -> SubResult:
             bound = share + gl.max_gap_pp / 100.0
             if any(shares.get(q, 0.0) > bound + 1e-12 for q in limited):
                 caps = dict.fromkeys(limited, bound)
-                runner.current = sol_3a  # 3a cumple cualquier tope: exposición 0
+                # 3a cumple cualquier tope (exposición 0); la voraz agrega respetando los topes.
+                if fill:
+                    runner.start_from(overbooking_fill(ctx, sol_3a, caps), "voraz con sobrecupo")
+                else:
+                    runner.start_from(sol_3a, "fase 3a")
                 out = runner.run(PhaseSpec("3b", "score", True, fix3b, caps), half)
                 share, shares, totals = exposure_shares(prep, out.solution, ctx.entry_groups)
                 result.fairness_passes.append(
@@ -340,8 +374,15 @@ def _check_against_greedy(r: SubResult) -> None:
             f"subproblema {r.sub.label}: plan {plan_vec} peor que la voraz {greedy_vec} "
             "en orden lexicográfico"
         )
-        if r.all_optimal():
+        # Las fases 1 y 2 se resuelven sin brecha; la 3a, con ``relative_gap_limit``, y CP-SAT
+        # declara OPTIMAL al alcanzarla. Solo es error si el óptimo de 3a está probado (brecha 0)
+        # o si la pérdida está en p1 o GES; dentro de la brecha relativa es una advertencia.
+        phase_3a = r.phase("3a")
+        exact_3a = phase_3a is not None and phase_3a.gap == 0.0
+        if r.all_optimal() and (exact_3a or plan_vec[:2] < greedy_vec[:2]):
             raise RuntimeError(msg + " con todas las fases en OPTIMAL (error de implementación)")
+        if r.all_optimal():
+            msg += " (dentro de la brecha relativa de la fase 3a)"
         r.warnings.append("worse_than_baseline: " + msg)
 
 
@@ -349,12 +390,21 @@ def _week_index(prep: Prepared, b: int) -> int:
     return (prep.block(b).local_date - prep.instance.horizon_start).days // 7
 
 
-def _solve_component(prep: Prepared, comp: list[int], label: str, budget: float) -> list[SubResult]:
-    """Resuelve un componente; respaldo por especialidad y luego por semana (§8.3)."""
+def _solve_component(
+    prep: Prepared,
+    comp: list[int],
+    label: str,
+    budget: float,
+    warm: frozenset[int] | None = None,
+) -> list[SubResult]:
+    """Resuelve un componente; respaldo por especialidad y luego por semana (§8.3).
+
+    ``warm`` (pista de una pasada anterior) solo se usa si el componente se resuelve entero.
+    """
     cfg = prep.config
     n_pairs = sum(len(prep.pairs_of_entry.get(i, [])) for i in comp)
     if cfg.decomposition != "specialty" and n_pairs <= cfg.max_pairs_per_subproblem:
-        return [solve_sub(prep, Sub.build(prep, label, comp), budget)]
+        return [solve_sub(prep, Sub.build(prep, label, comp), budget, warm)]
 
     results: list[SubResult] = []
     busy: set[tuple[str, date]] = set()
@@ -459,6 +509,7 @@ def run_optimized(instance: SchedulingInstance, config: SchedulerConfig) -> Solv
             prep, comp, f"c{n}[{label_of(comp)}]", budget_of(comp)
         )
     warnings: list[str] = []
+    discarded: list[SubResult] = []
     solution = frozenset(p for rs in solved.values() for r in rs for p in r.final)
     hit = _frontier_queues(prep, solution)
     frontier: dict[str, Any] = {
@@ -472,15 +523,28 @@ def run_optimized(instance: SchedulingInstance, config: SchedulerConfig) -> Solv
         margins = {q: 2.0 * config.candidate_margin for q in hit}
         select_candidates(prep, config.candidate_margin, margins)
         new_comps = components(prep, prep.candidates)
+        # Cada componente anterior queda dentro de uno nuevo (los candidatos solo crecen).
+        first_pass = {i: key for key in solved for i in key}
         resolved: dict[tuple[int, ...], list[SubResult]] = {}
         for n, comp in enumerate(new_comps):
             key = tuple(comp)
             if key in solved:
                 resolved[key] = solved[key]
-            else:
-                resolved[key] = _solve_component(
-                    prep, comp, f"c{n}x[{label_of(comp)}]", budget_of(comp)
+                continue
+            old = {first_pass[i] for i in comp if i in first_pass}
+            warm: frozenset[int] | None = None
+            if config.solver.warm_start_frontier:
+                warm = frozenset(
+                    p
+                    for k in sorted(old)
+                    for r in solved[k]
+                    if (ph := r.phase("3a")) is not None
+                    for p in ph.solution
                 )
+            discarded.extend(r for k in sorted(old) for r in solved[k])
+            resolved[key] = _solve_component(
+                prep, comp, f"c{n}x[{label_of(comp)}]", budget_of(comp), warm
+            )
         solved = resolved
         solution = frozenset(p for rs in solved.values() for r in rs for p in r.final)
         still = _frontier_queues(prep, solution) & hit
@@ -493,4 +557,6 @@ def run_optimized(instance: SchedulingInstance, config: SchedulerConfig) -> Solv
     subs = [r for rs in solved.values() for r in rs]
     for r in subs:
         warnings.extend(f"{r.sub.label}: {w}" for w in r.warnings)
-    return SolveOutput(prep=prep, subs=subs, warnings=warnings, frontier=frontier)
+    return SolveOutput(
+        prep=prep, subs=subs, warnings=warnings, frontier=frontier, discarded=discarded
+    )

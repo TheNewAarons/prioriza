@@ -111,6 +111,11 @@ class SubContext:
     pairs_by_block: dict[int, list[int]] = field(default_factory=dict)
     patient_day_pairs: list[list[int]] = field(default_factory=list)
     eligible: dict[int, float] = field(default_factory=dict)  # bloque -> p media
+    # Niveles de sobrecupo o ≥ 1 alcanzables por algún conjunto de candidatos del bloque, con
+    # los coeficientes de R10/R11 (alineados con ``pairs_by_block``) y su lado derecho.
+    levels: dict[int, dict[int, tuple[list[int], int]]] = field(default_factory=dict)
+    # Niveles o ≥ 1 de los bloques elegibles antes de podar (suma de O_b), para el informe.
+    levels_nominal: int = 0
     entry_groups: dict[int, tuple[GroupKey, ...]] = field(default_factory=dict)
     # Clases de simetría sin p (fases sin sobrecupo) y con p (fases 3b y 4 con sobrecupo).
     # Las clases con p refinan a las sin p, así que una solución de la fase 3a cumple ambas.
@@ -152,7 +157,12 @@ class SubContext:
                     continue
                 if all(prep.pair_load(p) == 1 and prep.pair_p[p] is not None for p in ps):
                     probs = [prep.pair_p[p] or 0.0 for p in ps]
-                    ctx.eligible[b] = sum(probs) / len(probs)
+                    p_mean = sum(probs) / len(probs)
+                    ctx.levels_nominal += prep.overbook_max[b]
+                    levels = _feasible_levels(prep, b, probs, p_mean)
+                    if levels:
+                        ctx.eligible[b] = p_mean
+                        ctx.levels[b] = levels
 
         dims = cfg.group_limits.dimensions
         for i in sub.entries:
@@ -169,6 +179,39 @@ class SubContext:
                 balance[(blk.specialty_code, blk.resource_kind)].append(b)
         ctx.balance_groups = [bs for _, bs in sorted(balance.items()) if len(bs) >= 2]
         return ctx
+
+
+def _feasible_levels(
+    prep: Prepared, b: int, probs: list[float], p_mean: float
+) -> dict[int, tuple[list[int], int]]:
+    """Niveles ``o ≥ 1`` de sobrecupo del bloque ``b`` que algún conjunto puede cumplir.
+
+    Con ``config.solver.prune_overbooking_levels`` se descartan antes de crear variables los
+    niveles imposibles: menos de ``C_b + o`` candidatos, o la suma de los ``C_b + o`` mayores
+    coeficientes de R10/R11 no alcanza el lado derecho. Ninguna solución usa esos niveles, así
+    que la poda es exacta; ajusta la cota lineal de la fase 3b (sin ella, la relajación supone
+    ``O_b`` sobrecupos en cada bloque). Los niveles con ``theta`` indefinido nunca se crean.
+    """
+    cfg = prep.config
+    cap = prep.capacity[b]
+    alpha = cfg.overbooking.alpha
+    prune = cfg.solver.prune_overbooking_levels
+    out: dict[int, tuple[list[int], int]] = {}
+    for o in range(1, prep.overbook_max[b] + 1):
+        if o == 1:
+            coefs = [coef_one(pr) for pr in probs]
+            rhs = rhs_one(alpha)
+        else:
+            theta = chernoff_theta(p_mean, cap, o)
+            if theta is None:
+                continue
+            coefs = [coef_theta(pr, theta) for pr in probs]
+            rhs = rhs_theta(theta, o, alpha)
+        n = cap + o
+        if prune and (len(coefs) < n or sum(sorted(coefs, reverse=True)[:n]) < rhs):
+            continue
+        out[o] = (coefs, rhs)
+    return out
 
 
 def _block_classes(ctx: SubContext, with_p: bool) -> list[list[int]]:
@@ -326,8 +369,14 @@ def satisfies(ctx: SubContext, spec: PhaseSpec, solution: frozenset[int]) -> boo
 
 
 def canonicalize(ctx: SubContext, solution: frozenset[int], overbooking: bool) -> frozenset[int]:
-    """Lleva una solución a la forma que exigen las restricciones de simetría (§8.4)."""
+    """Lleva una solución a la forma que exigen las restricciones de simetría (§8.4).
+
+    Sin ``config.solver.symmetry_breaking`` devuelve la solución sin cambios: permutar
+    entradas idénticas podría sacar de la pista a una entrada de ``S0`` (R12).
+    """
     prep = ctx.prep
+    if not prep.config.solver.symmetry_breaking:
+        return solution
     chosen = set(solution)
     pair_of: dict[tuple[int, int], int] = {
         (prep.pair_entry[p], prep.pair_block[p]): p for p in ctx.sub.pairs
@@ -355,6 +404,106 @@ def canonicalize(ctx: SubContext, solution: frozenset[int], overbooking: bool) -
             for i in i_list:
                 chosen.add(pair_of[(i, blk)])
                 entry_block[i] = blk
+    return frozenset(chosen)
+
+
+def overbooking_fill(
+    ctx: SubContext,
+    base: frozenset[int],
+    caps: Mapping[GroupKey, float] | None = None,
+) -> frozenset[int]:
+    """Pista voraz de la fase 3b: agrega sobrecupos factibles a la solución ``base`` de 3a.
+
+    Recorre los bloques elegibles por ``(local_date, start_at, slot_id)`` y, en cada uno, agrega
+    de a una la entrada sin cita de mayor ``c_ib`` (desempate: ``entry_id``) cuyo paciente esté
+    libre ese día, mientras el nivel resultante exista y cumpla R10/R11 y los topes R15 de
+    ``caps``. Solo agrega a personas fuera de ``base``, así que cumple R12 y R13 si ``base`` es
+    la solución que define ``S0``. Sin esta pista, 3b parte de la solución de 3a (sobrecupo 0).
+    """
+    prep = ctx.prep
+    chosen = set(base)
+    assigned = {prep.pair_entry[p] for p in base}
+    busy = {
+        (prep.entry(prep.pair_entry[p]).patient_id, prep.block(prep.pair_block[p]).local_date)
+        for p in base
+    }
+    members: dict[int, list[int]] = defaultdict(list)
+    for p in base:
+        members[prep.pair_block[p]].append(p)
+    capped = dict(caps or {})
+    total: dict[GroupKey, int] = defaultdict(int)
+    exposed: dict[GroupKey, int] = defaultdict(int)
+    levels_now = overbook_levels(prep, base)
+    for p in base:
+        b = prep.pair_block[p]
+        if prep.block(b).is_cne:
+            for q in ctx.entry_groups.get(prep.pair_entry[p], ()):
+                total[q] += 1
+                exposed[q] += b in levels_now
+    rho = {q: round_half_up(UTIL_SCALE * r) for q, r in capped.items()}
+
+    def caps_ok(b: int, p: int, newly_exposed: bool) -> bool:
+        if not capped:
+            return True
+        t = dict.fromkeys(capped, 0)
+        e = dict.fromkeys(capped, 0)
+        for q in ctx.entry_groups.get(prep.pair_entry[p], ()):
+            if q in capped:
+                t[q] += 1
+                e[q] += 1
+        if newly_exposed:
+            for m in members[b]:
+                for q in ctx.entry_groups.get(prep.pair_entry[m], ()):
+                    if q in capped:
+                        e[q] += 1
+        return all(
+            UTIL_SCALE * (exposed[q] + e[q]) <= rho[q] * (total[q] + t[q]) for q in capped if e[q]
+        )
+
+    order = sorted(
+        ctx.levels,
+        key=lambda b: (prep.block(b).local_date, prep.block(b).start_at, prep.block(b).slot_id),
+    )
+    for b in order:
+        ps = ctx.pairs_by_block[b]
+        pos = {p: k for k, p in enumerate(ps)}
+        cap = prep.capacity[b]
+        day = prep.block(b).local_date
+        levels = ctx.levels[b]
+        ranked = sorted(
+            ps, key=lambda p: (-prep.pair_coef[p], prep.entry(prep.pair_entry[p]).entry_id)
+        )
+        while True:
+            o = len(members[b]) + 1 - cap
+            if o >= 1 and o not in levels:
+                break
+            if o >= 1:
+                coefs, rhs = levels[o]
+                need = rhs - sum(coefs[pos[m]] for m in members[b])
+            picked: int | None = None
+            for p in ranked:
+                i = prep.pair_entry[p]
+                if i in assigned or (prep.entry(i).patient_id, day) in busy:
+                    continue
+                if o >= 1 and coefs[pos[p]] < need:
+                    continue
+                if caps_ok(b, p, newly_exposed=o == 1):
+                    picked = p
+                    break
+            if picked is None:
+                break
+            i = prep.pair_entry[picked]
+            for q in ctx.entry_groups.get(i, ()):
+                total[q] += 1
+                exposed[q] += o >= 1
+            if o == 1:
+                for m in members[b]:
+                    for q in ctx.entry_groups.get(prep.pair_entry[m], ()):
+                        exposed[q] += 1
+            chosen.add(picked)
+            assigned.add(i)
+            busy.add((prep.entry(i).patient_id, day))
+            members[b].append(picked)
     return frozenset(chosen)
 
 
@@ -389,39 +538,41 @@ class SubModel:
             self.a[i] = sum(x[p] for p in ps)
 
         # R2, R3 y sobrecupo (R7-R11, R13).
-        self.k: dict[int, list[cp_model.IntVar]] = {}
+        # ``k[b]`` solo tiene los niveles posibles (§8.6): el 0 y los de ``ctx.levels``.
+        self.k: dict[int, dict[int, cp_model.IntVar]] = {}
         s0 = fix.s0 or frozenset()
+        prune = cfg.solver.prune_overbooking_levels
         for b in sub.blocks:
             ps = ctx.pairs_by_block[b]
             load = sum(prep.pair_load(p) * x[p] for p in ps)
             cap = prep.capacity[b]
-            if spec.overbooking and b in ctx.eligible:
-                omax = prep.overbook_max[b]
-                ks = [m.new_bool_var(f"k_{b}_{o}") for o in range(omax + 1)]
+            levels = ctx.levels.get(b, {}) if spec.overbooking else {}
+            if prune and levels:
+                # R13: cada sobrecupo lo ocupa alguien fuera de S0.
+                n_new = sum(1 for p in ps if prep.pair_entry[p] not in s0)
+                levels = {o: lv for o, lv in levels.items() if o <= n_new}
+            if levels:
+                ks = {0: m.new_bool_var(f"k_{b}_0")}
+                ks.update({o: m.new_bool_var(f"k_{b}_{o}") for o in levels})
                 self.k[b] = ks
-                m.add_exactly_one(ks)
-                m.add(load <= cap + sum(o * ks[o] for o in range(1, omax + 1)))
+                m.add_exactly_one(ks.values())
+                over = sum(o * ks[o] for o in levels)
+                m.add(load <= cap + over)
                 count = sum(x[p] for p in ps)
-                probs = [prep.pair_p[p] or 0.0 for p in ps]
-                alpha = cfg.overbooking.alpha
-                for o in range(1, omax + 1):
+                for o, (coefs, rhs) in levels.items():
                     m.add(count == cap + o).only_enforce_if(ks[o])
-                    if o == 1:
-                        expr = sum(coef_one(pr) * x[p] for p, pr in zip(ps, probs, strict=True))
-                        m.add(expr >= rhs_one(alpha)).only_enforce_if(ks[o])
-                    else:
-                        theta = chernoff_theta(ctx.eligible[b], cap, o)
-                        if theta is None:
-                            m.add(ks[o] == 0)
-                            continue
-                        expr = sum(
-                            coef_theta(pr, theta) * x[p] for p, pr in zip(ps, probs, strict=True)
-                        )
-                        m.add(expr >= rhs_theta(theta, o, alpha)).only_enforce_if(ks[o])
+                    expr = sum(c * x[p] for p, c in zip(ps, coefs, strict=True))
+                    m.add(expr >= rhs).only_enforce_if(ks[o])
                 added = sum(x[p] for p in ps if prep.pair_entry[p] not in s0)
-                m.add(added >= sum(o * ks[o] for o in range(1, omax + 1)))
+                m.add(added >= over)
                 if fix.overbook_levels is not None:
-                    m.add(ks[fix.overbook_levels.get(b, 0)] == 1)
+                    lvl = fix.overbook_levels.get(b, 0)
+                    if lvl not in ks:
+                        raise RuntimeError(
+                            f"fase {spec.name} de {sub.label}: el nivel fijado {lvl} del bloque "
+                            f"{prep.block(b).slot_id} fue podado (error de implementación)"
+                        )
+                    m.add(ks[lvl] == 1)
             else:
                 m.add(load <= cap)
 
@@ -458,23 +609,36 @@ class SubModel:
             self._group_limits(spec.group_caps)
 
         # Simetrías (§8.4).
-        for cls in ctx.block_classes[spec.overbooking]:
-            loads = [sum(prep.pair_load(p) * x[p] for p in ctx.pairs_by_block[b]) for b in cls]
-            for hi, lo in pairwise(loads):
-                m.add(hi >= lo)
-        for cls in ctx.entry_classes[spec.overbooking]:
-            for i, j in pairwise(cls):
-                m.add(self.a[i] >= self.a[j])
+        if cfg.solver.symmetry_breaking:
+            for cls in ctx.block_classes[spec.overbooking]:
+                loads = [sum(prep.pair_load(p) * x[p] for p in ctx.pairs_by_block[b]) for b in cls]
+                for hi, lo in pairwise(loads):
+                    m.add(hi >= lo)
+            for cls in ctx.entry_classes[spec.overbooking]:
+                for i, j in pairwise(cls):
+                    m.add(self.a[i] >= self.a[j])
 
         # Objetivo de la fase.
+        self.objective_expr: cp_model.LinearExprT
         if spec.objective == "q1":
-            m.maximize(sum(self.a[i] for i in sub.entries if i in prep.q1))
+            self.objective_expr = sum(self.a[i] for i in sub.entries if i in prep.q1)
         elif spec.objective == "ges":
-            m.minimize(sum(self.v.values()))
+            self.objective_expr = sum(self.v.values())
         elif spec.objective == "score":
-            m.maximize(self.coef_expr)
+            self.objective_expr = self.coef_expr
         else:
-            m.minimize(self._balance_expr())
+            self.objective_expr = self._balance_expr()
+        if _maximizes(spec.objective):
+            m.maximize(self.objective_expr)
+        else:
+            m.minimize(self.objective_expr)
+
+    def add_objective_cut(self, value: int) -> None:
+        """Cota del objetivo con el valor de una solución factible (la pista): ``≥`` o ``≤``."""
+        if _maximizes(self.spec.objective):
+            self.model.add(self.objective_expr >= value)
+        else:
+            self.model.add(self.objective_expr <= value)
 
     def _group_limits(self, caps: Mapping[GroupKey, float]) -> None:
         ctx = self.ctx
@@ -493,7 +657,7 @@ class SubModel:
                 e_qb = sum(x[p] for p in ps)
                 total_e.append(e_qb)
                 if b in self.k:
-                    big_m = prep.capacity[b] + prep.overbook_max[b]
+                    big_m = min(len(ps), prep.capacity[b] + max(self.k[b]))
                     w = m.new_int_var(0, big_m, f"w_{q[0]}_{q[1]}_{b}")
                     m.add(w >= e_qb - big_m * self.k[b][0])
                     ws.append(w)
@@ -513,7 +677,8 @@ class SubModel:
             for b in bs:
                 cap = prep.capacity[b]
                 load = sum(prep.pair_load(p) * self.x[p] for p in ctx.pairs_by_block[b])
-                ub = UTIL_SCALE * (cap + prep.overbook_max[b]) // cap
+                top_level = max(self.k[b]) if b in self.k else 0
+                ub = UTIL_SCALE * (cap + top_level) // cap
                 top = max(top, ub)
                 u = m.new_int_var(0, ub, f"util_{b}")
                 m.add(cap * u <= UTIL_SCALE * load)
@@ -539,7 +704,7 @@ class SubModel:
         levels = overbook_levels(prep, solution)
         for b, ks in self.k.items():
             lvl = levels.get(b, 0)
-            for o, var in enumerate(ks):
+            for o, var in ks.items():
                 self.model.add_hint(var, o == lvl)
         for w, b, ps in self.w_vars:
             exposed = sum(1 for p in ps if p in solution) if levels.get(b, 0) > 0 else 0
@@ -559,6 +724,10 @@ class SubModel:
         return frozenset(p for p, var in self.x.items() if solver.boolean_value(var))
 
 
+def _maximizes(objective: Objective) -> bool:
+    return objective in ("q1", "score")
+
+
 def solve_phase(
     ctx: SubContext,
     spec: PhaseSpec,
@@ -570,7 +739,11 @@ def solve_phase(
     """Construye, resuelve y evalúa una fase; nunca devuelve sin solución."""
     cfg: SchedulerConfig = ctx.prep.config
     sm = SubModel(ctx, spec)
-    sm.add_hint(hint)
+    if cfg.solver.hints:
+        sm.add_hint(hint)
+    if cfg.solver.objective_cut:
+        # La pista es factible: ninguna solución peor interesa. Acota la búsqueda desde el inicio.
+        sm.add_objective_cut(objective_value(ctx, spec.objective, hint))
     solver = cp_model.CpSolver()
     params = solver.parameters
     params.random_seed = seed

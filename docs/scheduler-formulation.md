@@ -314,6 +314,22 @@ Comprobación de frontera: el filtro pudo haber sido activo en una cola si (a) s
 - En modo determinista el tiempo real puede exceder `time_limit_s`, porque el tiempo determinista no es tiempo de reloj (en la corrida canónica, la fase 3b gasta de 2 a 4 s reales por segundo determinista). El informe registra ambos.
 - Se registran por fase y subproblema: estado, objetivo, mejor cota, brecha, tiempo real y determinista, y número de variables y restricciones.
 
+### 8.6 Técnicas de rendimiento (P9)
+
+Ninguna cambia el valor óptimo de una fase: la poda solo quita variables que ninguna solución usa, la cota del objetivo y las simetrías descartan soluciones factibles pero nunca todas las óptimas, y las pistas solo cambian el punto de partida. Cada una tiene un interruptor en `config.solver` (todos `true` por defecto), que solo sirve para medir su efecto en el benchmark (`make bench-scheduler`, resultados en [scheduler-performance.md](scheduler-performance.md)).
+
+| Técnica | Interruptor | Qué hace |
+|---|---|---|
+| Compatibilidad previa | — (siempre) | Solo se crea `x_ib` para pares de la misma cola (lugar y especialidad) que cumplen duración, aviso mínimo y horizonte (§4), y solo para candidatos (§8.2). Ningún par imposible llega al modelo. |
+| Poda de niveles de sobrecupo | `prune_overbooking_levels` | En cada bloque elegible se descartan, antes de crear `k_bo`, los niveles `o` imposibles: menos de `C_b + o` candidatos, o la suma de los `C_b + o` mayores coeficientes de R10/R11 menor que su lado derecho; si no queda ningún nivel, el bloque deja de ser elegible y, si ningún bloque lo es, la fase 3b no se corre y la fase 3a recibe su presupuesto. Dentro de la fase 3b y la 4 se descartan además los niveles con menos de `o` candidatos fuera de `S0` (R13), sin cambiar la elegibilidad. Ajusta la relajación lineal de 3b, que sin la poda supone `O_b` sobrecupos en todo bloque. Las cotas de `w_qb` (R14) y `util_b` usan el mayor nivel que queda. |
+| Cota del objetivo con la pista | `objective_cut` | Cada fase agrega `objetivo ≥ valor de la pista` (`≤` al minimizar). La pista es factible, así que el óptimo no cambia; la búsqueda descarta desde el inicio las soluciones peores. |
+| Pistas voraces | `hints` | La voraz `priority` (fase 0) y la solución de la fase anterior, llevadas a forma canónica (§8.4), entran con `AddHint` (§8.1). Apagado, CP-SAT parte sin pista; la pista igual se usa como solución de respaldo si la fase termina en `UNKNOWN` y, si `objective_cut` está activo, su valor sigue acotando el objetivo. |
+| Pista voraz con sobrecupo | `overbooking_hint` | La fase 3b parte de la solución de 3a más sobrecupos voraces: por bloque elegible, en orden de fecha, se agrega la entrada sin cita de mayor `c_ib` cuyo paciente está libre ese día, mientras el nivel resultante exista y cumpla R10/R11 y los topes R15 de la pasada. Sin ella, 3b parte con sobrecupo 0. |
+| Simetrías | `symmetry_breaking` | Restricciones de §8.4 (bloques y entradas intercambiables). |
+| Arranque en caliente de la frontera | `warm_start_frontier` | Al duplicar el margen en colas de frontera (§8.2), cada componente nuevo recibe como pista alternativa la unión de las soluciones de la fase 3a de los componentes de la primera pasada que contiene (los candidatos solo crecen, así que es factible sin sobrecupo). Se usa en cada fase en la que cumple lo fijado y mejora a la pista vigente. |
+
+El tiempo de solver de los componentes de la primera pasada que la expansión reemplaza no aporta al plan, pero se informa (`solver.time.discarded_first_pass`), junto con el de los subproblemas del plan (`solver.time.plan`). Por subproblema, `techniques` registra los niveles de sobrecupo nominales y los que quedan tras la poda, y las clases de simetría encontradas.
+
 ## 9. Postproceso: secuencia, banderas y verificación
 
 **Banderas.** En cada bloque CNE con `o_b ≥ 1`, se marcan `is_overbooked = true` las `o_b` entradas agendadas que no están en `S0` con mayor `p_ib` (desempate: menor `s_i`, luego `entry_id`). R13 garantiza que existen.
@@ -332,7 +348,7 @@ Comprobación de frontera: el filtro pudo haber sido activo en una cola si (a) s
 2. Para cada bloque con sobrecupo, el riesgo exacto `P(asisten > C_b)` con la distribución binomial de Poisson (programación dinámica, `O(n²)`). Debe ser `≤ α`; si no, es un error de implementación (el redondeo es conservador) y se lanza excepción.
 3. Que `S0 ⊆` agendados finales y que las banderas recaen fuera de `S0`.
 4. Que las GES realmente incumplidas (`v_g` recalculado desde las asignaciones) no superan `F2*`, que son exactamente `F2*` si la fase 2 terminó en `OPTIMAL` y la fase 3b no agregó a nadie (con sobrecupo puede haber menos), y que cada GES no cumplida tiene causa.
-5. Que el plan no es peor que la política voraz `priority` en orden lexicográfico: `(Σ_{Q1} a_i, −Σ v_g, Σ c_ib·x_ib)` del plan `≥` el de la voraz, comparando el tercer término sin sobrecupo (`Z0`). No se compara solo el puntaje: las fases 1 y 2 pueden sacrificar puntaje para ceder a p1 o cumplir GES. Si falla con todas las fases en `OPTIMAL`, es un error y se lanza excepción; si alguna fase terminó por tiempo, se informa la advertencia `worse_than_baseline`.
+5. Que el plan no es peor que la política voraz `priority` en orden lexicográfico: `(Σ_{Q1} a_i, −Σ v_g, Σ c_ib·x_ib)` del plan `≥` el de la voraz, comparando el tercer término sin sobrecupo (`Z0`). No se compara solo el puntaje: las fases 1 y 2 pueden sacrificar puntaje para ceder a p1 o cumplir GES. Si falla con todas las fases en `OPTIMAL`, es un error y se lanza excepción, salvo que la pérdida esté solo en el tercer término y la fase 3a haya terminado en `OPTIMAL` por `relative_gap_limit` (brecha mayor que 0): eso es posible sin pistas (P9) y se informa como advertencia. Si alguna fase terminó por tiempo, también se informa la advertencia `worse_than_baseline`.
 
 ## 10. Políticas de referencia
 
@@ -361,7 +377,7 @@ Corrida canónica (N = 100.000, semilla 42, escenario baseline, `as_of` 2025-09-
 | GES obligadas (vencidas antes del horizonte) | 3.866 (2.105) | 6.555 (2.105) |
 | GES obligadas con algún bloque compatible | 1.857 | 6.517 |
 
-Con 4 semanas, el problema es pequeño para CP-SAT: el subproblema mayor tiene unos 15.000 booleanos `x`. Con 26 semanas el filtro no reduce casi nada (la oferta del horizonte se acerca a la demanda) y el subproblema mayor tiene unos 200.000 pares; sigue bajo el umbral de 400.000, pero el tiempo de la fase 3 puede ser el cuello de botella. Objetivo de rendimiento para la implementación: plan de 4 semanas para N = 100.000 en menos de 120 s. Medido en la [sección 11.3](#113-medición-de-la-implementación-p8): 143 s reales en modo determinista; no se cumple por poco.
+Con 4 semanas, el problema es pequeño para CP-SAT: el subproblema mayor tiene unos 15.000 booleanos `x`. Con 26 semanas el filtro no reduce casi nada (la oferta del horizonte se acerca a la demanda) y el subproblema mayor tiene unos 200.000 pares; sigue bajo el umbral de 400.000, pero el tiempo de la fase 3 puede ser el cuello de botella. Objetivo de rendimiento para la implementación: plan de 4 semanas para N = 100.000 en menos de 120 s. Medido en la [sección 11.3](#113-medición-de-la-implementación-p8-actualizada-en-p9): 143 s reales en P8 y 166 s en P9; no se cumple.
 
 ### 11.2 Artefactos de la oferta sintética que afectan al programador
 
@@ -372,23 +388,24 @@ Al medir se encontraron dos patrones del generador (`synthetic/capacity.py`) que
 
 El programador no corrige la oferta: la usa como viene y reporta la capacidad por semana. Se recomienda corregir el generador antes de la simulación de políticas (P8); queda como pendiente en `TASK_PLAN.md`.
 
-### 11.3 Medición de la implementación (P8)
+### 11.3 Medición de la implementación (P8, actualizada en P9)
 
-Corrida canónica, 4 semanas, configuración por defecto (`deterministic = true`, un hilo, `linearization_level = 2`, `time_limit_s = 120`), medida el 2026-10-08 con `prioriza-schedule --weeks 4`; informe completo en `results/schedule_32c9e349-74f9-5c85-bf4b-990796b47323_4w.json`.
+Corrida canónica, 4 semanas, configuración por defecto (`deterministic = true`, un hilo, `linearization_level = 2`, `time_limit_s = 120`, técnicas de la [sección 8.6](#86-técnicas-de-rendimiento-p9) activas), medida el 2026-10-09 con `make schedule`; informe completo en `results/schedule_32c9e349-74f9-5c85-bf4b-990796b47323_4w.json`. El benchmark por tamaño y la ablación de cada técnica están en [scheduler-performance.md](scheduler-performance.md).
 
-| | `fifo` | `priority` | `optimized` |
-|---|---|---|---|
-| Agendadas (CNE / pabellón) | 5.665 (4.524 / 1.141) | 5.672 (4.524 / 1.148) | 5.843 (4.564 / 1.279) |
-| p1 agendados | 355 | 2.448 | 2.460 |
-| GES obligadas cumplidas (de 3.866) | 180 | 851 | 1.211 |
-| GES dentro de plazo | 8 | 50 | 413 |
-| Suma de `c_ib` | 24.290.245 | 29.917.088 | 30.796.038 |
-| Sobrecupos | 0 | 0 | 40 (riesgo exacto máximo 0,0998 ≤ 0,10) |
+| | `fifo` | `priority` | `optimized` (P9) | `optimized` (P8) |
+|---|---|---|---|---|
+| Agendadas (CNE / pabellón) | 5.665 (4.524 / 1.141) | 5.672 (4.524 / 1.148) | 5.952 (4.668 / 1.284) | 5.843 (4.564 / 1.279) |
+| p1 agendados | 355 | 2.448 | 2.460 | 2.460 |
+| GES obligadas cumplidas (de 3.866) | 180 | 851 | 1.211 | 1.211 |
+| GES dentro de plazo | 8 | 50 | 414 | 413 |
+| Suma de `c_ib` | 24.290.245 | 29.917.088 | 31.327.054 | 30.796.038 |
+| Sobrecupos | 0 | 0 | 144 (riesgo exacto máximo 0,0999 ≤ 0,10) | 40 |
 
-- **Tiempo.** 120 subproblemas (tras duplicar el margen en 28 colas de frontera). La política optimizada tarda 143 s reales para 120 s deterministas; las voraces, 1,5 s. Estados: 112/112 fases 1 y 75/75 fases 2 en `OPTIMAL`; 3a 118 `OPTIMAL` y 2 `FEASIBLE`; 3b 23 `OPTIMAL` y 25 `FEASIBLE`; fase 4: 1 `UNKNOWN` (desempate; se conserva la solución de 3b). Brecha agregada: 0,2 % en 3a y 18,6 % en 3b. La de 3b mide sobre todo la debilidad de la cota lineal con restricciones de indicador, no necesariamente la calidad de la solución.
-- **GES.** De las 2.655 garantías incumplidas, 2.009 no tienen ningún bloque de su especialidad en el horizonte, 341 vencen antes del primer bloque posible y 305 encuentran los cupos tomados. Las dos primeras causas vienen de la oferta sintética (§11.2), no del programador.
-- **Equidad (resultado negativo que se informa).** Ninguna política agenda bien al grupo 0-14: 3,07 % (fifo), 3,13 % (priority) y 3,06 % (optimized), frente a 5-6,5 % del resto, por la oferta pediátrica del generador. La optimizada queda levemente por debajo de `priority` en 0-14 (3,06 % frente a 3,13 %) y por encima en 15-19 (5,18 % frente a 5,02 %) y en 45-64 (6,47 % frente a 6,12 %). La exposición al sobrecupo va de 10,3 % (45-64) a 12,6 % (20-44) y de 9,9 % (otra previsión) a 12,4 % (FONASA A), dentro del límite relativo de 5 pp.
-- **Advertencias del informe.** Frontera de candidatos alcanzada en 28 colas y todavía alcanzada en 3 tras duplicar el margen (oftalmología de los servicios 3, 16 y 20); 48 citas con aviso fuera del rango del historial (7-90 días), cuya `p` extrapola el modelo.
+- **Tiempo (no se cumple el objetivo de 120 s, y empeora frente a P8).** La política optimizada tarda 166 s reales (P8: 143 s); las voraces, 1,6-1,8 s. CP-SAT gasta 129,8 unidades deterministas en los 120 subproblemas del plan y 48,1 más en 37 componentes de la primera pasada que la expansión de frontera (29 colas) reemplazó; en P8 ese tiempo descartado no se informaba. El presupuesto es por pasada, así que con expansión el total puede superar `time_limit_s` (pendiente: presupuesto global).
+- **Estados.** Fases 1 (112) y 2 (75) en `OPTIMAL`; 3a 117 `OPTIMAL` y 3 `FEASIBLE` (brecha agregada 0,03 %); 3b 19 `OPTIMAL`, 20 `FEASIBLE` y 9 `UNKNOWN`; fase 4 65 `OPTIMAL`, 7 `FEASIBLE` y 9 `UNKNOWN`. Una fase en `UNKNOWN` conserva su pista (en 3b, la de la voraz con sobrecupo), así que el plan es factible y verificado, pero la brecha agregada de 3b queda sin definir. Con `objective_cut = false` hubo 2 fases 3b en `UNKNOWN`, un objetivo menor (31.322.561) y un tiempo determinista parecido (173,0 frente a 177,9).
+- **GES.** De las 2.655 garantías incumplidas, 2.009 no tienen ningún bloque de su especialidad en el horizonte, 341 vencen antes del primer bloque posible y 305 encuentran los cupos tomados (igual que en P8). Las dos primeras causas vienen de la oferta sintética (§11.2), no del programador.
+- **Equidad (resultados que se informan tal cual).** Ninguna política agenda bien al grupo 0-14: 3,07 % (fifo), 3,13 % (priority) y 3,13 % (optimized), frente a 5-6,6 % del resto, por la oferta pediátrica del generador. La optimizada queda por encima de `priority` en 15-19 (5,30 % frente a 5,02 %) y en 45-64 (6,59 % frente a 6,12 %). Con más sobrecupos, la exposición (agendados CNE en sesiones con sobrecupo) sube de 10-13 % en P8 a 38,5-40,9 % por grupo etario y 38,8-41,2 % por previsión; queda dentro del límite relativo de 5 pp, pero ahora cerca de 4 de cada 10 pacientes CNE agendados comparten sesión con un sobrecupo.
+- **Advertencias del informe.** Frontera de candidatos alcanzada en 29 colas y todavía alcanzada en 2 tras duplicar el margen (oftalmología de los servicios 3 y 16); 48 citas con aviso fuera del rango del historial (7-90 días), cuya `p` extrapola el modelo.
 
 ## 12. Configuración
 
@@ -418,6 +435,7 @@ Corrida canónica, 4 semanas, configuración por defecto (`deterministic = true`
 | `decomposition` | `auto` | `specialty` fuerza el respaldo por especialidad ([sección 8.3](#83-descomposición)). |
 | `solver.num_workers` / `solver.deterministic` | 8 / true | `deterministic = true` usa un hilo (sección 8.5); los 8 hilos solo se usan con `deterministic = false`. |
 | `solver.relative_gap_limit` | 0,001 | Fases 3a y 3b. |
+| `solver.hints`, `objective_cut`, `symmetry_breaking`, `prune_overbooking_levels`, `overbooking_hint`, `warm_start_frontier` | true | Técnicas de rendimiento de la [sección 8.6](#86-técnicas-de-rendimiento-p9); apagarlas solo sirve para medirlas. |
 | `solver.log_search_progress` | false | Registro de CP-SAT para depurar. |
 
 ## 13. Ejemplo resuelto a mano

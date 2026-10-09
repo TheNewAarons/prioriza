@@ -683,6 +683,7 @@ def _build(
     subs: list[SubResult] | None,
     warnings: list[str],
     frontier: dict[str, Any] | None,
+    discarded: list[SubResult] | None = None,
 ) -> SchedulePlan:
     asm = _Assembler(prep, solution, policy, subs)
     assignments = asm.flag_and_sequence()
@@ -729,6 +730,7 @@ def _build(
             "gap": gap,
             "gap_by_phase": _gap_by_phase(subs or []),
             "status_by_phase": _status_by_phase(subs or []),
+            "time": _solver_time(subs or [], discarded or []),
             "subproblems": [_sub_report(r) for r in subs or []],
         },
         "summary": {
@@ -783,6 +785,21 @@ def _build(
         objective_value=objective,
         gap=gap,
     )
+
+
+def _solver_time(subs: list[SubResult], discarded: list[SubResult]) -> dict[str, Any]:
+    """Tiempo de CP-SAT del plan y de las pasadas que la expansión de frontera reemplazó."""
+
+    def totals(rs: list[SubResult]) -> dict[str, Any]:
+        phases = [p for r in rs for p in r.phases]
+        return {
+            "subproblems": len(rs),
+            "phases": len(phases),
+            "wall_time_s": sum(p.wall_time_s for p in phases),
+            "deterministic_time": sum(p.deterministic_time for p in phases),
+        }
+
+    return {"plan": totals(subs), "discarded_first_pass": totals(discarded)}
 
 
 def _status_by_phase(subs: list[SubResult]) -> dict[str, dict[str, int]]:
@@ -841,7 +858,23 @@ def _sub_report(r: SubResult) -> dict[str, Any]:
             for p in r.phases
         ],
         "fairness_passes": r.fairness_passes,
+        "techniques": _techniques(r),
         "warnings": r.warnings,
+    }
+
+
+def _techniques(r: SubResult) -> dict[str, Any]:
+    """Efecto de la poda de niveles de sobrecupo y de las clases de simetría (§8.4, §8.6)."""
+    ctx = r.ctx
+    return {
+        # Antes y después de la poda por candidatos; la poda por R13 (depende de S0) no se cuenta.
+        "overbooking_levels_nominal": ctx.levels_nominal,
+        "overbooking_levels_kept": sum(len(lv) for lv in ctx.levels.values()),
+        "overbooking_blocks_eligible": len(ctx.levels),
+        "symmetry_block_classes": len(ctx.block_classes[False]),
+        "symmetry_blocks_in_classes": sum(len(c) for c in ctx.block_classes[False]),
+        "symmetry_entry_classes": len(ctx.entry_classes[False]),
+        "symmetry_entries_in_classes": sum(len(c) for c in ctx.entry_classes[False]),
     }
 
 
@@ -849,7 +882,9 @@ def solve(instance: SchedulingInstance, config: SchedulerConfig | None = None) -
     """Política ``optimized`` (CP-SAT) con informe y verificación."""
     cfg = config or SchedulerConfig()
     out: SolveOutput = run_optimized(instance, cfg)
-    return _build(out.prep, out.solution, "optimized", out.subs, out.warnings, out.frontier)
+    return _build(
+        out.prep, out.solution, "optimized", out.subs, out.warnings, out.frontier, out.discarded
+    )
 
 
 def greedy_schedule(

@@ -69,6 +69,13 @@ class SolverConfig(_Frozen):
     relative_gap_limit: float = Field(default=0.001, ge=0.0)
     linearization_level: int = Field(default=2, ge=0, le=2)
     log_search_progress: bool = False
+    # Técnicas de rendimiento (§8.6); apagarlas solo sirve para medir su efecto.
+    hints: bool = True
+    symmetry_breaking: bool = True
+    prune_overbooking_levels: bool = True
+    objective_cut: bool = True
+    overbooking_hint: bool = True
+    warm_start_frontier: bool = True
 
 
 class SchedulerConfig(_Frozen):
