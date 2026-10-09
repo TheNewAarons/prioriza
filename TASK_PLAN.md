@@ -527,3 +527,93 @@ español, aviso obligatorio). Requisitos:
   api.main:create_app`. B2: claves de ejemplo o cortas rechazadas. B3: `/v1/plans/current` ya no devuelve el vigente de
   otra corrida (503). B4/B5: limitaciones documentadas y tests de regresión (`api/tests/test_api_review_fixes.py`, 2
   tests `db` nuevos). Tests `db` (14) verificados contra un PostgreSQL 16 temporal.
+
+## P13: panel (`dashboard/`)
+
+Rama: `feat/dashboard` (apilada sobre `feat/api`, PR #15 sin integrar).
+
+- [x] P13-T0 (Tier 1 - Claude) -> Hecha: `docs/design.md` (skill `frontend-design`): dirección visual, tokens, páginas
+- [x] P13-T1 (Tier 2 - Qwen, terminada por respaldo Sonnet) -> Hecha (instrucciones abajo)
+- [x] P13-T2 (Tier 3 - respaldo de Kimi) -> Hecha: tests de los callbacks principales
+- [x] P13-R (Tier 1) -> Hecho: recorrido completo con Playwright y Chrome; ajustes visuales (ver log)
+
+### P13-T1: instrucciones
+
+Implementar el panel según `docs/design.md` (manda sobre cualquier preferencia; no decidas diseño: usa sus tokens,
+textos y estructura). Lee CLAUDE.md (español en textos, docstrings y comentarios; identificadores en inglés; aviso
+obligatorio), `docs/api.md` y el código de `api/`.
+
+**A. Extensiones de la API** (en `api/`, con tests en `api/tests/test_api_dashboard_endpoints.py`, `disclaimer` en cada
+respuesta, `response_model`, errores documentados, mypy strict):
+1. `GET /v1/waitlist/summary` (cualquier rol; mismos filtros opcionales que `/v1/waitlist`): `as_of`, `total`,
+   `wait_median`, `wait_p90`, `ges_total`, `ges_at_risk` (GES no vencida con plazo a 30 días o menos de `as_of`),
+   `ges_overdue` (plazo anterior a `as_of`), `by_care_type` (lista con los mismos campos por tipo) y `wait_histogram`
+   (tramos de 30 días de 0 a 720 y uno final "720 o más": `from_day`, `to_day` o null, `count`). Calculado una vez por
+   corrida y filtro (caché en `RunCatalog`).
+2. `PatientEntryOut.components`: lista `{field, label, raw_value, normalized, weight, contribution}` desde
+   `PriorityScore.components` (null si la entrada no está en espera).
+3. `GET /v1/plans/{plan_id}/ges` (cualquier rol): filas de `plan.ges` (`entry_id, obligation, ges_deadline, met,
+   on_time, scheduled_date, days_late, first_possible_date, cause, text`), filtros `met` y `cause`, paginado, y
+   `by_cause` (conteo de no cumplidas por causa). Guardarlo en `MemoryPlanStore` y en `SqlPlanStore` (en
+   `schedule_run.params["api"]`, como las explicaciones).
+4. `GET /v1/plans/{plan_id}/calendar` (cualquier rol; filtros `resource_kind`, `health_service_code`): por recurso y
+   día local, `resource_id, resource_label, resource_kind, health_service_code, specialty_code, date, blocks,
+   capacity` (cupos CNE o minutos planificables de pabellón), `scheduled`, `overbooked`. Se arma uniendo las
+   asignaciones del plan con `slot.parquet` y `resource.parquet` de la corrida (via `RunCatalog`).
+
+**B. Panel** `dashboard/src/dashboard/`:
+- `config.py`: `DashboardSettings` (pydantic-settings, prefijo `PRIORIZA_DASHBOARD_`): `api_url` (por defecto
+  `http://127.0.0.1:8000`), `host`, `port` (8050), `timeout_s`.
+- `api_client.py`: cliente `httpx` síncrono con la clave por petición (`X-API-Key`), errores tipados (`ApiUnavailable`,
+  `ApiAuthError`, `ApiForbidden`, `ApiConflict`, `ApiNotFound`) con mensajes de `docs/design.md` §8, y caché corta
+  (TTL 30 s) solo para lecturas que no cambian por acción del usuario (resumen, simulación). Nunca registra la clave.
+- `theme.py` (tokens en Python y plantilla Plotly `prioriza`) y `assets/tokens.css` + `assets/prioriza.css`
+  (fuente Atkinson Hyperlegible Next desde Google Fonts con respaldo del sistema).
+- `app.py`: `create_app(settings) -> Dash` con `use_pages=True` (páginas en `pages/`), layout con la franja de aviso
+  fija (texto de `shared.disclaimer.DISCLAIMER`), barra lateral, cabecera con usuario y rol, y la pantalla de acceso
+  (clave en `dcc.Store(storage_type="session")`, validada con `GET /v1/me`). `server = app.server`.
+- `components/`: `badges.py` (insignias de estado con icono y texto), `wait_ruler.py` (la regla de espera, figura
+  Plotly), `charts.py` (intervalos por política con marcador y línea propios, puntos por grupo, mapa del calendario
+  con números en celdas), `tables.py`.
+- `pages/`: `resumen.py`, `lista.py`, `programacion.py`, `simulacion.py`, `equidad.py` según `docs/design.md` §5.
+  La lista usa paginación del servidor (`dash_table.DataTable` con `page_action="custom"`, 50 filas) y nunca baja la
+  lista completa. La programación: pedir (solo gestor), estado del trabajo con `dcc.Interval` que se apaga al
+  terminar, selector de plan, calendario, GES no cumplidas por causa, explicaciones, aprobar o rechazar (solo revisor)
+  con confirmación, marcar vigente (solo gestor), auditoría.
+- Callbacks: funciones de lógica puras y testeables separadas de los decoradores (p. ej. `pages/lista.py` define
+  `build_rows(page)` y el callback la llama), `prevent_initial_call` donde corresponda, sin cálculos pesados en el
+  cliente, `dcc.Store` para estado de la sesión.
+- `cli.py` con script `prioriza-dashboard` (`--with-api`: si la API no responde en `api_url`, lanza
+  `uvicorn --factory api.main:create_app` como subproceso con los mismos `PRIORIZA_API_*` y lo detiene al salir).
+- `Makefile`: `api:` (uvicorn factory con `PRIORIZA_API_USERS_FILE ?= api/config/users.json`) y `dashboard:`
+  (`uv run --package dashboard prioriza-dashboard --with-api`). `dashboard/pyproject.toml`: dependencias nuevas
+  (`httpx`, `pydantic-settings`, `shared`, `api` solo si hace falta para el subproceso) justificadas en
+  `docs/decisions.md` §15 (crea la sección "Panel" con las decisiones que tomes dentro del diseño).
+- `dashboard/Dockerfile` y `docker-compose.yml`: el panel apunta a la API por `PRIORIZA_DASHBOARD_API_URL=http://api:8000`.
+
+**C. Verificación**: `make lint typecheck test` en verde (agrega `dashboard/src` a mypy strict); levanta API y panel
+y recorre con `curl` las páginas y los endpoints nuevos. Tests propios solo de humo (P13-T2 escribe los de callbacks).
+No commitees. Al terminar marca P13-T1 y agrega una línea de log con lo hecho, decisiones y problemas abiertos.
+
+### Log
+
+- 2026-10-09, Tier 1 (P13-T0): skill `frontend-design` cargada; `docs/design.md` con verde quirófano como marca,
+  Atkinson Hyperlegible Next (cifras tabulares verificadas en el subconjunto latino de Google Fonts), estados con
+  icono y texto, series con color de Okabe-Ito más marcador y línea propios, la regla de espera como único elemento
+  audaz y contrastes AA verificados. La API de P12 no alcanzaba para el panel: se agregan resumen agregado, desglose
+  numérico del puntaje, GES de un plan y calendario por recurso (P13-T1, parte A).
+- 2026-10-09, P13-T1 (respaldo de Qwen): API con `/v1/waitlist/summary` (+`run_id`, `run_entries`), `components` en el paciente, `/v1/plans/{id}/ges` y `/calendar`; panel en `dashboard/` (vistas en `views/`, páginas finas en `pages/`, ver decisions §15), `make api`/`make dashboard`, compose. mypy strict incluye `dashboard/src`. Abiertos: tests `db` del almacén SQL para GES/calendario no corridos (sin PostgreSQL); `dash-bootstrap-components` sin uso; recorrido en navegador (P13-R) pendiente: ocultar columnas en pantallas angostas depende de clases `column-N` de DataTable sin verificar.
+- 2026-10-09, P13-T2 (respaldo de Kimi): `dashboard/tests/test_dashboard_callbacks.py` con 51 tests sobre `shell` y `views/*` (API falsa con `httpx.MockTransport`): acceso y sesión (sin clave en textos ni logs), visibilidad por rol, lista, programación, resumen, simulación, equidad y aviso. Sin bugs de producción; `uv run pytest dashboard`, ruff y mypy en verde.
+- 2026-10-09, Tier 1 (P13-R): Qwen se cortó a mitad de P13-T1 por 429 ("Go usage limit exceeded") y lo terminó
+  `implementer`; P13-T2 lo hizo `test-writer` (Kimi sin respuesta). La extensión de Chrome no estaba conectada: el
+  recorrido se hizo con Playwright sobre el Chrome instalado (`channel="chrome"`, sin descargar navegadores), con
+  `make dashboard` tal cual. Flujo completo verificado: acceso por clave, resumen, lista y detalle, gestor programa
+  (solo prioridad, 13.168 citas), revisor aprueba con confirmación ("Aprobar no lo deja vigente…"), gestor marca
+  vigente, auditoría con quién, rol, cuándo y nota; lectura no ve ninguna acción; 0 errores de consola. Ajustes tras
+  revisar las capturas: aviso `sticky` (en móvil el `fixed` tapaba el título), barras GES con más peso visual para
+  vencidas que para en riesgo, columna "Escala 0 a 100" reemplazada por una barra fina dentro de la celda del puntaje
+  (la tabla ocultaba especialidad y servicio a 1.366 px), orden por defecto por puntaje (el puesto es por cola y
+  mostraba 1 en casi todas las filas), rótulo de la regla en miniatura sin choque con el eje, aviso de los gráficos
+  angostos ajustado al ancho, tablas de GES y explicaciones de 10 filas, separadores "·" reemplazados, "Límite de
+  tiempo del solver" (no son segundos en modo determinista), concordancia "1 grupo queda" y `AuthStep.session` fuera
+  del `repr` (lleva la clave). Claves locales rotadas (la verificación del subagente imprimió una).
