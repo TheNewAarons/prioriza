@@ -48,7 +48,12 @@ services:
       context: .
       dockerfile: dashboard/Dockerfile
     env_file: .env
-    environment: *app-env
+    environment:
+      <<: *app-env
+      PRIORIZA_DASHBOARD_API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
     ports:
       - "${DASHBOARD_PORT:-8050}:8050"
     healthcheck:

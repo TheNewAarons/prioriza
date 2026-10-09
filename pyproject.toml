@@ -42,9 +42,19 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["shared/src", "priority/src", "scheduler/src", "api/src"]
-mypy_path = ["shared/src", "priority/src", "scheduler/src", "api/src"]
+files = ["shared/src", "priority/src", "scheduler/src", "api/src", "dashboard/src"]
+mypy_path = ["shared/src", "priority/src", "scheduler/src", "api/src", "dashboard/src"]
 explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+# plotly no publica tipos (no hay `py.typed` ni stubs en el entorno).
+module = ["plotly", "plotly.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# `dash.register_page` no trae anotaciones.
+module = "dashboard.pages.*"
+disallow_untyped_calls = false
 
 [tool.pytest.ini_options]
 testpaths = [

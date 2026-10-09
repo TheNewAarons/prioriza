@@ -308,6 +308,30 @@ Diseño en `TASK_PLAN.md` (P12) y documentación de uso en `docs/api.md`.
 - **Auditoría con CHECK de rol y acción** en `plan_review` (aprobar o rechazar solo con rol `revisor`; activar o desactivar solo con `gestor`). La regla de cuatro ojos compara nombres de usuario y vive en el dominio: la base no la puede expresar sin un disparador.
 - **Compose** monta `data/`, `models/` y `results/` en solo lectura y los usuarios desde `api/config/` (ignorado por git).
 
+## 15. Panel
+
+**Fecha**: 2026-10-09
+
+Diseño visual en `docs/design.md`; instrucciones en `TASK_PLAN.md` (P13).
+
+**Dependencias** (en `dashboard`):
+- `httpx`: cliente HTTP síncrono hacia la API (el panel no importa el dominio de la API ni lee parquet). Ya estaba en el lock (grupo `dev`); ahora se declara.
+- `pydantic-settings`: lectura de `PRIORIZA_DASHBOARD_*`, como en `api`; ya estaba en el lock.
+- `dash-bootstrap-components` sigue declarada pero no se usa: el diseño es propio (sin tema Bootstrap). Queda pendiente retirarla si nadie la necesita.
+- La API no es dependencia del panel: `--with-api` la lanza con `uv run --package api uvicorn ...` como subproceso.
+
+**Decisiones dentro del diseño**:
+- **Lógica en `views/`, páginas finas en `pages/`.** Dash ejecuta cada archivo de `pages/` por su cuenta al crear la app, lo que duplicaría los callbacks si los tests importaran esos módulos. Los callbacks y las funciones puras viven en `views/<pagina>.py` (se importan una sola vez) y `pages/<pagina>.py` solo llama a `register_page`. `create_app` devuelve siempre la misma app por proceso.
+- **Clave de API** solo en `dcc.Store(storage_type="session")`; el cliente la manda por petición, no la registra y la caché de 30 s la usa solo como SHA-256 en la llave. `Session.__repr__` la oculta.
+- **Calendario**: la API entrega todos los bloques del horizonte por recurso y día; el panel dibuja los 40 recursos con más citas (filtrable por tipo y servicio) y avisa cuántos hay. El color del mapa usa solo `surface` y `scrub-tint` (no hay más tokens) y el número va en la celda.
+- **Capacidad del calendario**: cupos CNE = duración / unidad (20 min); pabellón = minutos del bloque (sin el margen `or_max_fill` ni los preagendados).
+- **GES "en riesgo"** en la lista y el resumen usa 30 días (diseño); el nivel estricto del puntaje usa su propio umbral (`due_soon_days` = 14, en `priority`). El detalle muestra el nivel del puntaje tal cual.
+- **Brecha permitida de equidad** (el diseño no la fija): 5 puntos porcentuales en tasa de atención y exposición al sobrecupo, y 15 % relativo en la mediana de espera, respecto del total ponderado por entradas. La inasistencia se muestra sin marcar. Es una constante del panel (`views/equidad.py`), no una norma.
+- **Aprobar y rechazar** pasan por el panel de confirmación elevado; "Marcar como vigente" se ejecuta directo (reversible activando otro plan).
+- **Barra de puntaje** en la tabla: bloques de texto junto al número (el diseño excluye degradados y `DataTable` no dibuja barras).
+- **Simulación**: se oculta el reverso de cada comparación pareada (`fifo_vs_priority` frente a `priority_vs_fifo`); la lectura dice "Empeora" cuando el IC excluye el 0 en contra de la dirección de la métrica. Si la corrida simulada difiere de la de la lista, se avisa.
+- **API**: el resumen agrega `run_id` y `run_entries` (el diseño pide mostrar la corrida en la barra lateral y la API no la exponía).
+
 ---
 
 ## Referencias
