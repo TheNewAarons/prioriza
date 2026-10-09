@@ -4,14 +4,12 @@
 
 Resultados del benchmark `make bench-scheduler` (`scheduler/bench.py`), tomados de `results/scheduler-benchmark.json` sin modificarlos. Corrida del 2026-10-09, `code_version` `scheduler-0.1.0`, escenario `baseline`, semilla 42. Las técnicas medidas están descritas en [scheduler-formulation.md §8.6](scheduler-formulation.md#86-técnicas-de-rendimiento-p9) y las decisiones del benchmark en [decisions.md §11](decisions.md#11-benchmark-y-rendimiento-del-programador).
 
-**Regenerada el 2026-10-09 tras la revisión del programador** (la frontera de candidatos ahora se evalúa sobre la solución de la fase 3a, sin sobrecupos, y el presupuesto de la fase 3a es fijo; formulación §8.2 y §8.5). Cambios frente a la corrida anterior, en la variante `all`:
+**Regenerada el 2026-10-09 con la oferta corregida del generador** (versión 0.2.0: cada agenda y pabellón reparte sus sesiones con una fase propia y el día del pabellón rota; antes se concentraban en la semana central y en lunes; formulación §11.2 y `docs/decisions.md` §13). El programador no cambió respecto de la revisión de P8 (frontera evaluada sobre la fase 3a, presupuesto fijo de 3a); cambian las corridas de entrada: mismas entradas y mismos bloques en el horizonte, repartidos en otros días. Cambios frente a la corrida anterior, en la variante `all`:
 
-- **50.000 × 2 semanas pasa de OPTIMAL a FEASIBLE**: brecha 0,0277 % → 0,0853 %, `sum_coef` 19.494.283 → 19.490.597, tiempo determinista total 21,2 → 25,5 y real 20,2 → 22,8 s.
-- **50.000 × 4 semanas**: brecha 0,182 % → 0,209 %, `sum_coef` 36.252.936 → 36.239.912, agendadas 7.244 → 7.243, tiempo determinista total 78,1 → 72,8 y real 76,1 → 72,0 s.
-- **Delta del plan con sobrecupo contra la voraz**: suma de `c_ib` +805.551 → +801.865 (50.000 × 2) y +1.358.106 → +1.345.082 con agendadas +328 → +327 (50.000 × 4).
-- **La comparación sin sobrecupo no cambió**: mismos deltas contra la voraz en las seis celdas, y las corridas sin sobrecupo siguen OPTIMAL.
-- **Frontera**: alcanzada en menos colas (17 → 13 en 50.000 × 2 y 33 → 31 en 50.000 × 4), con `pairs_in_model` 13.023 → 12.681 y 37.748 → 37.694.
-- Las celdas de 1.000 y 10.000 mantienen estado, brecha y métricas; solo varía el tiempo real (ruido de máquina).
+- **50.000 × 2 semanas vuelve a OPTIMAL**: brecha 0,0853 % → 0,0197 %, tiempo determinista total 25,5 → 15,0 y real 22,8 → 15,1 s.
+- **50.000 × 4 semanas sigue FEASIBLE y empeora**: brecha 0,209 % → 0,366 %, tiempo determinista total 72,8 → 97,9 y real 72,0 → 93,8 s.
+- **Menos agendadas en todas las celdas salvo 1.000 × 2** (79 en ambas): 114 → 108, 707 → 673, 1.369 → 1.333, 3.577 → 3.338 y 7.243 → 6.935; la voraz `priority` baja igual (113 → 107, 687 → 657, 1.334 → 1.302, 3.438 → 3.218 y 6.916 → 6.651). Una explicación posible, no medida: con la oferta repartida, parte de las sesiones de la semana 0 cae el lunes que inicia el horizonte, a 6 días del `as_of`, por debajo de `min_lead_days` = 7.
+- **La ganancia contra la voraz cambia de tamaño**: en 50.000 × 4, +225 GES cumplidas (antes +175) y +284 agendadas (antes +327); en 10.000 × 2 sin sobrecupo la suma de `c_ib` queda **2.169 puntos bajo** la voraz (antes 24).
 
 ## 1. Qué se mide y cómo
 
@@ -28,26 +26,26 @@ Pares: `pairs_all` = todas las entradas × todos los bloques del horizonte (un m
 | Celda | Entradas | Bloques CNE / pab. | `pairs_all` | `pairs_same_queue` | `pairs_compatible` | `pairs_in_model` | Subproblemas | Subproblema mayor (pares) | Máx. variables | Sobrecupo nom./cons. | Clases simetría entradas / bloques |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1.000 × 2 sem | 1.000 | 8 / 1 | 9.000 | 83 | 83 | 81 | 9 | 13 | 13 | 24 / 0 | 0 / 0 |
-| 1.000 × 4 sem | 1.000 | 13 / 4 | 17.000 | 122 | 122 | 117 | 17 | 13 | 16 | 39 / 1 | 0 / 0 |
-| 10.000 × 2 sem | 10.000 | 54 / 31 | 850.000 | 2.838 | 2.726 | 1.608 | 57 | 112 | 128 | 162 / 34 | 0 / 0 |
-| 10.000 × 4 sem | 10.000 | 102 / 67 | 1.690.000 | 4.341 | 4.204 | 3.057 | 90 | 267 | 306 | 306 / 50 | 0 / 0 |
-| 50.000 × 2 sem | 50.000 | 260 / 165 | 21.250.000 | 45.453 | 44.450 | 12.681 | 183 | 930 | 1.176 | 780 / 175 | 27 (55) / 4 (8) |
-| 50.000 × 4 sem | 50.000 | 522 / 327 | 42.450.000 | 81.016 | 80.124 | 37.694 | 188 | 4.389 | 5.158 | 1.566 / 380 | 61 (124) / 32 (70) |
+| 1.000 × 4 sem | 1.000 | 13 / 4 | 17.000 | 122 | 116 | 111 | 17 | 13 | 16 | 39 / 1 | 0 / 0 |
+| 10.000 × 2 sem | 10.000 | 54 / 31 | 850.000 | 2.838 | 2.593 | 1.527 | 66 | 91 | 99 | 156 / 30 | 0 / 0 |
+| 10.000 × 4 sem | 10.000 | 102 / 67 | 1.690.000 | 4.341 | 4.165 | 3.023 | 94 | 267 | 306 | 300 / 49 | 0 / 0 |
+| 50.000 × 2 sem | 50.000 | 260 / 165 | 21.250.000 | 45.453 | 41.551 | 11.795 | 190 | 900 | 1.079 | 732 / 156 | 23 (47) / 8 (16) |
+| 50.000 × 4 sem | 50.000 | 522 / 327 | 42.450.000 | 81.016 | 77.999 | 38.359 | 190 | 4.329 | 5.040 | 1.506 / 347 | 62 (126) / 16 (32) |
 
-La frontera de candidatos se expandió en todas las celdas de 10.000 y 50.000 (2, 3, 13 y 31 colas alcanzadas). Tras duplicar el margen siguió alcanzada en 3 colas en 50.000 × 2 (traumatología de pabellón de los servicios 3, 11 y 33) y en 2 en 50.000 × 4 (servicios 3 y 33); en las de 10.000, en ninguna. En las de 1.000 no hizo falta expandir.
+La frontera de candidatos se expandió en todas las celdas de 10.000 y 50.000 (2, 3, 13 y 35 colas alcanzadas). Tras duplicar el margen siguió alcanzada en 4 colas en 50.000 × 2 (traumatología de pabellón de los servicios 3, 11 y 33 y cirugía cardiovascular del 15) y en 3 en 50.000 × 4 (traumatología de pabellón de los servicios 3 y 33 y oftalmología CNE del 5); en las de 10.000, en ninguna. En las de 1.000 no hizo falta expandir.
 
 ## 3. Tiempo, estado y brecha de la variante completa (`optimized/all`)
 
 | Celda | Estado | Brecha | `solve_wall_s` (mediana de 3) | Tiempo determinista plan / total | ¿Dentro del límite? (real / determinista) |
 |---|---|---|---|---|---|
-| 1.000 × 2 sem | OPTIMAL | 0 | 0,0119 s | 9,00e-08 / 9,00e-08 | sí / sí |
-| 1.000 × 4 sem | OPTIMAL | 0 | 0,0175 s | 2,90e-06 / 2,90e-06 | sí / sí |
-| 10.000 × 2 sem | OPTIMAL | 0 | 0,170 s | 5,46e-04 / 5,50e-04 | sí / sí |
-| 10.000 × 4 sem | OPTIMAL | 3,55e-07 | 0,407 s | 0,0263 / 0,0347 | sí / sí |
-| 50.000 × 2 sem | FEASIBLE | 0,0853 % | 22,8 s | 22,8 / 25,5 | sí / sí |
-| 50.000 × 4 sem | FEASIBLE | 0,209 % | 72,0 s | 62,7 / 72,8 | sí / sí |
+| 1.000 × 2 sem | OPTIMAL | 0 | 0,0121 s | 9,00e-08 / 9,00e-08 | sí / sí |
+| 1.000 × 4 sem | OPTIMAL | 0 | 0,0166 s | 2,90e-06 / 2,90e-06 | sí / sí |
+| 10.000 × 2 sem | OPTIMAL | 0 | 0,162 s | 3,66e-04 / 3,70e-04 | sí / sí |
+| 10.000 × 4 sem | OPTIMAL | 1,82e-05 | 0,392 s | 0,0226 / 0,0289 | sí / sí |
+| 50.000 × 2 sem | OPTIMAL | 0,0197 % | 15,1 s | 12,8 / 15,0 | sí / sí |
+| 50.000 × 4 sem | FEASIBLE | 0,366 % | 93,8 s | 78,9 / 97,9 | sí / sí |
 
-**El tamaño medio (10.000 entradas) se resuelve holgadamente dentro del límite**: 0,170 s (2 semanas) y 0,407 s (4 semanas) reales frente a 120 s, con estado OPTIMAL y brecha 0 o despreciable (3,55e-07). Las dos celdas de 50.000 no cierran la brecha dentro del límite: 2 semanas termina FEASIBLE con 0,0853 % y 4 semanas con 0,209 %.
+**El tamaño medio (10.000 entradas) se resuelve holgadamente dentro del límite**: 0,162 s (2 semanas) y 0,392 s (4 semanas) reales frente a 120 s, con estado OPTIMAL y brecha 0 o despreciable (1,82e-05). 50.000 × 2 termina OPTIMAL (dentro de `relative_gap_limit`, brecha 0,0197 %); 50.000 × 4 no cierra la brecha dentro del límite y termina FEASIBLE con 0,366 %.
 
 ## 4. Comparación con la voraz `priority`
 
@@ -56,11 +54,11 @@ Deltas de `optimized_vs_priority.delta` (plan completo, con sobrecupo) menos la 
 | Celda | p1 agendados | GES cumplidas | GES a tiempo | Agendadas (CNE / pab.) | Suma de `c_ib` | ¿No peor lexicográfico? |
 |---|---|---|---|---|---|---|
 | 1.000 × 2 sem | 0 | 0 | 0 | 0 (0 / 0) | 0 | sí |
-| 1.000 × 4 sem | 0 | 0 | 0 | +1 (+1 / 0) | +537 | sí |
-| 10.000 × 2 sem | 0 | +7 | +7 | +20 (+19 / +1) | +53.943 | sí |
-| 10.000 × 4 sem | 0 | +9 | +8 | +35 (+28 / +7) | +85.772 | sí |
-| 50.000 × 2 sem | +10 | +27 | +38 | +139 (+108 / +31) | +801.865 | sí |
-| 50.000 × 4 sem | +7 | +175 | +187 | +327 (+275 / +52) | +1.345.082 | sí |
+| 1.000 × 4 sem | 0 | 0 | 0 | +1 (+1 / 0) | +530 | sí |
+| 10.000 × 2 sem | +1 | +6 | +6 | +16 (+14 / +2) | +36.109 | sí |
+| 10.000 × 4 sem | +1 | +13 | +12 | +31 (+24 / +7) | +60.255 | sí |
+| 50.000 × 2 sem | +13 | +43 | +60 | +120 (+88 / +32) | +695.144 | sí |
+| 50.000 × 4 sem | +6 | +225 | +240 | +284 (+233 / +51) | +1.324.117 | sí |
 
 Comparación sin sobrecupo (`optimized_without_overbooking_vs_priority`, como manda la decisión de comparar en igualdad de condiciones):
 
@@ -68,54 +66,54 @@ Comparación sin sobrecupo (`optimized_without_overbooking_vs_priority`, como ma
 |---|---|---|---|---|---|---|
 | 1.000 × 2 sem | 0 | 0 | 0 | 0 (0 / 0) | 0 | sí |
 | 1.000 × 4 sem | 0 | 0 | 0 | 0 (0 / 0) | 0 | sí |
-| 10.000 × 2 sem | 0 | +7 | +7 | +1 (0 / +1) | **−24** | sí |
-| 10.000 × 4 sem | 0 | +9 | +8 | +7 (0 / +7) | +15.741 | sí |
-| 50.000 × 2 sem | +10 | +27 | +38 | +31 (0 / +31) | +285.524 | sí |
-| 50.000 × 4 sem | +7 | +175 | +187 | +52 (0 / +52) | +276.114 | sí |
+| 10.000 × 2 sem | +1 | +6 | +6 | +2 (0 / +2) | **−2.169** | sí |
+| 10.000 × 4 sem | +1 | +13 | +12 | +7 (0 / +7) | +394 | sí |
+| 50.000 × 2 sem | +13 | +43 | +61 | +32 (0 / +32) | +281.903 | sí |
+| 50.000 × 4 sem | +6 | +225 | +240 | +51 (0 / +51) | +396.280 | sí |
 
-Se reportan tal cual las diferencias pequeñas o nulas: en 1.000 × 2 el plan optimizado es idéntico a la voraz en todas las métricas, y en 10.000 × 2 sin sobrecupo la suma de `c_ib` queda **24 puntos bajo** la voraz (7,77e-06 en relativo). El orden lexicográfico sigue siendo "no peor" porque prioriza primero p1 agendados, luego GES cumplidas y solo al final el puntaje: en esa celda el optimizador empata en p1 y gana 7 GES cumplidas antes de perder esos 24 puntos. Las ganancias grandes de agendadas con sobrecupo son casi todas CNE (sobreagendamiento); sin sobrecupo solo quedan las de pabellón.
+Se reportan tal cual las diferencias pequeñas o nulas: en 1.000 × 2 el plan optimizado es idéntico a la voraz en todas las métricas, y en 10.000 × 2 sin sobrecupo la suma de `c_ib` queda **2.169 puntos bajo** la voraz. El orden lexicográfico sigue siendo "no peor" porque prioriza primero p1 agendados, luego GES cumplidas y solo al final el puntaje: en esa celda el optimizador agenda 1 p1 más y gana 6 GES cumplidas a costa de esos 2.169 puntos. Las ganancias grandes de agendadas con sobrecupo son casi todas CNE (sobreagendamiento); sin sobrecupo solo quedan las de pabellón. Las corridas sin sobrecupo terminan OPTIMAL en todas las celdas.
 
 ## 5. Ablación (celdas de 50.000)
 
-Cada variante apaga una técnica (§8.6); `none` las apaga todas. Corre una sola vez (sin mediana). En las celdas de 1.000 y en 10.000 × 2 todas las variantes llegan al mismo `sum_coef` que la completa, con todo OPTIMAL. En 10.000 × 4 todas terminan OPTIMAL (dentro de `relative_gap_limit`) pero el `sum_coef` varía en 129 puntos: 5.640.566 en `all`, `without_objective_cut`, `without_symmetry_breaking` y `without_warm_start_frontier`; 5.640.562 sin pistas; 5.640.551 en `none`; 5.640.474 sin pista con sobrecupo y 5.640.437 sin poda de niveles. Con tiempos deterministas menores que 0,05, la ablación solo es informativa en 50.000.
+Cada variante apaga una técnica (§8.6); `none` las apaga todas. Corre una sola vez (sin mediana). En las celdas de 1.000 y en 10.000 × 2 todas las variantes llegan al mismo `sum_coef` que la completa, con todo OPTIMAL. En 10.000 × 4 todas terminan OPTIMAL (dentro de `relative_gap_limit`) pero el `sum_coef` varía en 197 puntos: 5.540.371 en `none`; 5.540.288 sin pista con sobrecupo; 5.540.283 en `all`, `without_objective_cut`, `without_symmetry_breaking` y `without_warm_start_frontier`; 5.540.179 sin poda de niveles y 5.540.174 sin pistas. Con tiempos deterministas menores que 0,05, la ablación solo es informativa en 50.000.
 
 ### 50.000 × 2 semanas
 
 | Variante | Estado | Brecha | Tiempo determinista total | `sum_coef` | Agendadas | Advertencias |
 |---|---|---|---|---|---|---|
-| `all` | FEASIBLE | 0,0853 % | 25,5 | 19.490.597 | 3.577 | 0 |
-| `none` | UNKNOWN | 0,0294 % | 20,7 | 19.494.447 | 3.577 | 0 |
-| `without_hints` | UNKNOWN | 0,0304 % | 16,7 | 19.495.231 | 3.577 | 0 |
-| `without_objective_cut` | FEASIBLE | 0,0305 % | 22,0 | 19.495.135 | 3.577 | 0 |
-| `without_overbooking_hint` | OPTIMAL | 0,0131 % | 21,3 | 19.495.472 | 3.577 | 0 |
-| `without_prune_overbooking_levels` | FEASIBLE | 0,0876 % | 24,7 | 19.487.489 | 3.576 | 0 |
-| `without_symmetry_breaking` | FEASIBLE | 0,0856 % | 26,5 | 19.490.448 | 3.577 | 0 |
-| `without_warm_start_frontier` | OPTIMAL | 0,0256 % | 19,5 | 19.494.746 | 3.577 | 0 |
+| `all` | OPTIMAL | 0,0197 % | 15,0 | 18.407.534 | 3.338 | 0 |
+| `none` | OPTIMAL | 0,0158 % | 19,8 | 18.408.089 | 3.338 | 0 |
+| `without_hints` | UNKNOWN | 0,0158 % | 14,7 | 18.408.572 | 3.338 | 0 |
+| `without_objective_cut` | OPTIMAL | 0,0204 % | 14,9 | 18.407.593 | 3.338 | 0 |
+| `without_overbooking_hint` | OPTIMAL | 0,0187 % | 15,2 | **18.408.805** | 3.338 | 0 |
+| `without_prune_overbooking_levels` | OPTIMAL | 0,0149 % | 13,5 | 18.407.858 | 3.338 | 0 |
+| `without_symmetry_breaking` | OPTIMAL | 0,0155 % | 15,8 | 18.407.611 | 3.338 | 0 |
+| `without_warm_start_frontier` | OPTIMAL | 0,0192 % | 14,2 | 18.407.522 | 3.338 | 0 |
 
 ### 50.000 × 4 semanas
 
 | Variante | Estado | Brecha | Tiempo determinista total | `sum_coef` | Agendadas | Advertencias |
 |---|---|---|---|---|---|---|
-| `all` | FEASIBLE | 0,209 % | 72,8 | 36.239.912 | 7.243 | 0 |
-| `none` | UNKNOWN | — (null) | 92,7 | 36.117.959 | 7.211 | **1** (`worse_than_baseline`) |
-| `without_hints` | UNKNOWN | 0,108 % | 67,8 | **36.270.682** | 7.247 | 0 |
-| `without_objective_cut` | FEASIBLE | 0,231 % | 57,7 | 36.232.891 | 7.239 | 0 |
-| `without_overbooking_hint` | FEASIBLE | 0,331 % | 78,5 | 36.200.654 | 7.233 | 0 |
-| `without_prune_overbooking_levels` | FEASIBLE | 0,666 % | 97,8 | 36.183.708 | 7.229 | 0 |
-| `without_symmetry_breaking` | FEASIBLE | 0,205 % | 76,9 | 36.238.895 | 7.242 | 0 |
-| `without_warm_start_frontier` | FEASIBLE | 0,218 % | 81,9 | 36.236.424 | 7.242 | 0 |
+| `all` | FEASIBLE | 0,366 % | 97,9 | 34.848.421 | 6.935 | 0 |
+| `none` | UNKNOWN | — (null) | 118,6 | 34.655.722 | 6.884 | **1** (`worse_than_baseline`) |
+| `without_hints` | UNKNOWN | — (null) | 111,0 | **34.885.292** | 6.944 | 0 |
+| `without_objective_cut` | FEASIBLE | 0,387 % | 99,2 | 34.842.298 | 6.934 | 0 |
+| `without_overbooking_hint` | FEASIBLE | 0,815 % | 106,4 | 34.691.199 | 6.898 | 0 |
+| `without_prune_overbooking_levels` | FEASIBLE | 0,915 % | 118,4 | 34.799.074 | 6.924 | 0 |
+| `without_symmetry_breaking` | FEASIBLE | 0,374 % | 104,8 | 34.850.118 | 6.935 | 0 |
+| `without_warm_start_frontier` | FEASIBLE | 0,347 % | 99,5 | 34.856.501 | 6.937 | 0 |
 
 Se reporta tal cual lo que sale al apagar técnicas, en cualquier dirección (las técnicas no cambian el óptimo, pero con brecha positiva o límite de tiempo sí cambian el plan entregado; [decisions.md §11](decisions.md#11-benchmark-y-rendimiento-del-programador)):
 
-- **Apagar las pistas mejora la celda mayor**: `without_hints` en 50.000 × 4 logra el mejor `sum_coef` de la tabla (36.270.682, +0,08 % sobre `all`), agenda 7.247 (4 más) y tarda menos (67,8 frente a 72,8 deterministas). En 50.000 × 2 también es la variante más rápida (16,7) y, a diferencia de la corrida anterior, con mejor `sum_coef` que `all` (19.495.231 frente a 19.490.597).
-- **La poda de niveles de sobrecupo y la pista voraz con sobrecupo son las que más pesan al apagarse en 50.000 × 4**: sin poda, la brecha sube a 0,666 % y el tiempo determinista a 97,8 (los peores de la tabla), con el segundo peor objetivo y 14 agendadas menos; sin la pista con sobrecupo, la brecha es 0,331 % con 78,5. En 50.000 × 2, sin poda es además la peor variante en `sum_coef` (19.487.489) y la única que agenda menos (3.576).
-- **`none` en 50.000 × 4 es la única corrida con advertencia `worse_than_baseline`**: terminó UNKNOWN en 2 subproblemas de la fase 3b y 3 de la fase 4 (OPTIMAL con `relative_gap_limit = 0,001` no es óptimo probado, y UNKNOWN es peor aún; formulación §9.5). Su brecha es `null` porque terminó UNKNOWN sin cota útil.
-- En 50.000 × 2, cinco variantes superan levemente el `sum_coef` de `all` (la mejor, `without_overbooking_hint` con 19.495.472, +4.875 puntos): con brechas positivas distintas, el mejor incumbente encontrado no es único.
+- **Apagar las pistas da el mejor objetivo en la celda mayor, pero sin cota**: `without_hints` en 50.000 × 4 logra el mejor `sum_coef` (34.885.292, +0,11 % sobre `all`) y agenda 9 más (6.944), pero tarda más (111,0 frente a 97,9 deterministas) y termina UNKNOWN sin brecha definida. Dos variantes más superan levemente a `all` en `sum_coef` (sin simetrías y sin arranque en caliente de la frontera); sin arranque en caliente además tarda poco más (99,5) y cierra algo más la brecha (0,347 %).
+- **La pista voraz con sobrecupo y la poda de niveles son las que más pesan al apagarse en 50.000 × 4**: sin la pista con sobrecupo, la brecha sube a 0,815 % y se agendan 37 menos (6.898); sin poda, la brecha es 0,915 % (la peor de la tabla) con 118,4 deterministas y 11 agendadas menos.
+- **`none` en 50.000 × 4 es la única corrida con advertencia `worse_than_baseline`**: terminó UNKNOWN en 4 subproblemas de la fase 3b y 1 de la fase 4, con el peor objetivo (34.655.722) y 51 agendadas menos que `all`. Su brecha es `null` porque terminó UNKNOWN sin cota útil.
+- En 50.000 × 2 todas las variantes agendan 3.338 y seis superan levemente el `sum_coef` de `all` (la mejor, `without_overbooking_hint`, +1.271 puntos); `without_prune_overbooking_levels` es la más rápida (13,5). Con brechas positivas distintas, el mejor incumbente encontrado no es único: en esta celda la ablación no muestra ganancia clara de ninguna técnica.
 
 ## 6. Limitaciones
 
-- **Una sola máquina.** Todos los tiempos son del Mac arm64 de 8 núcleos descrito en la sección 1 (en esta corrida las 3 repeticiones de cada variante completa variaron menos de 0,25 s); el tiempo real varía con la carga. Por eso la medida principal es el tiempo determinista de CP-SAT.
+- **Una sola máquina.** Todos los tiempos son del Mac arm64 de 8 núcleos descrito en la sección 1 (en esta corrida las 3 repeticiones de cada variante completa variaron menos de 0,3 s); el tiempo real varía con la carga. Por eso la medida principal es el tiempo determinista de CP-SAT.
 - **La brecha de la fase 3b mide en parte la cota.** Con restricciones de indicador, la cota lineal de 3b es débil (ver `_gap_by_phase` en `scheduler/plan.py`; la poda de §8.6 la ajusta en parte): una brecha positiva no implica que la solución esté lejos del óptimo.
-- **Artefactos de la oferta sintética.** El generador concentra las sesiones CNE a mitad del horizonte y los bloques de pabellón en lunes (formulación §11.2). El benchmark los esquiva generando oferta repartida en el horizonte, pero **no corrige el generador**: esa corrección sigue pendiente antes de la simulación de políticas.
+- **Oferta sintética.** El generador concentraba las sesiones CNE a mitad del horizonte y los bloques de pabellón en lunes (formulación §11.2); se corrigió en la versión 0.2.0 y este benchmark ya usa la oferta corregida. Las cifras no son comparables una a una con las de versiones anteriores de este documento.
 - **La celda de 1.000 no es una población calibrada** (sección 1): sus números miden rendimiento, no representatividad.
 - **Datos sintéticos.** Estas cifras validan que el programador escala y que sus técnicas funcionan sobre la estructura del generador; no dicen nada sobre tiempos ni ganancias con datos reales.

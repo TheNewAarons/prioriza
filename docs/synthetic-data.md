@@ -131,6 +131,8 @@ $$\tilde{\theta} = \theta \cdot \frac{N}{L_U} \cdot \text{capacity\_multiplier} 
 
 Distribución de sesiones/bloques entre especialidades: proporcional a entradas, Hamilton dentro de horizonte H (semanas).
 
+Reparto en el tiempo (generador 0.2.0): las sesiones de cada agenda o pabellón quedan a intervalos regulares de `H / n` semanas, desplazadas por una fase propia del recurso (secuencia de Weyl con la razón áurea), y el día del pabellón rota por recurso. Así el total por semana y por día de la semana queda parejo (ver §8, punto 9).
+
 ### Supuestos de capacidad
 
 - Minutos/semana: CNE θ̃ / (1 − t_s) × 20 min; IQ θ̃ / (1 − t_IQ) × (E[dur] + 30) / 0,85.
@@ -218,6 +220,8 @@ Determinista: mismo seed, size, scenario, as_of y configuración → mismo run_i
 7. **Citas del historial:** guardan la especialidad (`appointment.specialty_code`, de una de las entradas del paciente), pero no tienen término de espera (no hay episodios pasados): el efecto de la espera no se puede aprender desde el historial. Ver `docs/design/synthetic-noshow-review.md`.
 
 8. **Celdas sin sesiones:** Con N=100.000, 613 de 2.216 celdas (servicio, especialidad) tienen entradas pero ninguna sesión en horizonte (aviso en notas del informe de calibración).
+
+9. **Oferta concentrada (corregida en 0.2.0, 2026-10-09):** hasta la versión 0.1.0 todas las agendas y pabellones usaban la misma fase (0,5) para repartir sus sesiones: cada recurso con una sola sesión en 26 semanas caía en la semana 13, y con a lo más un bloque por semana el pabellón operaba solo los lunes. En la corrida canónica (N 100.000, 26 semanas) las sesiones CNE iban de 12 a 3.149 por semana y 3.276 de 4.249 bloques de pabellón caían en lunes (ninguno en viernes). Con la fase por recurso y la rotación del día: 237-296 sesiones CNE por semana, 150-174 bloques de pabellón por semana y 799-933 bloques por día de lunes a viernes. Mismos totales y mismas sesiones por celda; cambian el digest (y `model_version` de `noshow`, que lo incluye) pero no el `run_id`. Test: `synthetic/tests/test_synthetic_supply.py`.
 
 ## 9. Limitaciones, supuestos de independencia y pendientes
 

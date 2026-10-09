@@ -244,7 +244,7 @@ Técnicas en [scheduler-formulation.md §8.6](scheduler-formulation.md#86-técni
 **Dependencias**: `synthetic` (miembro del workspace) pasa a ser dependencia directa de `scheduler`, solo para `scheduler.bench`, que genera las poblaciones del benchmark con `synthetic.pipeline.generate`. No agrega nada al entorno: `scheduler` ya dependía de `noshow`, que depende de `synthetic`. Sin `py.typed`, sus imports llevan `# type: ignore[import-untyped]`. El núcleo del programador sigue sin importarlo.
 
 **Decisiones**:
-- **Oferta del benchmark generada para el horizonte.** Con la oferta de 26 semanas del generador, las corridas de 1.000 y 10.000 entradas tienen 0-1 y 25-59 bloques en las primeras 2-4 semanas (artefacto de `_week_slots`, formulación §11.2): el benchmark mediría problemas triviales. El benchmark genera sus propias corridas con `horizon_weeks` del generador igual a las semanas del plan (la misma oferta semanal, repartida en el horizonte), en `data/bench/` para no crear corridas ambiguas en `data/synthetic/` (`find_run_dir` exige una por semilla, tamaño y escenario). No corrige el generador; esa corrección sigue pendiente antes de la simulación.
+- **Oferta del benchmark generada para el horizonte.** Con la oferta de 26 semanas del generador, las corridas de 1.000 y 10.000 entradas tienen 0-1 y 25-59 bloques en las primeras 2-4 semanas (artefacto de `_week_slots`, formulación §11.2): el benchmark mediría problemas triviales. El benchmark genera sus propias corridas con `horizon_weeks` del generador igual a las semanas del plan (la misma oferta semanal, repartida en el horizonte), en `data/bench/` para no crear corridas ambiguas en `data/synthetic/` (`find_run_dir` exige una por semilla, tamaño y escenario). No corregía el generador; la corrección llegó después (§13) y el benchmark se repitió con ella.
 - **La corrida de 1.000 no pasa la calibración estricta del generador** (dos chequeos de medianas nacionales, por tamaño de muestra). Se usa igual, porque el benchmark mide al programador y no la calibración; el JSON registra los chequeos que fallan.
 - **Técnicas activas por defecto, con interruptores solo para medir.** Ninguna cambia el valor óptimo de una fase (lo prueba `test_techniques_do_not_change_optimum` con brecha 0). Con brecha positiva o límite de tiempo, sí pueden cambiar el plan entregado, en cualquier dirección: el benchmark lo reporta por variante.
 - **`canonicalize` no hace nada si `symmetry_breaking` está apagado**: con simetrías apagadas, permutar entradas idénticas podía sacar de la pista a una entrada de `S0` (hallazgo de la revisión).
@@ -262,10 +262,23 @@ Diseño en [simulation-design.md](simulation-design.md); resultados en `results/
 **Decisiones**:
 - **Asistencia con la probabilidad verdadera del generador**, nunca con la predicha: el programador decide con la predicha y el mundo responde con la verdadera. La verdad se calcula solo en `simulation/truth.py`.
 - **Llegadas por la ley de Little** (θ del generador por celda) a falta de series públicas de ingresos; los atributos se copian de filas del stock de la misma celda y condición GES, con paciente y fragilidad nuevos.
-- **Oferta estacionaria propia** con los minutos por semana de cada celda del generador, en vez de los `slot` del generador (artefacto §11.2). El generador sigue sin corregirse; la simulación ya no depende de esa corrección.
+- **Oferta estacionaria propia** con los minutos por semana de cada celda del generador, en vez de los `slot` del generador (artefacto §11.2). Se mantiene tras la corrección del generador (§13): la simulación necesita oferta más allá del horizonte del generador y escalable con `capacity_multiplier`.
 - **Números aleatorios comunes** entre políticas (llegadas y un uniforme por entrada e intento de asistencia) para comparar por réplica de forma pareada.
 - **Horizonte deslizante** de 4 semanas con una semana confirmada (formulación §8.3); anticipación de las citas de 7 a 11 días.
 - **Dos inasistencias = egreso** (causal de la Glosa 06); sin abandono por defecto.
+
+## 13. Corrección de la oferta del generador sintético
+
+**Fecha**: 2026-10-09
+
+**Problema** (formulación §11.2): todas las agendas y pabellones repartían sus sesiones con la misma fase, así que cada recurso con una sola sesión en el horizonte caía en la semana central y cada pabellón con a lo más un bloque por semana operaba solo los lunes. En la corrida canónica: de 12 a 3.149 sesiones CNE por semana y 3.276 de 4.249 bloques de pabellón en lunes.
+
+**Decisión**: fase propia por recurso (secuencia de Weyl con la razón áurea sobre el índice del recurso) y día del pabellón rotado por recurso. Determinista, sin streams aleatorios nuevos, mismos totales y mismas sesiones por celda; solo cambia cuándo ocurren. Resultado: 237-296 sesiones CNE y 150-174 bloques por semana, 799-933 bloques por día hábil.
+
+**Consecuencias**:
+- `GENERATOR_VERSION` pasa a 0.2.0 y cambia el digest de toda corrida (y con él `model_version` de `noshow`, que lo incluye). El `run_id` no incluye la versión del generador, así que no cambia: una corrida guardada con la versión anterior se reemplaza regenerándola (`prioriza-synth generate`, o `--load --replace` en la base).
+- El historial de citas, la población y el modelo de inasistencias no cambian (mismas métricas en `results/noshow.json`).
+- Se regeneraron la corrida canónica del programador, el benchmark y la simulación.
 
 ---
 

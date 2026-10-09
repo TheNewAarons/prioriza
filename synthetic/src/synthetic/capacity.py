@@ -165,12 +165,26 @@ def capacity_targets(
     )
 
 
-def _week_slots(count: int, horizon: int) -> list[tuple[int, int]]:
-    """Para ``count`` sesiones, devuelve (semana, índice dentro de la semana) por sesión."""
+GOLDEN = (math.sqrt(5.0) - 1.0) / 2.0
+
+
+def resource_phase(n: int) -> float:
+    """Fase en [0, 1) del recurso ``n`` (secuencia de Weyl con la razón áurea)."""
+    return ((n + 1) * GOLDEN) % 1.0
+
+
+def _week_slots(count: int, horizon: int, phase: float) -> list[tuple[int, int]]:
+    """Para ``count`` sesiones, devuelve (semana, índice dentro de la semana) por sesión.
+
+    Las sesiones quedan a intervalos regulares de ``horizon / count`` semanas, desplazadas por
+    ``phase``. Con la misma fase (antes, 0,5 para todos) cada recurso con una sola sesión caía
+    en la semana ``horizon // 2`` y la oferta se concentraba ahí (formulación §11.2); con una
+    fase distinta por recurso el total por semana queda parejo.
+    """
     out: list[tuple[int, int]] = []
     seen: dict[int, int] = {}
     for k in range(count):
-        week = min(horizon - 1, int((k + 0.5) * horizon / count))
+        week = min(horizon - 1, int((k + phase) * horizon / count))
         out.append((week, seen.get(week, 0)))
         seen[week] = seen.get(week, 0) + 1
     return out
@@ -289,9 +303,10 @@ def generate_capacity(
                         for i in range(n_ag)
                     ]
                     offset = len(res_rows) % (2 * WORKDAYS)
+                    first = len(res_rows) - n_ag
                     for ai in range(n_ag):
                         mine = len(range(ai, cnt, n_ag))
-                        for week, idx in _week_slots(mine, h):
+                        for week, idx in _week_slots(mine, h, resource_phase(first + ai)):
                             pos = (idx + offset) % (2 * WORKDAYS)
                             add_slot(rids[ai], sp, week, pos, care, unit_of[sp])
         else:
@@ -304,10 +319,15 @@ def generate_capacity(
                     new_resource("operating_room", code, svc, None, f"Pabellón {i + 1}")
                     for i in range(n_or)
                 ]
+                first = len(res_rows) - n_or
                 for oi in range(n_or):
                     mine = blocks[oi::n_or]
-                    for sp, (week, idx) in zip(mine, _week_slots(len(mine), h), strict=True):
-                        add_slot(rids[oi], sp, week, idx % WORKDAYS, care, None)
+                    # El día rota por pabellón: sin la rotación, todo pabellón con a lo más un
+                    # bloque por semana operaba solo los lunes (formulación §11.2).
+                    n = first + oi
+                    slots = _week_slots(len(mine), h, resource_phase(n))
+                    for sp, (week, idx) in zip(mine, slots, strict=True):
+                        add_slot(rids[oi], sp, week, (idx + n) % WORKDAYS, care, None)
 
     resource = pl.DataFrame(
         res_rows,

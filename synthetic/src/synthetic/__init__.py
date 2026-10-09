@@ -9,4 +9,4 @@ Herramienta de investigación con datos sintéticos. No usar para decisiones cl�
 de gestión real sin validación institucional.
 """
 
-GENERATOR_VERSION = "0.1.0"
+GENERATOR_VERSION = "0.2.0"

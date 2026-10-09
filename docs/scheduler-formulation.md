@@ -377,35 +377,37 @@ Corrida canónica (N = 100.000, semilla 42, escenario baseline, `as_of` 2025-09-
 | GES obligadas (vencidas antes del horizonte) | 3.866 (2.105) | 6.555 (2.105) |
 | GES obligadas con algún bloque compatible | 1.857 | 6.517 |
 
-Con 4 semanas, el problema es pequeño para CP-SAT: el subproblema mayor tiene unos 15.000 booleanos `x`. Con 26 semanas el filtro no reduce casi nada (la oferta del horizonte se acerca a la demanda) y el subproblema mayor tiene unos 200.000 pares; sigue bajo el umbral de 400.000, pero el tiempo de la fase 3 puede ser el cuello de botella. Objetivo de rendimiento para la implementación: plan de 4 semanas para N = 100.000 en menos de 120 s. Medido en la [sección 11.3](#113-medición-de-la-implementación-p8-actualizada-en-p9-y-tras-la-revisión-de-p8): 143 s reales en P8, 166 s en P9 y 117,8 s tras la revisión de P8. Esta última corrida queda bajo 120 s, pero no es una garantía: el tiempo real depende de la carga de la máquina y, con la expansión de frontera, el presupuesto total puede superar `time_limit_s`.
+Con 4 semanas, el problema es pequeño para CP-SAT: el subproblema mayor tiene unos 15.000 booleanos `x`. Con 26 semanas el filtro no reduce casi nada (la oferta del horizonte se acerca a la demanda) y el subproblema mayor tiene unos 200.000 pares; sigue bajo el umbral de 400.000, pero el tiempo de la fase 3 puede ser el cuello de botella. Objetivo de rendimiento para la implementación: plan de 4 semanas para N = 100.000 en menos de 120 s. Medido en la [sección 11.3](#113-medición-de-la-implementación-p8-actualizada-en-p9-tras-la-revisión-de-p8-y-con-la-oferta-corregida): 143 s reales en P8, 166 s en P9 y 117,8 s tras la revisión de P8, con la oferta concentrada del generador 0.1.0; con la oferta corregida (más bloques en 4 semanas), 163,5 s. No se cumple.
 
-### 11.2 Artefactos de la oferta sintética que afectan al programador
+### 11.2 Artefactos de la oferta sintética (corregidos en el generador 0.2.0)
 
-Al medir se encontraron dos patrones del generador (`synthetic/capacity.py`) que no son del programador pero cambian sus resultados:
+Al medir se encontraron dos patrones del generador (`synthetic/capacity.py`, versión 0.1.0) que no eran del programador pero cambiaban sus resultados:
 
 1. **Las sesiones CNE se concentran a mitad del horizonte.** `_week_slots` pone la sesión `k` de `count` en la semana `floor((k + 0,5)·H / count)`; con `count = 1` (la mayoría de las agendas tienen 1 o 2 sesiones en 26 semanas) cae en la semana 13. Resultado: 22 sesiones en la semana 0, 3.149 en la semana 13 y 378 en las primeras 4 semanas, frente a ~1.043 si se repartieran parejo. Por eso solo 1.857 de las 3.866 GES obligadas tienen algún bloque en 4 semanas.
 2. **Los bloques de pabellón se concentran en lunes.** El día es `idx % 5` con `idx` el índice dentro de la semana del recurso; con ~1 bloque por recurso y semana, 3.276 de 4.249 bloques caen en lunes. Afecta a R4 y a la variable de día de la semana del modelo de inasistencias.
 
-El programador no corrige la oferta: la usa como viene y reporta la capacidad por semana. Se recomienda corregir el generador antes de la simulación de políticas (P8); queda como pendiente en `TASK_PLAN.md`.
+**Corrección (2026-10-09, generador 0.2.0).** Cada agenda y pabellón reparte sus sesiones con una fase propia y el día del pabellón rota por recurso: en la corrida canónica quedan 237-296 sesiones CNE y 150-174 bloques de pabellón por semana, y 799-933 bloques por día de lunes a viernes (detalle en `docs/synthetic-data.md` §8, punto 9). El programador sigue sin corregir la oferta: la usa como viene y reporta la capacidad por semana. Las mediciones de la [sección 11.3](#113-medición-de-la-implementación-p8-actualizada-en-p9-tras-la-revisión-de-p8-y-con-la-oferta-corregida) y el benchmark se repitieron con la oferta corregida.
 
-### 11.3 Medición de la implementación (P8, actualizada en P9 y tras la revisión de P8)
+### 11.3 Medición de la implementación (P8, actualizada en P9, tras la revisión de P8 y con la oferta corregida)
 
-Corrida canónica, 4 semanas, configuración por defecto (`deterministic = true`, un hilo, `linearization_level = 2`, `time_limit_s = 120`, técnicas de la [sección 8.6](#86-técnicas-de-rendimiento-p9) activas), medida el 2026-10-09 con `make schedule` después de los arreglos de la revisión (frontera sobre la fase 3a, presupuesto fijo de 3a); informe completo en `results/schedule_32c9e349-74f9-5c85-bf4b-990796b47323_4w.json`. El benchmark por tamaño y la ablación de cada técnica están en [scheduler-performance.md](scheduler-performance.md).
+Corrida canónica, 4 semanas, configuración por defecto (`deterministic = true`, un hilo, `linearization_level = 2`, `time_limit_s = 120`, técnicas de la [sección 8.6](#86-técnicas-de-rendimiento-p9) activas), medida el 2026-10-09 con `make schedule` sobre la corrida regenerada con el generador 0.2.0 (oferta repartida en semanas y días, [sección 11.2](#112-artefactos-de-la-oferta-sintética-corregidos-en-el-generador-020)); informe completo en `results/schedule_32c9e349-74f9-5c85-bf4b-990796b47323_4w.json`. El horizonte tiene ahora 1.695 bloques (antes 1.030): 1.042 sesiones CNE (12.504 cupos) y 653 bloques de pabellón. El benchmark por tamaño y la ablación de cada técnica están en [scheduler-performance.md](scheduler-performance.md).
 
-| | `fifo` | `priority` | `optimized` (actual) | `optimized` (P8) |
-|---|---|---|---|---|
-| Agendadas (CNE / pabellón) | 5.665 (4.524 / 1.141) | 5.672 (4.524 / 1.148) | 5.949 (4.666 / 1.283) | 5.843 (4.564 / 1.279) |
-| p1 agendados | 355 | 2.448 | 2.460 | 2.460 |
-| GES obligadas cumplidas (de 3.866) | 180 | 851 | 1.211 | 1.211 |
-| GES dentro de plazo | 8 | 50 | 414 | 413 |
-| Suma de `c_ib` | 24.290.245 | 29.917.088 | 31.320.256 | 30.796.038 |
-| Sobrecupos | 0 | 0 | 142 (riesgo exacto máximo 0,0999 ≤ 0,10) | 40 |
+| | `fifo` | `priority` | `optimized` |
+|---|---|---|---|
+| Agendadas (CNE / pabellón) | 13.169 (11.905 / 1.264) | 13.168 (11.906 / 1.262) | 13.616 (12.212 / 1.404) |
+| p1 agendados | 844 | 4.146 | 4.150 |
+| GES obligadas cumplidas (de 3.866) | 342 | 1.070 | 1.594 |
+| GES dentro de plazo | 23 | 92 | 615 |
+| Suma de `c_ib` | 52.705.746 | 64.732.928 | 66.454.560 |
+| Sobrecupos | 0 | 0 | 343 (riesgo exacto máximo 0,0999 ≤ 0,10) |
 
-- **Tiempo.** La política optimizada tarda 117,8 s reales (antes de la revisión, en P9: 166 s; P8: 143 s); las voraces, 1,4-1,5 s. El tiempo real varía con la carga de la máquina (esta corrida compartió la CPU con otros procesos), así que la medida comparable es la determinista: 123,1 unidades en los 120 subproblemas del plan y 39,3 más en 36 componentes de la primera pasada que la expansión de frontera (28 colas) reemplazó, 162,4 en total (P9 antes de la revisión: 177,9). El presupuesto es por pasada, así que con expansión el total puede superar `time_limit_s` (pendiente: presupuesto global).
-- **Estados.** Fases 1 (112) y 2 (75) en `OPTIMAL`; 3a 114 `OPTIMAL` y 6 `FEASIBLE` (brecha agregada 0,08 %; antes de la revisión 3 `FEASIBLE` y 0,03 %: sin fase 3b, la 3a ya no recibe el presupuesto de 3b); 3b 20 `OPTIMAL`, 20 `FEASIBLE` y 8 `UNKNOWN`; fase 4 67 `OPTIMAL`, 5 `FEASIBLE` y 9 `UNKNOWN`. Una fase en `UNKNOWN` conserva su pista (en 3b, la de la voraz con sobrecupo), así que el plan es factible y verificado, pero la brecha agregada de 3b queda sin definir. En P9, antes de la revisión, con `objective_cut = false` hubo 2 fases 3b en `UNKNOWN`, un objetivo menor y un tiempo determinista parecido; no se repitió esa medición.
-- **GES.** De las 2.655 garantías incumplidas, 2.009 no tienen ningún bloque de su especialidad en el horizonte, 341 vencen antes del primer bloque posible y 305 encuentran los cupos tomados (igual que en P8). Las dos primeras causas vienen de la oferta sintética (§11.2), no del programador.
-- **Equidad (resultados que se informan tal cual).** Ninguna política agenda bien al grupo 0-14: 3,07 % (fifo), 3,13 % (priority) y 3,12 % (optimized), frente a 5-6,6 % del resto, por la oferta pediátrica del generador. La optimizada queda por encima de `priority` en 15-19 (5,30 % frente a 5,02 %) y en 45-64 (6,59 % frente a 6,12 %). Con más sobrecupos, la exposición (agendados CNE en sesiones con sobrecupo) sube de 10-13 % en P8 a 37,0-40,3 % por grupo etario y 38,3-40,6 % por previsión; queda dentro del límite relativo de 5 pp, pero ahora cerca de 4 de cada 10 pacientes CNE agendados comparten sesión con un sobrecupo.
-- **Advertencias del informe.** Frontera de candidatos alcanzada en 28 colas y todavía alcanzada en 2 tras duplicar el margen (oftalmología de los servicios 3 y 16); 48 citas con aviso fuera del rango del historial (7-90 días), cuya `p` extrapola el modelo.
+Con la oferta concentrada del generador 0.1.0 (antes de la corrección) la optimizada agendaba 5.949 y cumplía 1.211 GES; las cifras no son comparables porque cambió la oferta, no el programador.
+
+- **Tiempo (no se cumple el objetivo de 120 s).** La política optimizada tarda 163,5 s reales; las voraces, 2,2-2,6 s. CP-SAT gasta 155,7 unidades deterministas en los 159 subproblemas del plan y 77,3 más en 41 componentes de la primera pasada que la expansión de frontera (96 colas) reemplazó: 233,0 en total. El presupuesto es por pasada, así que con expansión el total supera `time_limit_s` (pendiente: presupuesto global). Con la oferta repartida, el problema de 4 semanas es mayor que antes (más bloques en el horizonte y más candidatos).
+- **Estados.** Fases 1 (136) y 2 (89) en `OPTIMAL`; 3a 155 `OPTIMAL` y 4 `FEASIBLE` (brecha agregada 2,06 %); 3b 42 `OPTIMAL`, 16 `FEASIBLE` y 21 `UNKNOWN`; fase 4 76 `OPTIMAL`, 6 `FEASIBLE` y 14 `UNKNOWN`. Una fase en `UNKNOWN` conserva su pista (en 3b, la de la voraz con sobrecupo), así que el plan es factible y verificado, pero la brecha agregada de 3b queda sin definir.
+- **GES.** De las 2.272 garantías incumplidas, 1.018 no tienen ningún bloque de su especialidad en el horizonte, 602 vencen antes del primer bloque posible y 652 encuentran los cupos tomados. Con la oferta concentrada eran 2.655 incumplidas, 2.009 de ellas sin bloque en el horizonte.
+- **Equidad (resultados que se informan tal cual).** Las tasas de agendamiento quedan entre 12,6 % y 13,9 % por grupo etario y previsión en las tres políticas (con la oferta concentrada, el grupo 0-14 quedaba en ~3 % frente a 5-6,6 % del resto). La exposición al sobrecupo (agendados CNE en sesiones con sobrecupo) es 36,5 % en total, 35,2-41,4 % por grupo etario y 35,0-37,4 % por previsión. Todos los grupos quedan dentro de 5 pp del total, pero el 0-14 está en el borde (41,4 %, +4,9 pp): más de 4 de cada 10 niños agendados en CNE comparten sesión con un sobrecupo.
+- **Advertencias del informe.** Frontera de candidatos alcanzada en 96 colas y todavía alcanzada en 14 tras duplicar el margen; 139 citas con aviso fuera del rango del historial (7-90 días), cuya `p` extrapola el modelo.
 
 ## 12. Configuración
 

@@ -18,8 +18,8 @@
   "config_sha256": "1124d9b78f872645af8e9200d83a355be9aa6255368576ec46208d4f031f3481",
   "data_version": {
     "as_of": "2025-09-30",
-    "dataset_sha256": "6ef9a83e7b146304e59c854e2910fef53dd902a12e46d78c04dcd5cea106b6fe",
-    "generator_version": "0.1.0",
+    "dataset_sha256": "3ba6e98831381f9988764e9e482cbc45e3c77a51bb3216df5c6a38eadf9f48e0",
+    "generator_version": "0.2.0",
     "params_sha256": "a8e042e244a54b1b529021346097ccdd385ea587f9d69e62efa4fa6ec17b873a",
     "run_id": "32c9e349-74f9-5c85-bf4b-990796b47323",
     "scenario": "baseline",
@@ -1269,7 +1269,7 @@
   ],
   "model_format_version": "1",
   "model_spec_sha256": "4f0429cdc5906eac9965ff05e757675d759a13ed36548a7c3a254af43d5d8fbc",
-  "model_version": "noshow-4f0429cd-6ef9a83e",
+  "model_version": "noshow-4f0429cd-3ba6e988",
   "oracle_reference": {
     "description": "Probabilidad verdadera del generador (verdad sintética, solo evaluación): techo de lo alcanzable.",
     "metrics": {
