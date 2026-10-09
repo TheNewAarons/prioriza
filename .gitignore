@@ -82,3 +82,6 @@ data/simulation/
 
 # Artefactos de modelos (reproducibles con make train-noshow; los resultados van en results/)
 models/
+
+# Usuarios y claves de la API (copiar de api/users.example.json; nunca versionar)
+api/config/

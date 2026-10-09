@@ -1,0 +1,297 @@
+"""Modelos de entrada y salida de la API.
+
+Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de
+gestión real sin validación institucional.
+
+Toda respuesta de lista de espera, paciente, plan, trabajo, revisión y simulación hereda de
+`DisclaimerModel` y lleva el aviso obligatorio en el campo `disclaimer`.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import date, datetime
+from enum import StrEnum
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+from shared.db.enums import (
+    AgeGroup,
+    ClinicalPriority,
+    Insurance,
+    Policy,
+    ReviewAction,
+    ReviewStatus,
+)
+from shared.disclaimer import DISCLAIMER
+from shared.schemas import CareType
+
+
+class DisclaimerModel(BaseModel):
+    """Base de las respuestas con aviso obligatorio."""
+
+    disclaimer: str = Field(default=DISCLAIMER, description="Aviso obligatorio de uso.")
+
+
+class ErrorOut(BaseModel):
+    """Cuerpo de los errores (401, 403, 404, 409, 503)."""
+
+    detail: str
+
+
+class MeOut(BaseModel):
+    """Usuario autenticado."""
+
+    user: str
+    role: Literal["gestor", "revisor", "lectura"]
+
+
+class StrictTierName(StrEnum):
+    """Nivel estricto GES del puntaje."""
+
+    NONE = "NONE"
+    GES_DUE_SOON = "GES_DUE_SOON"
+    GES_OVERDUE = "GES_OVERDUE"
+
+
+class WaitlistOrder(StrEnum):
+    """Orden de la lista de espera."""
+
+    RANK = "rank"
+    SCORE = "score"
+    ENTRY_DATE = "entry_date"
+
+
+# ------------------------------------------------------------------ lista de espera
+
+
+class WaitlistItemOut(BaseModel):
+    """Entrada en espera con su puntaje; `rank` es el puesto dentro de su cola."""
+
+    entry_id: str
+    patient_id: str
+    health_service_code: int
+    specialty_code: str
+    care_type: CareType
+    clinical_priority: ClinicalPriority
+    is_ges: bool
+    ges_deadline: date | None
+    entry_date: date
+    wait_days: int
+    score: float
+    rank: int = Field(description="Puesto (desde 1) en la cola: servicio, especialidad y tipo.")
+    tier: StrictTierName
+
+
+class WaitlistPageOut(DisclaimerModel):
+    """Página de la lista de espera."""
+
+    total: int
+    limit: int
+    offset: int
+    items: list[WaitlistItemOut]
+
+
+class PatientEntryOut(BaseModel):
+    """Entrada de un paciente; sin puntaje ni explicación si ya no está en espera."""
+
+    entry_id: str
+    patient_id: str
+    health_service_code: int
+    specialty_code: str
+    care_type: CareType
+    clinical_priority: ClinicalPriority
+    is_ges: bool
+    ges_deadline: date | None
+    entry_date: date
+    status: str
+    wait_days: int | None
+    score: float | None
+    rank: int | None
+    tier: StrictTierName | None
+    explanation: dict[str, Any] | None = Field(
+        description="Explicación del puntaje (`priority.explanation_to_dict`)."
+    )
+
+
+class PatientOut(DisclaimerModel):
+    """Paciente sintético (sin nombre, RUT, sexo ni fecha de nacimiento)."""
+
+    patient_id: str
+    health_service_code: int
+    commune_code: str
+    age_group: AgeGroup
+    insurance: Insurance
+    entries: list[PatientEntryOut]
+
+
+# ------------------------------------------------------------------ programación
+
+
+class ScheduleRequestIn(BaseModel):
+    """Parámetros de una programación. `overbooking` y `alpha` solo afectan a `optimized`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    policy: Policy
+    horizon_weeks: int = Field(default=4, ge=1, le=52)
+    overbooking: bool = True
+    alpha: float = Field(default=0.10, gt=0.0, lt=1.0)
+    time_limit_s: float = Field(default=120.0, gt=0.0, le=3600.0)
+
+
+class JobStatus(StrEnum):
+    """Estado de un trabajo de programación."""
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+class JobOut(DisclaimerModel):
+    """Trabajo de programación; el plan resultante nace `pending` (requiere revisión humana)."""
+
+    job_id: uuid.UUID
+    status: JobStatus
+    policy: Policy
+    requested_by: str
+    created_at: datetime
+    plan_id: uuid.UUID | None = None
+    error: str | None = None
+
+
+# ------------------------------------------------------------------ planes
+
+
+class PlanSummaryOut(DisclaimerModel):
+    """Plan y su estado de revisión. Todo plan requiere revisión humana antes de usarse."""
+
+    plan_id: uuid.UUID
+    run_id: str
+    policy: Policy
+    review_status: ReviewStatus
+    is_current: bool
+    requested_by: str | None
+    created_at: datetime
+    solver_status: str | None
+    objective_value: float | None
+    horizon_start: date
+    horizon_end: date
+
+
+class PlanDetailOut(PlanSummaryOut):
+    """Resumen del informe del plan, con los resultados de equidad tal cual salieron."""
+
+    summary: dict[str, Any]
+    ges: dict[str, Any]
+    equity: list[dict[str, Any]]
+    warnings: list[str]
+    config: dict[str, Any]
+
+
+class PlanPageOut(DisclaimerModel):
+    """Página de planes."""
+
+    total: int
+    limit: int
+    offset: int
+    items: list[PlanSummaryOut]
+
+
+class AssignmentOut(BaseModel):
+    """Cita propuesta por el plan."""
+
+    entry_id: str
+    patient_id: str
+    slot_id: str
+    specialty_code: str | None
+    scheduled_start: datetime
+    duration_min: int
+    lead_days: int | None
+    is_overbooked: bool
+    predicted_noshow_prob: float | None
+
+
+class AssignmentPageOut(DisclaimerModel):
+    """Página de asignaciones."""
+
+    total: int
+    limit: int
+    offset: int
+    items: list[AssignmentOut]
+
+
+class ExplanationOut(BaseModel):
+    """Por qué una entrada quedó (o no) en el plan."""
+
+    entry_id: str
+    status: str
+    detail: str | None
+    text: str
+
+
+class ExplanationPageOut(DisclaimerModel):
+    """Página de explicaciones."""
+
+    total: int
+    limit: int
+    offset: int
+    items: list[ExplanationOut]
+
+
+class ReviewIn(BaseModel):
+    """Decisión del revisor sobre un plan pendiente (final)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    decision: Literal[ReviewStatus.APPROVED, ReviewStatus.REJECTED]
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class ActivateIn(BaseModel):
+    """Nota opcional al marcar un plan aprobado como vigente."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class ReviewRecordOut(BaseModel):
+    """Registro de auditoría."""
+
+    id: uuid.UUID
+    action: ReviewAction
+    user_name: str
+    role: str
+    note: str | None
+    created_at: datetime
+
+
+class ReviewListOut(DisclaimerModel):
+    """Auditoría de un plan en orden cronológico."""
+
+    plan_id: uuid.UUID
+    items: list[ReviewRecordOut]
+
+
+# ------------------------------------------------------------------ simulación
+
+
+class SimulationOut(DisclaimerModel):
+    """Resumen de `results/simulation.json` (sin las réplicas individuales)."""
+
+    generated_at: str
+    run: dict[str, Any]
+    noshow_model_version: str | None
+    config: dict[str, Any]
+    supply_coverage: dict[str, Any]
+    aggregate: dict[str, Any]
+    comparisons: dict[str, Any]
+    equity: dict[str, Any] = Field(
+        description=(
+            "Equidad por grupo (edad, previsión, comuna) por política: media, mínimo y máximo "
+            "entre réplicas de cada métrica, y brecha máxima entre grupos. Se informa tal cual."
+        )
+    )
+    limitations: list[str]

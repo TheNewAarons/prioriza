@@ -89,6 +89,15 @@ class ReviewStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class ReviewAction(StrEnum):
+    """Acción auditada sobre un plan: decisión del revisor o cambio de vigencia del gestor."""
+
+    APPROVE = "approve"
+    REJECT = "reject"
+    ACTIVATE = "activate"
+    DEACTIVATE = "deactivate"
+
+
 class NoShowScenario(StrEnum):
     """Escenario de inasistencias sintéticas."""
 
