@@ -92,6 +92,17 @@ class WaitlistPageOut(DisclaimerModel):
     items: list[WaitlistItemOut]
 
 
+class ComponentOut(BaseModel):
+    """Aporte de un componente al puntaje de priorización."""
+
+    field: str
+    label: str
+    raw_value: str | int | None
+    normalized: float
+    weight: float
+    contribution: float
+
+
 class PatientEntryOut(BaseModel):
     """Entrada de un paciente; sin puntaje ni explicación si ya no está en espera."""
 
@@ -112,6 +123,46 @@ class PatientEntryOut(BaseModel):
     explanation: dict[str, Any] | None = Field(
         description="Explicación del puntaje (`priority.explanation_to_dict`)."
     )
+    components: list[ComponentOut] | None = Field(
+        default=None,
+        description="Desglose del puntaje por componente (null si no está en espera).",
+    )
+
+
+class WaitHistogramBin(BaseModel):
+    """Tramo del histograma de espera (30 días; el último es '720 o más')."""
+
+    from_day: int
+    to_day: int | None = Field(description="null en el tramo final '720 o más'.")
+    count: int
+
+
+class CareTypeSummary(BaseModel):
+    """Resumen de un tipo de atención (consulta o cirugía)."""
+
+    care_type: CareType
+    total: int
+    wait_median: float | None
+    wait_p90: float | None
+    ges_total: int
+    ges_at_risk: int
+    ges_overdue: int
+
+
+class WaitlistSummaryOut(DisclaimerModel):
+    """Resumen agregado de la lista de espera, calculado una vez por corrida."""
+
+    as_of: date
+    run_id: str = Field(description="Identificador de la corrida sintética en uso.")
+    run_entries: int = Field(description="Entradas de la corrida (en espera o no).")
+    total: int
+    wait_median: float | None
+    wait_p90: float | None
+    ges_total: int
+    ges_at_risk: int = Field(description="GES no vencida con plazo a 30 días o menos de as_of.")
+    ges_overdue: int = Field(description="GES con plazo anterior a as_of.")
+    by_care_type: list[CareTypeSummary]
+    wait_histogram: list[WaitHistogramBin]
 
 
 class PatientOut(DisclaimerModel):
@@ -295,3 +346,67 @@ class SimulationOut(DisclaimerModel):
         )
     )
     limitations: list[str]
+
+
+# ------------------------------------------------------------------ GES del plan
+
+
+class GesItemOut(BaseModel):
+    """Estado de una garantía GES en el plan."""
+
+    entry_id: str
+    obligation: str
+    ges_deadline: date | None
+    met: bool
+    on_time: bool | None
+    scheduled_date: date | None
+    days_late: int | None
+    first_possible_date: date | None
+    cause: str | None
+    text: str
+
+
+class GesCauseCount(BaseModel):
+    """Conteo de GES no cumplidas por causa."""
+
+    cause: str
+    count: int
+
+
+class GesPageOut(DisclaimerModel):
+    """Página de garantías GES del plan."""
+
+    plan_id: uuid.UUID
+    total: int
+    limit: int
+    offset: int
+    items: list[GesItemOut]
+    by_cause: list[GesCauseCount] = Field(description="Conteo de no cumplidas por causa.")
+
+
+# ------------------------------------------------------------------ calendario
+
+
+class CalendarItemOut(BaseModel):
+    """Carga de un recurso en un día."""
+
+    resource_id: str
+    resource_label: str
+    resource_kind: str
+    health_service_code: int
+    specialty_code: str | None
+    date: date
+    blocks: int = Field(description="Bloques (cupos CNE o bloques de pabellón) del día.")
+    capacity: int = Field(description="Cupos CNE o minutos planificables de pabellón.")
+    scheduled: int = Field(description="Citas programadas (sin sobrecupo).")
+    overbooked: int = Field(description="Citas con sobrecupo.")
+
+
+class CalendarPageOut(DisclaimerModel):
+    """Página del calendario por recurso y día."""
+
+    plan_id: uuid.UUID
+    total: int
+    limit: int
+    offset: int
+    items: list[CalendarItemOut]

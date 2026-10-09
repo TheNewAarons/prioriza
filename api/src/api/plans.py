@@ -156,6 +156,20 @@ def check_activate(*, status: ReviewStatus, is_current: bool, actor: User) -> No
         raise InvalidTransition("el plan ya es el vigente de su corrida")
 
 
+GES_COLUMNS = (
+    "entry_id",
+    "obligation",
+    "ges_deadline",
+    "met",
+    "on_time",
+    "scheduled_date",
+    "days_late",
+    "first_possible_date",
+    "cause",
+    "text",
+)
+
+
 class PlanStore(Protocol):
     """Almacén de planes; aplica las reglas de revisión y vigencia."""
 
@@ -193,6 +207,20 @@ class PlanStore(Protocol):
         """Explicaciones por entrada (columnas de `EXPLANATION_COLUMNS`), filtrables por estado."""
         ...
 
+    def ges(
+        self, plan_id: uuid.UUID, *, met: bool | None, cause: str | None, limit: int, offset: int
+    ) -> Page[dict[str, Any]]:
+        """Garantías GES del plan, filtrables por cumplimiento y causa."""
+        ...
+
+    def ges_causes(self, plan_id: uuid.UUID) -> dict[str, int]:
+        """Garantías GES no cumplidas del plan, contadas por causa."""
+        ...
+
+    def slot_counts(self, plan_id: uuid.UUID) -> pl.DataFrame:
+        """Citas por cupo: columnas `slot_id`, `scheduled` (sin sobrecupo) y `overbooked`."""
+        ...
+
     def reviews(self, plan_id: uuid.UUID) -> list[ReviewRecord]:
         """Auditoría del plan en orden cronológico."""
         ...
@@ -218,11 +246,44 @@ def project_explanations(df: pl.DataFrame) -> pl.DataFrame:
     return df.select(EXPLANATION_COLUMNS).sort("entry_id")
 
 
+def project_ges(df: pl.DataFrame) -> pl.DataFrame:
+    """Deja las columnas públicas de las garantías GES, en orden estable.
+
+    El DataFrame interno puede tener columnas extra (p. ej. `occupants`); se descartan.
+    """
+    if "entry_id" not in df.columns:
+        return pl.DataFrame(schema={"entry_id": pl.String})
+    cols = [c for c in GES_COLUMNS if c in df.columns]
+    return df.select(cols).sort("entry_id")
+
+
+def filter_ges(
+    rows: list[dict[str, Any]], *, met: bool | None, cause: str | None
+) -> list[dict[str, Any]]:
+    """Filtra filas de garantías GES por cumplimiento y causa."""
+    return [
+        r
+        for r in rows
+        if (met is None or r["met"] is met) and (cause is None or r["cause"] == cause)
+    ]
+
+
+def count_causes(rows: list[dict[str, Any]]) -> dict[str, int]:
+    """Cuenta por causa las garantías no cumplidas (ordenado de mayor a menor)."""
+    counts: dict[str, int] = {}
+    for r in rows:
+        if not r["met"]:
+            key = r["cause"] or "unknown"
+            counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
 @dataclass
 class _Stored:
     record: PlanRecord
     assignments: pl.DataFrame
     explanations: pl.DataFrame
+    ges: pl.DataFrame = field(default_factory=lambda: pl.DataFrame())
     reviews: list[ReviewRecord] = field(default_factory=list)
 
 
@@ -269,6 +330,7 @@ class MemoryPlanStore:
                 record,
                 project_assignments(plan.assignments),
                 project_explanations(plan.explanations),
+                project_ges(plan.ges),
             )
             return record
 
@@ -313,6 +375,27 @@ class MemoryPlanStore:
         if status is not None:
             df = df.filter(pl.col("status") == status)
         return Page(df.slice(offset, limit).to_dicts(), df.height)
+
+    def ges(
+        self, plan_id: uuid.UUID, *, met: bool | None, cause: str | None, limit: int, offset: int
+    ) -> Page[dict[str, Any]]:
+        with self._lock:
+            rows = self._stored(plan_id).ges.to_dicts()
+        rows = filter_ges(rows, met=met, cause=cause)
+        return Page(rows[offset : offset + limit], len(rows))
+
+    def ges_causes(self, plan_id: uuid.UUID) -> dict[str, int]:
+        with self._lock:
+            rows = self._stored(plan_id).ges.to_dicts()
+        return count_causes(rows)
+
+    def slot_counts(self, plan_id: uuid.UUID) -> pl.DataFrame:
+        with self._lock:
+            df = self._stored(plan_id).assignments
+        return df.group_by("slot_id").agg(
+            (~pl.col("is_overbooked")).sum().cast(pl.Int64).alias("scheduled"),
+            pl.col("is_overbooked").sum().cast(pl.Int64).alias("overbooked"),
+        )
 
     def reviews(self, plan_id: uuid.UUID) -> list[ReviewRecord]:
         with self._lock:

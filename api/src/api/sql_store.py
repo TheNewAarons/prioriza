@@ -16,6 +16,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+import polars as pl
 import sqlalchemy as sa
 from scheduler.persist import persist_plan
 from shared.db.enums import ReviewAction, ReviewStatus
@@ -34,7 +35,10 @@ from api.plans import (
     ReviewRecord,
     check_activate,
     check_review,
+    count_causes,
+    filter_ges,
     project_explanations,
+    project_ges,
 )
 
 _API_KEY = "api"
@@ -168,6 +172,39 @@ class SqlPlanStore:
         rows.sort(key=lambda r: str(r["entry_id"]))
         return Page(rows[offset : offset + limit], len(rows))
 
+    def _stored_ges(self, plan_id: uuid.UUID) -> list[dict[str, Any]]:
+        with self._factory() as session:
+            row = self._row(session, plan_id)
+            stored: list[dict[str, Any]] = row.params.get(_API_KEY, {}).get("ges", [])
+        return stored
+
+    def ges(
+        self, plan_id: uuid.UUID, *, met: bool | None, cause: str | None, limit: int, offset: int
+    ) -> Page[dict[str, Any]]:
+        rows = filter_ges(self._stored_ges(plan_id), met=met, cause=cause)
+        return Page(rows[offset : offset + limit], len(rows))
+
+    def ges_causes(self, plan_id: uuid.UUID) -> dict[str, int]:
+        return count_causes(self._stored_ges(plan_id))
+
+    def slot_counts(self, plan_id: uuid.UUID) -> pl.DataFrame:
+        with self._factory() as session:
+            self._row(session, plan_id)
+            rows = session.execute(
+                sa.select(
+                    Appointment.slot_id,
+                    sa.func.count().filter(Appointment.is_overbooked.is_(False)),
+                    sa.func.count().filter(Appointment.is_overbooked.is_(True)),
+                )
+                .where(Appointment.schedule_run_id == plan_id)
+                .group_by(Appointment.slot_id)
+            ).all()
+        return pl.DataFrame(
+            [(str(r[0]), int(r[1]), int(r[2])) for r in rows],
+            schema={"slot_id": pl.String, "scheduled": pl.Int64, "overbooked": pl.Int64},
+            orient="row",
+        )
+
     def reviews(self, plan_id: uuid.UUID) -> list[ReviewRecord]:
         with self._factory() as session:
             row = self._row(session, plan_id)
@@ -200,6 +237,9 @@ class SqlPlanStore:
 
     def add(self, new: NewPlan) -> PlanRecord:
         explanations = project_explanations(new.plan.explanations)
+        ges = project_ges(new.plan.ges).with_columns(
+            pl.col("ges_deadline", "scheduled_date", "first_possible_date").cast(pl.String)
+        )
         with self._factory() as session, session.begin():
             plan_id = persist_plan(
                 session,
@@ -215,6 +255,7 @@ class SqlPlanStore:
                 _API_KEY: {
                     "config": new.config,
                     "explanations": explanations.select(EXPLANATION_COLUMNS).to_dicts(),
+                    "ges": ges.to_dicts(),
                 },
             }
             session.flush()
