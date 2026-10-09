@@ -280,6 +280,34 @@ Diseño en [simulation-design.md](simulation-design.md); resultados en `results/
 - El historial de citas, la población y el modelo de inasistencias no cambian (mismas métricas en `results/noshow.json`).
 - Se regeneraron la corrida canónica del programador, el benchmark y la simulación.
 
+## 14. API
+
+**Fecha**: 2026-10-09
+
+Diseño en `TASK_PLAN.md` (P12) y documentación de uso en `docs/api.md`.
+
+**Decisiones**:
+- **Roles fijos `gestor`, `revisor` y `lectura`** con clave por cabecera (`X-API-Key`) y usuarios en un archivo JSON fuera del repositorio. Es una herramienta de investigación sin datos reales: no se integra un proveedor de identidad; el diseño deja la autenticación en una dependencia reemplazable.
+- **Separación de funciones**: el gestor pide y activa planes, el revisor aprueba o rechaza y no puede revisar un plan pedido por el mismo usuario. Una decisión es final; solo un plan aprobado puede ser vigente y hay uno vigente por corrida sintética.
+- **Las reglas viven en el dominio y en la base**, no solo en las rutas: `PlanStore` las aplica en memoria y en SQL, y la migración 0006 agrega un CHECK (`NOT is_current OR review_status = 'approved'`) y un índice único parcial de vigente por corrida. Cada aprobación, rechazo y activación queda en `plan_review` (usuario, rol, hora, nota).
+- **Programación asíncrona** con un ejecutor de un hilo (CP-SAT ya corre en modo determinista de un hilo y una corrida canónica tarda minutos); el estado se consulta por `job_id`.
+- **Almacenamiento en memoria por defecto** (se pierde al reiniciar) y en PostgreSQL con `PRIORIZA_API_STORE=sql`; los tests de SQL se omiten sin base.
+- **Aviso obligatorio** como campo `disclaimer` en toda respuesta con lista, puntaje, plan, predicción o simulación (no en cabecera: el texto lleva tildes y las cabeceras HTTP son latin-1).
+
+**Dependencias** (en `api`):
+- `pydantic-settings`: lectura de `PRIORIZA_API_*` con validación de tipos, como ya hace `shared.config`; ya estaba en el lock.
+- `priority`, `noshow` y `scheduler` (miembros del workspace): puntaje y explicación de la lista de espera, ubicación de la corrida (`noshow.data.find_run_dir`) y programación (`scheduler.adapters`, `plan`, `persist`). Sus imports de `noshow` llevan `# type: ignore[import-untyped]`. La imagen de la API pasa a incluir scikit-learn y ortools por esta vía.
+- `polars`, `pydantic` y `sqlalchemy`: ya estaban en el lock; se declaran porque `api` los importa directamente.
+- `synthetic` solo en el grupo `dev` de `api`: genera la corrida de 1.000 entradas de los tests; no se instala en la imagen por esta vía (llega transitivamente por `noshow`).
+- `openapi-spec-validator` en el grupo `dev` raíz: valida en los tests que el esquema OpenAPI generado cumple la especificación (criterio de aceptación de P12); no llega a ninguna imagen.
+
+**Decisiones de implementación**:
+- **El puesto (`rank`) de la lista de espera es por cola** (servicio de salud, especialidad y tipo de atención), igual que `priority.rank_frame`; el orden `rank` desempata por puntaje y por id para paginar de forma estable.
+- **El plan en SQL guarda solo las columnas públicas** de las asignaciones (las de `appointment`); `resource_kind`, `phase_added` y `coef` no se persisten. Las explicaciones y la configuración pedida van en `schedule_run.params["api"]`.
+- **`fifo` y `priority` no usan sobrecupo ni el modelo de inasistencias**; solo `optimized` con `overbooking=true` exige `models/noshow/<run_id>/`, y su ausencia deja el trabajo en `failed` con el mensaje.
+- **Auditoría con CHECK de rol y acción** en `plan_review` (aprobar o rechazar solo con rol `revisor`; activar o desactivar solo con `gestor`). La regla de cuatro ojos compara nombres de usuario y vive en el dominio: la base no la puede expresar sin un disparador.
+- **Compose** monta `data/`, `models/` y `results/` en solo lectura y los usuarios desde `api/config/` (ignorado por git).
+
 ---
 
 ## Referencias
