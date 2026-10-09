@@ -358,8 +358,8 @@ problemas abiertos.
 Rama: `fix/synthetic-supply`.
 
 - [x] Corrección (Tier 1 - Claude) -> Hecha: fase por recurso y rotación del día de pabellón; `docs/decisions.md` §13
-- [ ] Regenerar corrida canónica, benchmark y simulación (Tier 1) -> En curso
-- [ ] Actualizar `docs/scheduler-performance.md` con el benchmark nuevo (Tier 3 - Kimi) -> Pendiente
+- [x] Regenerar corrida canónica, benchmark y simulación (Tier 1) -> Hecha
+- [x] Actualizar `docs/scheduler-performance.md` con el benchmark nuevo (Tier 3 - Kimi) -> Hecha por Tier 1 (fallback: proxy con límite de uso)
 
 ### Log
 
@@ -368,3 +368,7 @@ Rama: `fix/synthetic-supply`.
   115-224 → 150-174; por día (lun-vie) 3.276/877/94/2/0 → 863/836/799/818/933; sin choques de recurso y hora.
   `GENERATOR_VERSION` 0.2.0, digest nuevo (run_id igual), `results/noshow.json` solo cambia digest y `model_version`.
   Test `synthetic/tests/test_synthetic_supply.py`.
+- 2026-10-09, Tier 1: Kimi no pudo actualizar `docs/scheduler-performance.md` (LiteLLM 429, "Go usage limit exceeded");
+  lo hizo Tier 1 con cifras verificadas contra el JSON. Regenerados: corrida canónica del programador (optimizada 13.616
+  agendadas, 1.594 GES cumplidas, 343 sobrecupos, 163,5 s: no cumple 120 s; brecha 3a 2,06 %), benchmark (50.000 × 2
+  vuelve a OPTIMAL; 50.000 × 4 FEASIBLE 0,366 %, 94 s) y simulación (mismos resultados; solo cambia `model_version`).

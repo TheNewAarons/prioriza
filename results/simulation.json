@@ -2874,7 +2874,7 @@
     "weeks": 26
   },
   "disclaimer": "Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.",
-  "generated_at": "2026-10-09T13:56:29+00:00",
+  "generated_at": "2026-10-09T14:39:28+00:00",
   "limitations": [
     "Granularidad de la oferta: cada sesión atiende una sola celda (servicio x especialidad); a tamaños chicos muchas celdas no reciben ninguna sesión en el periodo simulado y su stock no puede atenderse con ninguna política (ver supply_coverage).",
     "Llegadas por Little en estado estacionario: sin estacionalidad, sin tendencia y con la espera media de un solo corte.",
@@ -2883,7 +2883,7 @@
     "El modelo de inasistencias no se reentrena durante la simulación.",
     "La verdad de inasistencia es la del generador: las conclusiones valen para ese mundo sintético, no para la red real."
   ],
-  "noshow_model_version": "noshow-4f0429cd-e8a25faf",
+  "noshow_model_version": "noshow-4f0429cd-414873d5",
   "replica_seeds": [
     101,
     102,
@@ -9739,7 +9739,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 0.8762650000000001,
+            "wall_time_total": 0.8819650000000001,
             "weekly": [
               {
                 "deterministic_time": 0.0005496382,
@@ -9764,7 +9764,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.026785000000000003
+                "wall_time_s": 0.030022000000000004
               },
               {
                 "deterministic_time": 0.0006671054,
@@ -9786,7 +9786,7 @@
                     "OPTIMAL": 115
                   }
                 },
-                "wall_time_s": 0.026948000000000003
+                "wall_time_s": 0.027326000000000003
               },
               {
                 "deterministic_time": 0.0026362220545454672,
@@ -9811,7 +9811,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.037191
+                "wall_time_s": 0.03737
               },
               {
                 "deterministic_time": 0.004317377940501093,
@@ -9836,7 +9836,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.042521
+                "wall_time_s": 0.043663
               },
               {
                 "deterministic_time": 0.0005505600000000001,
@@ -9858,10 +9858,10 @@
                     "OPTIMAL": 118
                   }
                 },
-                "wall_time_s": 0.024547000000000003
+                "wall_time_s": 0.024876000000000002
               },
               {
-                "deterministic_time": 0.011236831479310356,
+                "deterministic_time": 0.011236831479310358,
                 "gap": 0.0,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -9883,7 +9883,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.044588
+                "wall_time_s": 0.043484
               },
               {
                 "deterministic_time": 0.000638425,
@@ -9905,7 +9905,7 @@
                     "OPTIMAL": 137
                   }
                 },
-                "wall_time_s": 0.029247000000000002
+                "wall_time_s": 0.029398
               },
               {
                 "deterministic_time": 0.0013765684071428716,
@@ -9930,7 +9930,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.030068
+                "wall_time_s": 0.030002
               },
               {
                 "deterministic_time": 0.003548923808012352,
@@ -9955,7 +9955,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.039009
+                "wall_time_s": 0.039172000000000005
               },
               {
                 "deterministic_time": 0.0003619536,
@@ -9977,7 +9977,7 @@
                     "OPTIMAL": 126
                   }
                 },
-                "wall_time_s": 0.025436
+                "wall_time_s": 0.026619
               },
               {
                 "deterministic_time": 0.0040967095893844506,
@@ -10002,7 +10002,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.035467000000000005
+                "wall_time_s": 0.035779000000000005
               },
               {
                 "deterministic_time": 0.0016990374329849975,
@@ -10027,7 +10027,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.026666000000000002
+                "wall_time_s": 0.027003000000000003
               },
               {
                 "deterministic_time": 0.0004440629,
@@ -10049,7 +10049,7 @@
                     "OPTIMAL": 114
                   }
                 },
-                "wall_time_s": 0.024464
+                "wall_time_s": 0.023586000000000003
               },
               {
                 "deterministic_time": 0.0033279343641844264,
@@ -10074,7 +10074,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.032826
+                "wall_time_s": 0.034799000000000004
               },
               {
                 "deterministic_time": 0.00812114259999996,
@@ -10099,7 +10099,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.038404
+                "wall_time_s": 0.038712
               },
               {
                 "deterministic_time": 0.0005337479000000001,
@@ -10121,7 +10121,7 @@
                     "OPTIMAL": 134
                   }
                 },
-                "wall_time_s": 0.027119
+                "wall_time_s": 0.027277000000000003
               },
               {
                 "deterministic_time": 0.002408094924590072,
@@ -10146,7 +10146,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.030547
+                "wall_time_s": 0.030371000000000002
               },
               {
                 "deterministic_time": 0.003497354479799916,
@@ -10171,7 +10171,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.03442
+                "wall_time_s": 0.034541
               },
               {
                 "deterministic_time": 0.0005930674,
@@ -10193,7 +10193,7 @@
                     "OPTIMAL": 136
                   }
                 },
-                "wall_time_s": 0.029004000000000002
+                "wall_time_s": 0.028629
               },
               {
                 "deterministic_time": 0.002752012922807031,
@@ -10218,7 +10218,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.034823
+                "wall_time_s": 0.035101
               },
               {
                 "deterministic_time": 0.000820911799999999,
@@ -10243,7 +10243,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.027299
+                "wall_time_s": 0.027602
               },
               {
                 "deterministic_time": 0.00400547831367617,
@@ -10268,7 +10268,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.040971
+                "wall_time_s": 0.039985
               },
               {
                 "deterministic_time": 0.003365938562068927,
@@ -10293,7 +10293,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.038282000000000004
+                "wall_time_s": 0.037694000000000005
               },
               {
                 "deterministic_time": 0.0015822244448275965,
@@ -10318,7 +10318,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.038519000000000005
+                "wall_time_s": 0.038308
               },
               {
                 "deterministic_time": 0.004854254283777207,
@@ -10343,7 +10343,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.045357
+                "wall_time_s": 0.047624
               },
               {
                 "deterministic_time": 0.007973124299999974,
@@ -10368,7 +10368,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.045757000000000006
+                "wall_time_s": 0.043022000000000005
               }
             ]
           },
@@ -13845,7 +13845,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 1.609901,
+            "wall_time_total": 1.5498560000000001,
             "weekly": [
               {
                 "deterministic_time": 0.0011841511999999958,
@@ -13873,7 +13873,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.036448
+                "wall_time_s": 0.034124
               },
               {
                 "deterministic_time": 0.0014438603999999975,
@@ -13898,7 +13898,7 @@
                     "OPTIMAL": 19
                   }
                 },
-                "wall_time_s": 0.042104
+                "wall_time_s": 0.039947
               },
               {
                 "deterministic_time": 0.010811618867640368,
@@ -13926,7 +13926,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.080392
+                "wall_time_s": 0.07219400000000001
               },
               {
                 "deterministic_time": 0.02055618896417611,
@@ -13954,7 +13954,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.11047900000000001
+                "wall_time_s": 0.09972900000000001
               },
               {
                 "deterministic_time": 0.000815402,
@@ -13979,7 +13979,7 @@
                     "OPTIMAL": 19
                   }
                 },
-                "wall_time_s": 0.031243000000000003
+                "wall_time_s": 0.031180000000000003
               },
               {
                 "deterministic_time": 0.033052178625041784,
@@ -14007,7 +14007,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.092295
+                "wall_time_s": 0.093739
               },
               {
                 "deterministic_time": 0.0014198650000000008,
@@ -14032,10 +14032,10 @@
                     "OPTIMAL": 32
                   }
                 },
-                "wall_time_s": 0.045486000000000006
+                "wall_time_s": 0.045439
               },
               {
-                "deterministic_time": 0.006292109376115206,
+                "deterministic_time": 0.0062921093761152055,
                 "gap": 0.0,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -14060,7 +14060,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.057365000000000006
+                "wall_time_s": 0.057302000000000006
               },
               {
                 "deterministic_time": 0.016760772509599547,
@@ -14088,7 +14088,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.09428600000000001
+                "wall_time_s": 0.08936400000000001
               },
               {
                 "deterministic_time": 0.0009080558999999999,
@@ -14113,7 +14113,7 @@
                     "OPTIMAL": 30
                   }
                 },
-                "wall_time_s": 0.039571
+                "wall_time_s": 0.038127
               },
               {
                 "deterministic_time": 0.011311060032460466,
@@ -14141,7 +14141,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.06843500000000001
+                "wall_time_s": 0.065266
               },
               {
                 "deterministic_time": 0.006624587832985,
@@ -14169,10 +14169,10 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.053145000000000005
+                "wall_time_s": 0.048608000000000005
               },
               {
-                "deterministic_time": 0.0006790660000000005,
+                "deterministic_time": 0.0006790660000000004,
                 "gap": 0.0,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -14194,7 +14194,7 @@
                     "OPTIMAL": 27
                   }
                 },
-                "wall_time_s": 0.0361
+                "wall_time_s": 0.031198000000000004
               },
               {
                 "deterministic_time": 0.00871664632763928,
@@ -14222,7 +14222,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.057117
+                "wall_time_s": 0.05352200000000001
               },
               {
                 "deterministic_time": 0.02748860462260059,
@@ -14250,7 +14250,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.093584
+                "wall_time_s": 0.08620100000000001
               },
               {
                 "deterministic_time": 0.0011250030000000012,
@@ -14275,7 +14275,7 @@
                     "OPTIMAL": 28
                   }
                 },
-                "wall_time_s": 0.044424000000000005
+                "wall_time_s": 0.039556
               },
               {
                 "deterministic_time": 0.004310591047540935,
@@ -14303,7 +14303,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.048894
+                "wall_time_s": 0.04544
               },
               {
                 "deterministic_time": 0.007239004295705595,
@@ -14331,7 +14331,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.058315000000000006
+                "wall_time_s": 0.05846900000000001
               },
               {
                 "deterministic_time": 0.0023868053876500346,
@@ -14356,7 +14356,7 @@
                     "OPTIMAL": 32
                   }
                 },
-                "wall_time_s": 0.049042
+                "wall_time_s": 0.048867
               },
               {
                 "deterministic_time": 0.007655638840997806,
@@ -14384,7 +14384,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.059144
+                "wall_time_s": 0.059237000000000005
               },
               {
                 "deterministic_time": 0.0030350116000000035,
@@ -14412,7 +14412,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.043939000000000006
+                "wall_time_s": 0.044507000000000005
               },
               {
                 "deterministic_time": 0.008134305709395053,
@@ -14440,7 +14440,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.062683
+                "wall_time_s": 0.061182
               },
               {
                 "deterministic_time": 0.009499061488371192,
@@ -14468,7 +14468,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.06614300000000001
+                "wall_time_s": 0.067138
               },
               {
                 "deterministic_time": 0.002934822217241391,
@@ -14496,7 +14496,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.048197000000000004
+                "wall_time_s": 0.047908000000000006
               },
               {
                 "deterministic_time": 0.011499500892587854,
@@ -14524,7 +14524,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.080386
+                "wall_time_s": 0.07964800000000001
               },
               {
                 "deterministic_time": 0.04089298991558745,
@@ -14552,7 +14552,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.110684
+                "wall_time_s": 0.11196400000000001
               }
             ]
           },
@@ -25634,7 +25634,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 0.854009,
+            "wall_time_total": 0.866975,
             "weekly": [
               {
                 "deterministic_time": 0.0005496382,
@@ -25659,7 +25659,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.024092000000000002
+                "wall_time_s": 0.024926
               },
               {
                 "deterministic_time": 0.0006461522000000001,
@@ -25681,7 +25681,7 @@
                     "OPTIMAL": 115
                   }
                 },
-                "wall_time_s": 0.026392000000000002
+                "wall_time_s": 0.027587
               },
               {
                 "deterministic_time": 0.002877144072727284,
@@ -25706,7 +25706,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.038046
+                "wall_time_s": 0.038069000000000006
               },
               {
                 "deterministic_time": 0.004403386205307349,
@@ -25731,7 +25731,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.042292
+                "wall_time_s": 0.042460000000000005
               },
               {
                 "deterministic_time": 0.000361703,
@@ -25753,7 +25753,7 @@
                     "OPTIMAL": 117
                   }
                 },
-                "wall_time_s": 0.022883
+                "wall_time_s": 0.023631000000000003
               },
               {
                 "deterministic_time": 0.004808947515384604,
@@ -25778,7 +25778,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.038927
+                "wall_time_s": 0.038924
               },
               {
                 "deterministic_time": 0.0006836674,
@@ -25800,7 +25800,7 @@
                     "OPTIMAL": 137
                   }
                 },
-                "wall_time_s": 0.029188000000000002
+                "wall_time_s": 0.030160000000000003
               },
               {
                 "deterministic_time": 0.0016251955000000163,
@@ -25825,7 +25825,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.030365000000000003
+                "wall_time_s": 0.030836000000000002
               },
               {
                 "deterministic_time": 0.0035149880542373188,
@@ -25850,7 +25850,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.036576000000000004
+                "wall_time_s": 0.037476
               },
               {
                 "deterministic_time": 0.00032056200000000004,
@@ -25872,7 +25872,7 @@
                     "OPTIMAL": 123
                   }
                 },
-                "wall_time_s": 0.023511
+                "wall_time_s": 0.023662000000000002
               },
               {
                 "deterministic_time": 0.004417216603561346,
@@ -25897,7 +25897,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.035688000000000004
+                "wall_time_s": 0.035774
               },
               {
                 "deterministic_time": 0.002212788711673513,
@@ -25922,7 +25922,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.031717
+                "wall_time_s": 0.030674000000000003
               },
               {
                 "deterministic_time": 0.0004607241,
@@ -25944,7 +25944,7 @@
                     "OPTIMAL": 116
                   }
                 },
-                "wall_time_s": 0.023808000000000003
+                "wall_time_s": 0.023949
               },
               {
                 "deterministic_time": 0.0028476847810042674,
@@ -25969,7 +25969,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.032516
+                "wall_time_s": 0.032377
               },
               {
                 "deterministic_time": 0.00692946956190252,
@@ -25994,7 +25994,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.039428000000000005
+                "wall_time_s": 0.039776
               },
               {
                 "deterministic_time": 0.0005256658000000001,
@@ -26016,7 +26016,7 @@
                     "OPTIMAL": 138
                   }
                 },
-                "wall_time_s": 0.02825
+                "wall_time_s": 0.028710000000000003
               },
               {
                 "deterministic_time": 0.0021671045757208143,
@@ -26041,7 +26041,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.029032000000000002
+                "wall_time_s": 0.032921000000000006
               },
               {
                 "deterministic_time": 0.0032721422528345996,
@@ -26066,7 +26066,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.031769
+                "wall_time_s": 0.031874
               },
               {
                 "deterministic_time": 0.0004794452,
@@ -26088,7 +26088,7 @@
                     "OPTIMAL": 130
                   }
                 },
-                "wall_time_s": 0.025075
+                "wall_time_s": 0.025657000000000003
               },
               {
                 "deterministic_time": 0.002984241627586215,
@@ -26113,7 +26113,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.033513
+                "wall_time_s": 0.034142000000000006
               },
               {
                 "deterministic_time": 0.002526824584228523,
@@ -26138,7 +26138,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.031104000000000003
+                "wall_time_s": 0.031589
               },
               {
                 "deterministic_time": 0.0035294099368421215,
@@ -26163,7 +26163,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.036937000000000005
+                "wall_time_s": 0.03719
               },
               {
                 "deterministic_time": 0.004795163669230758,
@@ -26188,7 +26188,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.039772
+                "wall_time_s": 0.040349
               },
               {
                 "deterministic_time": 0.00181886998305086,
@@ -26213,7 +26213,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.036770000000000004
+                "wall_time_s": 0.037149
               },
               {
                 "deterministic_time": 0.003716715568794335,
@@ -26238,7 +26238,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.044142
+                "wall_time_s": 0.044556000000000005
               },
               {
                 "deterministic_time": 0.0059594956245614,
@@ -26263,7 +26263,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.042216000000000004
+                "wall_time_s": 0.042557000000000005
               }
             ]
           },
@@ -29772,7 +29772,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 1.5214720000000002,
+            "wall_time_total": 1.612127,
             "weekly": [
               {
                 "deterministic_time": 0.0011841511999999958,
@@ -29800,7 +29800,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.03363
+                "wall_time_s": 0.034212
               },
               {
                 "deterministic_time": 0.0014280811999999976,
@@ -29825,7 +29825,7 @@
                     "OPTIMAL": 19
                   }
                 },
-                "wall_time_s": 0.039173
+                "wall_time_s": 0.039979
               },
               {
                 "deterministic_time": 0.020922274826508495,
@@ -29853,7 +29853,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.093727
+                "wall_time_s": 0.093763
               },
               {
                 "deterministic_time": 0.01573505152335263,
@@ -29881,7 +29881,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.09346900000000001
+                "wall_time_s": 0.08521200000000001
               },
               {
                 "deterministic_time": 0.0006645140000000001,
@@ -29906,7 +29906,7 @@
                     "OPTIMAL": 21
                   }
                 },
-                "wall_time_s": 0.030487000000000004
+                "wall_time_s": 0.033027
               },
               {
                 "deterministic_time": 0.01149086088934456,
@@ -29934,7 +29934,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.072774
+                "wall_time_s": 0.07714
               },
               {
                 "deterministic_time": 0.0012074127000000004,
@@ -29959,7 +29959,7 @@
                     "OPTIMAL": 28
                   }
                 },
-                "wall_time_s": 0.040990000000000006
+                "wall_time_s": 0.041690000000000005
               },
               {
                 "deterministic_time": 0.007697984440735934,
@@ -29987,7 +29987,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.06479800000000001
+                "wall_time_s": 0.066067
               },
               {
                 "deterministic_time": 0.019405228922523676,
@@ -30015,7 +30015,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.090912
+                "wall_time_s": 0.092404
               },
               {
                 "deterministic_time": 0.0007118070000000002,
@@ -30040,7 +30040,7 @@
                     "OPTIMAL": 28
                   }
                 },
-                "wall_time_s": 0.033892000000000005
+                "wall_time_s": 0.036969
               },
               {
                 "deterministic_time": 0.014707154396690542,
@@ -30068,7 +30068,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.077991
+                "wall_time_s": 0.08028
               },
               {
                 "deterministic_time": 0.007808227800114745,
@@ -30096,7 +30096,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.053033000000000004
+                "wall_time_s": 0.054843
               },
               {
                 "deterministic_time": 0.001044832300000001,
@@ -30121,7 +30121,7 @@
                     "OPTIMAL": 30
                   }
                 },
-                "wall_time_s": 0.037261
+                "wall_time_s": 0.037663
               },
               {
                 "deterministic_time": 0.006086283024242844,
@@ -30149,7 +30149,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.055465
+                "wall_time_s": 0.054339000000000005
               },
               {
                 "deterministic_time": 0.028370813977358505,
@@ -30177,7 +30177,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.08305900000000001
+                "wall_time_s": 0.083473
               },
               {
                 "deterministic_time": 0.0008780887000000003,
@@ -30202,7 +30202,7 @@
                     "OPTIMAL": 29
                   }
                 },
-                "wall_time_s": 0.037143
+                "wall_time_s": 0.038674
               },
               {
                 "deterministic_time": 0.004083173190474908,
@@ -30230,7 +30230,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.044095
+                "wall_time_s": 0.044867000000000004
               },
               {
                 "deterministic_time": 0.008426517472850203,
@@ -30258,7 +30258,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.054614
+                "wall_time_s": 0.06162
               },
               {
                 "deterministic_time": 0.001796042500000008,
@@ -30283,7 +30283,7 @@
                     "OPTIMAL": 31
                   }
                 },
-                "wall_time_s": 0.039638
+                "wall_time_s": 0.046065
               },
               {
                 "deterministic_time": 0.0062237498665383435,
@@ -30311,7 +30311,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.055748000000000006
+                "wall_time_s": 0.060491
               },
               {
                 "deterministic_time": 0.004026486136354815,
@@ -30339,7 +30339,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.049120000000000004
+                "wall_time_s": 0.055431
               },
               {
                 "deterministic_time": 0.006424482283250698,
@@ -30367,7 +30367,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.057119
+                "wall_time_s": 0.06368700000000001
               },
               {
                 "deterministic_time": 0.01122077367483091,
@@ -30395,7 +30395,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.0626
+                "wall_time_s": 0.069149
               },
               {
                 "deterministic_time": 0.0029545927728813616,
@@ -30423,10 +30423,10 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.045013000000000004
+                "wall_time_s": 0.054671000000000004
               },
               {
-                "deterministic_time": 0.021612747718115218,
+                "deterministic_time": 0.02161274771811522,
                 "gap": 0.0,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -30451,7 +30451,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.09212200000000001
+                "wall_time_s": 0.110692
               },
               {
                 "deterministic_time": 0.019044381231026426,
@@ -30479,7 +30479,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.083599
+                "wall_time_s": 0.09571900000000001
               }
             ]
           },
@@ -41401,7 +41401,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 0.84951,
+            "wall_time_total": 0.973727,
             "weekly": [
               {
                 "deterministic_time": 0.0005496382,
@@ -41426,7 +41426,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.024085000000000002
+                "wall_time_s": 0.035323
               },
               {
                 "deterministic_time": 0.0006897932,
@@ -41448,7 +41448,7 @@
                     "OPTIMAL": 115
                   }
                 },
-                "wall_time_s": 0.026477
+                "wall_time_s": 0.033819
               },
               {
                 "deterministic_time": 0.0026481736340067423,
@@ -41473,7 +41473,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.035139000000000004
+                "wall_time_s": 0.050007
               },
               {
                 "deterministic_time": 0.0043530849846511385,
@@ -41498,7 +41498,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.042484
+                "wall_time_s": 0.052805000000000005
               },
               {
                 "deterministic_time": 0.0005770310000000001,
@@ -41520,7 +41520,7 @@
                     "OPTIMAL": 118
                   }
                 },
-                "wall_time_s": 0.025049000000000002
+                "wall_time_s": 0.031857
               },
               {
                 "deterministic_time": 0.0024857751317275867,
@@ -41545,7 +41545,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.036230000000000005
+                "wall_time_s": 0.045792
               },
               {
                 "deterministic_time": 0.000659782,
@@ -41567,7 +41567,7 @@
                     "OPTIMAL": 136
                   }
                 },
-                "wall_time_s": 0.029519000000000004
+                "wall_time_s": 0.036421
               },
               {
                 "deterministic_time": 0.0015150716363636532,
@@ -41592,7 +41592,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.031509
+                "wall_time_s": 0.034473000000000004
               },
               {
                 "deterministic_time": 0.004561107525925933,
@@ -41617,7 +41617,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.038434
+                "wall_time_s": 0.038744
               },
               {
                 "deterministic_time": 0.0003957263,
@@ -41639,7 +41639,7 @@
                     "OPTIMAL": 121
                   }
                 },
-                "wall_time_s": 0.024726
+                "wall_time_s": 0.027762000000000002
               },
               {
                 "deterministic_time": 0.004201087251970436,
@@ -41664,7 +41664,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.03453
+                "wall_time_s": 0.039473
               },
               {
                 "deterministic_time": 0.002288989608394801,
@@ -41689,7 +41689,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.029686
+                "wall_time_s": 0.032325
               },
               {
                 "deterministic_time": 0.00044709329999999996,
@@ -41711,7 +41711,7 @@
                     "OPTIMAL": 114
                   }
                 },
-                "wall_time_s": 0.023217
+                "wall_time_s": 0.027216
               },
               {
                 "deterministic_time": 0.003254746515723171,
@@ -41736,7 +41736,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.032492
+                "wall_time_s": 0.036828
               },
               {
                 "deterministic_time": 0.0029616113962962704,
@@ -41761,7 +41761,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.035316
+                "wall_time_s": 0.038494
               },
               {
                 "deterministic_time": 0.0005465989999999999,
@@ -41783,7 +41783,7 @@
                     "OPTIMAL": 138
                   }
                 },
-                "wall_time_s": 0.026809000000000003
+                "wall_time_s": 0.030563000000000003
               },
               {
                 "deterministic_time": 0.0016641824500377407,
@@ -41808,7 +41808,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.02765
+                "wall_time_s": 0.033365
               },
               {
                 "deterministic_time": 0.0031757441852404648,
@@ -41833,7 +41833,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.032228
+                "wall_time_s": 0.033780000000000004
               },
               {
                 "deterministic_time": 0.000694192,
@@ -41855,7 +41855,7 @@
                     "OPTIMAL": 135
                   }
                 },
-                "wall_time_s": 0.029166
+                "wall_time_s": 0.032182
               },
               {
                 "deterministic_time": 0.002984219020689663,
@@ -41880,7 +41880,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.036552
+                "wall_time_s": 0.037789
               },
               {
                 "deterministic_time": 0.0020421347372881517,
@@ -41905,7 +41905,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.030974
+                "wall_time_s": 0.035137
               },
               {
                 "deterministic_time": 0.004073632969842229,
@@ -41930,10 +41930,10 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.038905
+                "wall_time_s": 0.041928
               },
               {
-                "deterministic_time": 0.003790265693103472,
+                "deterministic_time": 0.0037902656931034714,
                 "gap": 1.0355567023387185e-05,
                 "gap_by_phase": {
                   "3a": 1.0355567023387185e-05,
@@ -41955,7 +41955,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.039493
+                "wall_time_s": 0.040074000000000005
               },
               {
                 "deterministic_time": 0.001649549554385974,
@@ -41980,7 +41980,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.037654
+                "wall_time_s": 0.04123
               },
               {
                 "deterministic_time": 0.004250127569480541,
@@ -42005,7 +42005,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.041693
+                "wall_time_s": 0.045055000000000005
               },
               {
                 "deterministic_time": 0.004916398327586198,
@@ -42030,7 +42030,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.039493
+                "wall_time_s": 0.041285
               }
             ]
           },
@@ -45443,7 +45443,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 1.5161090000000002,
+            "wall_time_total": 1.624246,
             "weekly": [
               {
                 "deterministic_time": 0.0011841511999999958,
@@ -45471,7 +45471,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.03363
+                "wall_time_s": 0.036252
               },
               {
                 "deterministic_time": 0.0014823241999999976,
@@ -45496,10 +45496,10 @@
                     "OPTIMAL": 19
                   }
                 },
-                "wall_time_s": 0.039619
+                "wall_time_s": 0.040780000000000004
               },
               {
-                "deterministic_time": 0.014804175780209072,
+                "deterministic_time": 0.01480417578020907,
                 "gap": 0.0,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -45524,7 +45524,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.08482100000000001
+                "wall_time_s": 0.089781
               },
               {
                 "deterministic_time": 0.013121286776609384,
@@ -45552,7 +45552,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.07708100000000001
+                "wall_time_s": 0.084928
               },
               {
                 "deterministic_time": 0.000859939,
@@ -45577,10 +45577,10 @@
                     "OPTIMAL": 19
                   }
                 },
-                "wall_time_s": 0.032139
+                "wall_time_s": 0.037959
               },
               {
-                "deterministic_time": 0.01227388625501462,
+                "deterministic_time": 0.012273886255014622,
                 "gap": 0.0,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -45605,7 +45605,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.07075100000000001
+                "wall_time_s": 0.07101400000000001
               },
               {
                 "deterministic_time": 0.0013437198000000004,
@@ -45630,7 +45630,7 @@
                     "OPTIMAL": 30
                   }
                 },
-                "wall_time_s": 0.043926
+                "wall_time_s": 0.048975000000000005
               },
               {
                 "deterministic_time": 0.0069096503246674126,
@@ -45658,7 +45658,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.060356
+                "wall_time_s": 0.06778100000000001
               },
               {
                 "deterministic_time": 0.025513976959981005,
@@ -45686,7 +45686,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.09258000000000001
+                "wall_time_s": 0.10043
               },
               {
                 "deterministic_time": 0.0009144817000000006,
@@ -45711,7 +45711,7 @@
                     "OPTIMAL": 27
                   }
                 },
-                "wall_time_s": 0.036727
+                "wall_time_s": 0.037165000000000004
               },
               {
                 "deterministic_time": 0.017569082931548023,
@@ -45739,10 +45739,10 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.084243
+                "wall_time_s": 0.092143
               },
               {
-                "deterministic_time": 0.00734563562303871,
+                "deterministic_time": 0.0073456356230387106,
                 "gap": 0.0,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -45767,7 +45767,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.052553
+                "wall_time_s": 0.064254
               },
               {
                 "deterministic_time": 0.0011539725000000015,
@@ -45792,7 +45792,7 @@
                     "OPTIMAL": 29
                   }
                 },
-                "wall_time_s": 0.036788
+                "wall_time_s": 0.037475
               },
               {
                 "deterministic_time": 0.026927893859130272,
@@ -45820,10 +45820,10 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.08501
+                "wall_time_s": 0.090587
               },
               {
-                "deterministic_time": 0.010469948409350619,
+                "deterministic_time": 0.010469948409350617,
                 "gap": 1.4885216375226534e-05,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -45848,7 +45848,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.07332200000000001
+                "wall_time_s": 0.07367900000000001
               },
               {
                 "deterministic_time": 0.0010666541000000005,
@@ -45873,7 +45873,7 @@
                     "OPTIMAL": 32
                   }
                 },
-                "wall_time_s": 0.039478000000000006
+                "wall_time_s": 0.039885000000000004
               },
               {
                 "deterministic_time": 0.003506134448052947,
@@ -45901,10 +45901,10 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.041906000000000006
+                "wall_time_s": 0.046344
               },
               {
-                "deterministic_time": 0.006117999248671599,
+                "deterministic_time": 0.0061179992486716,
                 "gap": 9.807284347875943e-05,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -45929,7 +45929,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.050858
+                "wall_time_s": 0.060892
               },
               {
                 "deterministic_time": 0.0018181996000000047,
@@ -45954,7 +45954,7 @@
                     "OPTIMAL": 36
                   }
                 },
-                "wall_time_s": 0.045661
+                "wall_time_s": 0.0495
               },
               {
                 "deterministic_time": 0.008744890684026622,
@@ -45982,7 +45982,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.065906
+                "wall_time_s": 0.06987900000000001
               },
               {
                 "deterministic_time": 0.0039239720333333495,
@@ -46010,7 +46010,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.046735000000000006
+                "wall_time_s": 0.049862000000000004
               },
               {
                 "deterministic_time": 0.006231158681531294,
@@ -46038,7 +46038,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.054916000000000006
+                "wall_time_s": 0.058922
               },
               {
                 "deterministic_time": 0.008720865817594514,
@@ -46066,7 +46066,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.059321000000000006
+                "wall_time_s": 0.059868000000000005
               },
               {
                 "deterministic_time": 0.0028871599000000023,
@@ -46094,7 +46094,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.046243
+                "wall_time_s": 0.047413000000000004
               },
               {
                 "deterministic_time": 0.008869937239522467,
@@ -46122,7 +46122,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.07373500000000001
+                "wall_time_s": 0.075155
               },
               {
                 "deterministic_time": 0.015052085198361103,
@@ -46150,7 +46150,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.08780400000000001
+                "wall_time_s": 0.093323
               }
             ]
           },
@@ -57040,7 +57040,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 0.8310000000000001,
+            "wall_time_total": 0.8841970000000001,
             "weekly": [
               {
                 "deterministic_time": 0.0005496382,
@@ -57065,7 +57065,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.024111
+                "wall_time_s": 0.026162
               },
               {
                 "deterministic_time": 0.0006568502,
@@ -57087,7 +57087,7 @@
                     "OPTIMAL": 115
                   }
                 },
-                "wall_time_s": 0.025912
+                "wall_time_s": 0.028239
               },
               {
                 "deterministic_time": 0.00294451010909092,
@@ -57112,7 +57112,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.037454
+                "wall_time_s": 0.040298
               },
               {
                 "deterministic_time": 0.004189883507219116,
@@ -57137,7 +57137,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.044348000000000005
+                "wall_time_s": 0.042708
               },
               {
                 "deterministic_time": 0.0005417730000000001,
@@ -57159,7 +57159,7 @@
                     "OPTIMAL": 117
                   }
                 },
-                "wall_time_s": 0.024171
+                "wall_time_s": 0.026878000000000003
               },
               {
                 "deterministic_time": 0.0034107984091954384,
@@ -57184,7 +57184,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.036860000000000004
+                "wall_time_s": 0.037336
               },
               {
                 "deterministic_time": 0.000621565,
@@ -57206,7 +57206,7 @@
                     "OPTIMAL": 134
                   }
                 },
-                "wall_time_s": 0.028112
+                "wall_time_s": 0.032567000000000006
               },
               {
                 "deterministic_time": 0.0016975607084745857,
@@ -57231,7 +57231,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.030507000000000003
+                "wall_time_s": 0.033619
               },
               {
                 "deterministic_time": 0.004049751129885069,
@@ -57256,7 +57256,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.039602000000000005
+                "wall_time_s": 0.039987
               },
               {
                 "deterministic_time": 0.000408881,
@@ -57278,7 +57278,7 @@
                     "OPTIMAL": 122
                   }
                 },
-                "wall_time_s": 0.024620000000000003
+                "wall_time_s": 0.026829000000000002
               },
               {
                 "deterministic_time": 0.0043713636375988,
@@ -57303,7 +57303,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.035646000000000004
+                "wall_time_s": 0.038123000000000004
               },
               {
                 "deterministic_time": 0.0020193976655722137,
@@ -57328,7 +57328,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.02963
+                "wall_time_s": 0.030301
               },
               {
                 "deterministic_time": 0.000278488,
@@ -57350,7 +57350,7 @@
                     "OPTIMAL": 115
                   }
                 },
-                "wall_time_s": 0.021247000000000002
+                "wall_time_s": 0.023083000000000003
               },
               {
                 "deterministic_time": 0.003105582812184507,
@@ -57375,7 +57375,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.029643000000000003
+                "wall_time_s": 0.031371
               },
               {
                 "deterministic_time": 0.005861338287719278,
@@ -57400,7 +57400,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.036014000000000004
+                "wall_time_s": 0.039336
               },
               {
                 "deterministic_time": 0.000437262,
@@ -57422,7 +57422,7 @@
                     "OPTIMAL": 136
                   }
                 },
-                "wall_time_s": 0.025466000000000003
+                "wall_time_s": 0.025629000000000002
               },
               {
                 "deterministic_time": 0.002095168311475331,
@@ -57447,7 +57447,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.026992000000000002
+                "wall_time_s": 0.028147000000000002
               },
               {
                 "deterministic_time": 0.0030700447229885367,
@@ -57472,7 +57472,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.031722
+                "wall_time_s": 0.032664000000000006
               },
               {
                 "deterministic_time": 0.0003759732,
@@ -57494,7 +57494,7 @@
                     "OPTIMAL": 132
                   }
                 },
-                "wall_time_s": 0.025168000000000003
+                "wall_time_s": 0.025744000000000003
               },
               {
                 "deterministic_time": 0.0033170614942529134,
@@ -57519,7 +57519,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.033456
+                "wall_time_s": 0.036140000000000005
               },
               {
                 "deterministic_time": 0.0019311625333333431,
@@ -57544,7 +57544,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.027877000000000002
+                "wall_time_s": 0.030307
               },
               {
                 "deterministic_time": 0.003385137664367839,
@@ -57569,7 +57569,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.037842
+                "wall_time_s": 0.043702000000000005
               },
               {
                 "deterministic_time": 0.003265880179418911,
@@ -57594,7 +57594,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.037257000000000005
+                "wall_time_s": 0.040538000000000005
               },
               {
                 "deterministic_time": 0.0016302567542372968,
@@ -57619,7 +57619,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.034819
+                "wall_time_s": 0.038248000000000004
               },
               {
                 "deterministic_time": 0.005562853103508794,
@@ -57644,7 +57644,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.043742
+                "wall_time_s": 0.044767
               },
               {
                 "deterministic_time": 0.003168379190909118,
@@ -57669,7 +57669,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.038782000000000004
+                "wall_time_s": 0.041474000000000004
               }
             ]
           },
@@ -61114,7 +61114,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 1.577634,
+            "wall_time_total": 1.6463130000000001,
             "weekly": [
               {
                 "deterministic_time": 0.0011841511999999958,
@@ -61142,7 +61142,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.033878000000000005
+                "wall_time_s": 0.033971
               },
               {
                 "deterministic_time": 0.001388703199999997,
@@ -61167,7 +61167,7 @@
                     "OPTIMAL": 19
                   }
                 },
-                "wall_time_s": 0.039416
+                "wall_time_s": 0.040052000000000004
               },
               {
                 "deterministic_time": 0.0267392700064805,
@@ -61195,7 +61195,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.10212900000000001
+                "wall_time_s": 0.10585000000000001
               },
               {
                 "deterministic_time": 0.017848162629898204,
@@ -61223,7 +61223,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.094362
+                "wall_time_s": 0.095125
               },
               {
                 "deterministic_time": 0.000851747,
@@ -61248,7 +61248,7 @@
                     "OPTIMAL": 18
                   }
                 },
-                "wall_time_s": 0.031603
+                "wall_time_s": 0.033827
               },
               {
                 "deterministic_time": 0.02336810186327382,
@@ -61276,7 +61276,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.089867
+                "wall_time_s": 0.091586
               },
               {
                 "deterministic_time": 0.0014087218000000009,
@@ -61301,7 +61301,7 @@
                     "OPTIMAL": 30
                   }
                 },
-                "wall_time_s": 0.042731000000000005
+                "wall_time_s": 0.045112000000000006
               },
               {
                 "deterministic_time": 0.006848058491575181,
@@ -61329,7 +61329,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.061206
+                "wall_time_s": 0.066095
               },
               {
                 "deterministic_time": 0.015308717232433966,
@@ -61357,7 +61357,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.08623
+                "wall_time_s": 0.09795200000000001
               },
               {
                 "deterministic_time": 0.0008799838000000003,
@@ -61382,7 +61382,7 @@
                     "OPTIMAL": 27
                   }
                 },
-                "wall_time_s": 0.036292000000000005
+                "wall_time_s": 0.039672000000000006
               },
               {
                 "deterministic_time": 0.015321078057097903,
@@ -61410,7 +61410,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.077989
+                "wall_time_s": 0.07978600000000001
               },
               {
                 "deterministic_time": 0.007643627309517311,
@@ -61438,7 +61438,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.055826
+                "wall_time_s": 0.060361000000000005
               },
               {
                 "deterministic_time": 0.0007919369000000009,
@@ -61463,7 +61463,7 @@
                     "OPTIMAL": 29
                   }
                 },
-                "wall_time_s": 0.032038000000000004
+                "wall_time_s": 0.03255
               },
               {
                 "deterministic_time": 0.01140877926215585,
@@ -61491,7 +61491,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.068346
+                "wall_time_s": 0.06646500000000001
               },
               {
                 "deterministic_time": 0.026746264664079845,
@@ -61519,7 +61519,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.088074
+                "wall_time_s": 0.088312
               },
               {
                 "deterministic_time": 0.0008622510000000001,
@@ -61544,7 +61544,7 @@
                     "OPTIMAL": 30
                   }
                 },
-                "wall_time_s": 0.035913
+                "wall_time_s": 0.038324000000000004
               },
               {
                 "deterministic_time": 0.0033679303524589395,
@@ -61572,10 +61572,10 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.037319000000000005
+                "wall_time_s": 0.041121000000000005
               },
               {
-                "deterministic_time": 0.006651666200448182,
+                "deterministic_time": 0.006651666200448181,
                 "gap": 1.164111771572539e-05,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -61600,7 +61600,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.050570000000000004
+                "wall_time_s": 0.051047
               },
               {
                 "deterministic_time": 0.002142808418750002,
@@ -61625,7 +61625,7 @@
                     "OPTIMAL": 36
                   }
                 },
-                "wall_time_s": 0.046532000000000004
+                "wall_time_s": 0.04741
               },
               {
                 "deterministic_time": 0.008627234041402535,
@@ -61653,7 +61653,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.063836
+                "wall_time_s": 0.06459100000000001
               },
               {
                 "deterministic_time": 0.003767446733333335,
@@ -61681,7 +61681,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.045799
+                "wall_time_s": 0.045981
               },
               {
                 "deterministic_time": 0.00912054796519719,
@@ -61709,7 +61709,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.061918
+                "wall_time_s": 0.069861
               },
               {
                 "deterministic_time": 0.016223453124270905,
@@ -61737,7 +61737,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.07480700000000001
+                "wall_time_s": 0.078471
               },
               {
                 "deterministic_time": 0.0029187501949152583,
@@ -61765,7 +61765,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.048307
+                "wall_time_s": 0.048383
               },
               {
                 "deterministic_time": 0.012508900154910888,
@@ -61793,7 +61793,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.08633
+                "wall_time_s": 0.091796
               },
               {
                 "deterministic_time": 0.018353541342979868,
@@ -61821,7 +61821,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.086316
+                "wall_time_s": 0.092612
               }
             ]
           },
@@ -72903,7 +72903,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 0.8368070000000001,
+            "wall_time_total": 0.880225,
             "weekly": [
               {
                 "deterministic_time": 0.0005496382,
@@ -72928,7 +72928,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.024079
+                "wall_time_s": 0.024344
               },
               {
                 "deterministic_time": 0.0007304824,
@@ -72950,7 +72950,7 @@
                     "OPTIMAL": 114
                   }
                 },
-                "wall_time_s": 0.026639000000000003
+                "wall_time_s": 0.027340000000000003
               },
               {
                 "deterministic_time": 0.0025116819040404146,
@@ -72975,7 +72975,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.034359
+                "wall_time_s": 0.034787
               },
               {
                 "deterministic_time": 0.004465296198527686,
@@ -73000,7 +73000,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.043563000000000004
+                "wall_time_s": 0.041804
               },
               {
                 "deterministic_time": 0.00040142220000000003,
@@ -73022,7 +73022,7 @@
                     "OPTIMAL": 118
                   }
                 },
-                "wall_time_s": 0.022828
+                "wall_time_s": 0.023100000000000002
               },
               {
                 "deterministic_time": 0.002703598817139022,
@@ -73047,7 +73047,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.034555
+                "wall_time_s": 0.037177
               },
               {
                 "deterministic_time": 0.0006454248000000001,
@@ -73069,7 +73069,7 @@
                     "OPTIMAL": 137
                   }
                 },
-                "wall_time_s": 0.028587
+                "wall_time_s": 0.034444
               },
               {
                 "deterministic_time": 0.0016600288035087832,
@@ -73094,7 +73094,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.031519000000000005
+                "wall_time_s": 0.033628000000000005
               },
               {
                 "deterministic_time": 0.004105078669633136,
@@ -73119,7 +73119,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.040549
+                "wall_time_s": 0.040789000000000006
               },
               {
                 "deterministic_time": 0.00042971000000000003,
@@ -73141,7 +73141,7 @@
                     "OPTIMAL": 125
                   }
                 },
-                "wall_time_s": 0.025177
+                "wall_time_s": 0.026858000000000003
               },
               {
                 "deterministic_time": 0.00418768212277953,
@@ -73166,7 +73166,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.035874
+                "wall_time_s": 0.039667
               },
               {
                 "deterministic_time": 0.0019746687000000134,
@@ -73191,7 +73191,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.029089000000000004
+                "wall_time_s": 0.031742
               },
               {
                 "deterministic_time": 0.00043976110000000003,
@@ -73213,7 +73213,7 @@
                     "OPTIMAL": 119
                   }
                 },
-                "wall_time_s": 0.023357000000000003
+                "wall_time_s": 0.025011000000000002
               },
               {
                 "deterministic_time": 0.0028303569903955143,
@@ -73238,7 +73238,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.030950000000000002
+                "wall_time_s": 0.032531000000000004
               },
               {
                 "deterministic_time": 0.0035939030635885084,
@@ -73263,7 +73263,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.034121
+                "wall_time_s": 0.037374000000000004
               },
               {
                 "deterministic_time": 0.000360678,
@@ -73285,7 +73285,7 @@
                     "OPTIMAL": 139
                   }
                 },
-                "wall_time_s": 0.024334
+                "wall_time_s": 0.02535
               },
               {
                 "deterministic_time": 0.002053768266666651,
@@ -73310,7 +73310,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.028119
+                "wall_time_s": 0.029834000000000003
               },
               {
                 "deterministic_time": 0.0029591178610169004,
@@ -73335,7 +73335,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.031185
+                "wall_time_s": 0.033318
               },
               {
                 "deterministic_time": 0.00044025250000000003,
@@ -73357,7 +73357,7 @@
                     "OPTIMAL": 131
                   }
                 },
-                "wall_time_s": 0.0262
+                "wall_time_s": 0.025980000000000003
               },
               {
                 "deterministic_time": 0.005019076933333272,
@@ -73382,10 +73382,10 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.033935
+                "wall_time_s": 0.035188000000000004
               },
               {
-                "deterministic_time": 0.00334878059999999,
+                "deterministic_time": 0.003348780599999991,
                 "gap": 0.0,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -73407,7 +73407,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.030281000000000002
+                "wall_time_s": 0.031030000000000002
               },
               {
                 "deterministic_time": 0.0030199613899943674,
@@ -73432,7 +73432,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.036089
+                "wall_time_s": 0.036392
               },
               {
                 "deterministic_time": 0.00476864707272729,
@@ -73457,7 +73457,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.038679000000000005
+                "wall_time_s": 0.041054
               },
               {
                 "deterministic_time": 0.0018366064999999836,
@@ -73482,7 +73482,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.036395000000000004
+                "wall_time_s": 0.036911
               },
               {
                 "deterministic_time": 0.0035210800516297463,
@@ -73507,7 +73507,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.044718
+                "wall_time_s": 0.047848
               },
               {
                 "deterministic_time": 0.0048238799428571445,
@@ -73532,7 +73532,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.041626
+                "wall_time_s": 0.046724
               }
             ]
           },
@@ -77057,7 +77057,7 @@
                 "OPTIMAL": 40
               }
             },
-            "wall_time_total": 1.581099,
+            "wall_time_total": 1.6422450000000002,
             "weekly": [
               {
                 "deterministic_time": 0.0011841511999999958,
@@ -77085,7 +77085,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.033668000000000003
+                "wall_time_s": 0.036631000000000004
               },
               {
                 "deterministic_time": 0.0015091063999999976,
@@ -77110,7 +77110,7 @@
                     "OPTIMAL": 19
                   }
                 },
-                "wall_time_s": 0.040324000000000006
+                "wall_time_s": 0.042297
               },
               {
                 "deterministic_time": 0.015808739578969992,
@@ -77138,7 +77138,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.08626500000000001
+                "wall_time_s": 0.088205
               },
               {
                 "deterministic_time": 0.014528046689097438,
@@ -77166,7 +77166,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.082718
+                "wall_time_s": 0.083011
               },
               {
                 "deterministic_time": 0.0006627662,
@@ -77191,7 +77191,7 @@
                     "OPTIMAL": 18
                   }
                 },
-                "wall_time_s": 0.029174000000000002
+                "wall_time_s": 0.031319
               },
               {
                 "deterministic_time": 0.012143862053327148,
@@ -77219,7 +77219,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.070301
+                "wall_time_s": 0.070971
               },
               {
                 "deterministic_time": 0.0012271337999999999,
@@ -77244,7 +77244,7 @@
                     "OPTIMAL": 28
                   }
                 },
-                "wall_time_s": 0.042322000000000005
+                "wall_time_s": 0.040722
               },
               {
                 "deterministic_time": 0.008098253702018263,
@@ -77272,7 +77272,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.06681100000000001
+                "wall_time_s": 0.07060100000000001
               },
               {
                 "deterministic_time": 0.015814920879233876,
@@ -77300,7 +77300,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.089311
+                "wall_time_s": 0.089948
               },
               {
                 "deterministic_time": 0.0007561660000000003,
@@ -77325,7 +77325,7 @@
                     "OPTIMAL": 27
                   }
                 },
-                "wall_time_s": 0.033869
+                "wall_time_s": 0.034007
               },
               {
                 "deterministic_time": 0.014135688676697301,
@@ -77353,7 +77353,7 @@
                     "OPTIMAL": 4
                   }
                 },
-                "wall_time_s": 0.076005
+                "wall_time_s": 0.079266
               },
               {
                 "deterministic_time": 0.006910917175324697,
@@ -77381,7 +77381,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.049814000000000004
+                "wall_time_s": 0.052765000000000006
               },
               {
                 "deterministic_time": 0.0009378382000000004,
@@ -77406,7 +77406,7 @@
                     "OPTIMAL": 30
                   }
                 },
-                "wall_time_s": 0.035227
+                "wall_time_s": 0.041878000000000005
               },
               {
                 "deterministic_time": 0.027988402431146704,
@@ -77434,7 +77434,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.090158
+                "wall_time_s": 0.092433
               },
               {
                 "deterministic_time": 0.02589801978582885,
@@ -77462,7 +77462,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.080823
+                "wall_time_s": 0.08482700000000001
               },
               {
                 "deterministic_time": 0.0006642940000000004,
@@ -77487,7 +77487,7 @@
                     "OPTIMAL": 29
                   }
                 },
-                "wall_time_s": 0.032278
+                "wall_time_s": 0.034199
               },
               {
                 "deterministic_time": 0.003520457833333253,
@@ -77515,7 +77515,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.039057
+                "wall_time_s": 0.039644000000000006
               },
               {
                 "deterministic_time": 0.005873643262479076,
@@ -77543,7 +77543,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.048265
+                "wall_time_s": 0.048593000000000004
               },
               {
                 "deterministic_time": 0.002251545126576585,
@@ -77568,10 +77568,10 @@
                     "OPTIMAL": 32
                   }
                 },
-                "wall_time_s": 0.045792000000000006
+                "wall_time_s": 0.048098
               },
               {
-                "deterministic_time": 0.021404647983105558,
+                "deterministic_time": 0.021404647983105554,
                 "gap": 3.3990747435291887e-05,
                 "gap_by_phase": {
                   "3a": 0.0,
@@ -77596,7 +77596,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.07984000000000001
+                "wall_time_s": 0.080319
               },
               {
                 "deterministic_time": 0.04050685998048008,
@@ -77624,7 +77624,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.09873000000000001
+                "wall_time_s": 0.107508
               },
               {
                 "deterministic_time": 0.008104467693725203,
@@ -77652,7 +77652,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.060316
+                "wall_time_s": 0.060853000000000004
               },
               {
                 "deterministic_time": 0.017190880814476842,
@@ -77680,7 +77680,7 @@
                     "OPTIMAL": 3
                   }
                 },
-                "wall_time_s": 0.07064300000000001
+                "wall_time_s": 0.074532
               },
               {
                 "deterministic_time": 0.0032559076457255613,
@@ -77708,7 +77708,7 @@
                     "OPTIMAL": 1
                   }
                 },
-                "wall_time_s": 0.04925
+                "wall_time_s": 0.053522
               },
               {
                 "deterministic_time": 0.011521355936893034,
@@ -77736,7 +77736,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.07731500000000001
+                "wall_time_s": 0.077809
               },
               {
                 "deterministic_time": 0.009768745980569399,
@@ -77764,7 +77764,7 @@
                     "OPTIMAL": 2
                   }
                 },
-                "wall_time_s": 0.072823
+                "wall_time_s": 0.07828700000000001
               }
             ]
           },
@@ -82009,20 +82009,20 @@
   },
   "timing": {
     "fifo": {
-      "mean_s": 15.046632316801697,
-      "total_s": 75.23316158400849
+      "mean_s": 15.597375216812361,
+      "total_s": 77.9868760840618
     },
     "optimized": {
-      "mean_s": 18.722108299995305,
-      "total_s": 93.61054149997653
+      "mean_s": 19.386231366393623,
+      "total_s": 96.93115683196811
     },
     "optimized_overbooking": {
-      "mean_s": 21.41826077499427,
-      "total_s": 107.09130387497135
+      "mean_s": 21.923584516812117,
+      "total_s": 109.61792258406058
     },
     "priority": {
-      "mean_s": 14.962708316824864,
-      "total_s": 74.81354158412432
+      "mean_s": 15.610403683397454,
+      "total_s": 78.05201841698727
     }
   },
   "truth_source": "synthetic.noshow_truth.true_noshow_prob"
