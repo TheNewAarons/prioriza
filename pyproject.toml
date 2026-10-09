@@ -67,9 +67,11 @@ testpaths = [
     "simulation/tests",
     "api/tests",
     "dashboard/tests",
+    "tests/integration",
 ]
 addopts = "--import-mode=importlib -q"
 consider_namespace_packages = true
 markers = [
     "db: requiere un PostgreSQL alcanzable (se omite si no hay conexión)",
+    "integration: flujo de punta a punta (corre scripts/demo.sh con una población pequeña)",
 ]
