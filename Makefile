@@ -25,8 +25,11 @@ SCENARIO ?= baseline
 train-noshow:
 	uv run --package noshow prioriza-noshow train --seed $(SEED) --size $(SIZE) --scenario $(SCENARIO)
 
+WEEKS ?= 4
+SCHEDULE_ARGS ?=
+
 schedule:
-	@echo "schedule: pendiente"
+	uv run --package scheduler prioriza-schedule --weeks $(WEEKS) --seed $(SEED) --size $(SIZE) --scenario $(SCENARIO) $(SCHEDULE_ARGS)
 
 simulate:
 	@echo "simulate: pendiente"

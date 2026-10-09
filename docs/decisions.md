@@ -209,5 +209,32 @@ Diseño en [design/priority-plan.md](design/priority-plan.md); fórmula, reglas 
 
 ---
 
+## 10. Programador CP-SAT
+
+**Fecha**: 2026-10-08
+
+Formulación completa en [scheduler-formulation.md](scheduler-formulation.md); esta sección registra las dependencias y las decisiones tomadas al implementarla.
+
+**Dependencias agregadas** (solo en `scheduler`):
+- `ortools>=9.15`: CP-SAT, definido en CLAUDE.md. La API de Python se consultó en la versión instalada (`cp_model.py` y sus stubs `cp_model_helper.pyi`, que traen `py.typed` y pasan `mypy --strict`) y en `sat_parameters.proto` de la etiqueta v9.15. Trae como dependencias `protobuf`, `numpy`, `absl-py`, `immutabledict`, `typing-extensions` y `pandas` (esta última solo por su API de series; el programador no la usa).
+- `polars`, `pydantic`, `typer`, `numpy`: ya estaban en el lock; se declaran porque `scheduler` los importa.
+- `priority` y `noshow` (miembros del workspace): `priority` para el puntaje y el orden de P4; `noshow` solo en los módulos de borde (`adapters`, `cli`) para la probabilidad de inasistencia. `noshow` no tiene `py.typed`, así que esos imports llevan `# type: ignore[import-untyped]`. El núcleo (`instance`, `prepare`, `cpsat`, `solve`, `plan`, `greedy`, `risk`) no importa ni `noshow` ni scikit-learn.
+
+**Decisiones de implementación** (cambian o precisan la formulación; el documento ya está actualizado):
+- **Modo determinista con un solo hilo.** Con `solver.deterministic = true` (por defecto) se usa `num_workers = 1` y `max_deterministic_time`. La formulación proponía `interleave_search` con 8 hilos, que también es determinista, pero en el subproblema mayor de la corrida canónica llegó a la brecha de 0,1 % después que la búsqueda secuencial (2,4 s frente a 0,35 s) y excedió su límite determinista (2,3 frente a 0,5), porque solo lo revisa entre lotes. Con `deterministic = false` se usan 8 hilos con límite de tiempo real.
+- **`linearization_level = 2`** (configurable). En los dos subproblemas mayores de la corrida canónica, la fase 3a pasó de `FEASIBLE` a los 9-11 s reales a `OPTIMAL` en 1,3-2,2 s, y la fase 3b obtuvo mejor cota con menos tiempo real. La relajación LP más fuerte ayuda a las restricciones de capacidad tipo mochila y a las de sobrecupo con indicador.
+- **En modo determinista, el tiempo límite está en unidades deterministas**, no en segundos de reloj; el tiempo real puede excederlo. El informe registra ambos por fase y subproblema.
+- **`S0` queda fijo también en la fase 4** cuando no hay fase 3b: el equilibrio solo cambia bloques, no quién tiene cupo. Antes de esta corrección la fase 4 podía cambiar entradas con igual puntaje total, y la verificación §9.3 lo detectó en la corrida canónica.
+- **Pistas completas y canónicas.** Cada fase recibe una pista para todas las variables (también `w`, `util` y máximo/mínimo), llevada a la forma que exigen las restricciones de simetría; sin eso, CP-SAT terminaba en `UNKNOWN` en la segunda pasada de 3b y en la fase 4.
+- **Clases de simetría sin `p`** en las fases sin sobrecupo, para que las fases 1-3a no dependan de la probabilidad de inasistencia.
+- **Filtro de candidatos**: `O_b` nominal en `K_q` aunque el sobrecupo esté apagado, y una segunda señal de frontera (capacidad libre usable por una entrada descartada) que detecta colas donde varias entradas de un mismo paciente agotan los candidatos. Ambas las encontraron los tests de propiedad.
+- **GES `G^od` con `as_of ≤ D_g < horizon_start`**: se informa como incumplida (`deadline_before_first_block`) aunque se agende, porque el plazo legal ya no se puede cumplir. La formulación tenía dos reglas contradictorias (§6.2 y §7) y quedó la de §7.
+- **Causas posteriores `decomposition` y `overbooking_interaction`** (§7): casos con cupo libre que no son error porque el respaldo de descomposición o el plan con sobrecupo no son exactos para GES.
+- **Respaldo por semana** cuando una especialidad supera `max_pairs_per_subproblem` (pedido del usuario), con obligación GES de "última oportunidad". En la corrida canónica de 4 semanas no se activa.
+- **Persistencia sin tocar la lista**: `--persist` guarda `schedule_run` (pendiente de revisión) y sus `appointment`, pero no cambia `waitlist_entry.status`, porque el plan no está aprobado.
+- **Corrección del ejemplo §13**: la variante con GES infactible tenía mal el objetivo (16.772). Cambiar el plazo de E cambia su puntaje P4, y el objetivo correcto es 17.271.
+
+---
+
 ## Referencias
 - [CLAUDE.md](../CLAUDE.md): Stack y convenciones del proyecto.

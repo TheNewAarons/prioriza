@@ -8,8 +8,20 @@ version = "0.1.0"
 description = "Programación óptima de pacientes usando CP-SAT para Prioriza."
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "noshow",
+    "numpy>=2.0",
+    "ortools>=9.15.6755",
+    "polars>=1.0",
+    "priority",
+    "pydantic>=2.0",
     "shared",
+    "typer>=0.12",
 ]
+
+[project.scripts]
+prioriza-schedule = "scheduler.cli:run"
 
 [tool.uv.sources]
 shared = {workspace = true}
+priority = { workspace = true }
+noshow = { workspace = true }
