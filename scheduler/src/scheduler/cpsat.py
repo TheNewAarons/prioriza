@@ -11,6 +11,7 @@ a la búsqueda y deja cada fase autocontenida.
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -21,12 +22,17 @@ from typing import Literal
 from ortools.sat.python import cp_model
 
 from scheduler.config import SchedulerConfig
-from scheduler.prepare import Prepared, round_half_up
+from scheduler.prepare import Prepared
 from scheduler.risk import chernoff_theta, coef_one, coef_theta, rhs_one, rhs_theta
 
 GroupKey = tuple[str, str]  # (dimensión, valor)
 Objective = Literal["q1", "ges", "score", "balance"]
 UTIL_SCALE = 1000
+
+
+def cap_units(share: float) -> int:
+    """Tope de proporción en milésimas, redondeado hacia abajo: nunca supera ``share`` (R15)."""
+    return math.floor(UTIL_SCALE * share + 1e-9)
 
 
 @dataclass(frozen=True)
@@ -440,7 +446,7 @@ def overbooking_fill(
             for q in ctx.entry_groups.get(prep.pair_entry[p], ()):
                 total[q] += 1
                 exposed[q] += b in levels_now
-    rho = {q: round_half_up(UTIL_SCALE * r) for q, r in capped.items()}
+    rho = {q: cap_units(r) for q, r in capped.items()}
 
     def caps_ok(b: int, p: int, newly_exposed: bool) -> bool:
         if not capped:
@@ -663,7 +669,7 @@ class SubModel:
                     ws.append(w)
                     self.w_vars.append((w, b, ps))
             if ws:
-                m.add(UTIL_SCALE * sum(ws) <= round_half_up(UTIL_SCALE * rho) * sum(total_e))
+                m.add(UTIL_SCALE * sum(ws) <= cap_units(rho) * sum(total_e))
 
     def _balance_expr(self) -> cp_model.LinearExprT:
         ctx = self.ctx

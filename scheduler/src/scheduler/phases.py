@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
@@ -24,6 +25,7 @@ from scheduler.cpsat import (
     assigned_entries,
     block_loads,
     canonicalize,
+    cap_units,
     coef_sum,
     objective_value,
     overbook_levels,
@@ -39,7 +41,6 @@ from scheduler.prepare import (
     QueueKey,
     components,
     prepare,
-    round_half_up,
     select_candidates,
 )
 
@@ -259,10 +260,12 @@ def solve_sub(
     else:
         runner.skip(PHASE_SHARES["2"])
 
-    # Fase 3a: puntaje sin sobrecupo.
+    # Fase 3a: puntaje sin sobrecupo. Su presupuesto no depende de p ni del interruptor de
+    # sobrecupo (§8.5): si no hay fase 3b, su parte pasa a la fase 4.
     do_3b = cfg.overbooking.enabled and bool(ctx.eligible)
-    share_3a = PHASE_SHARES["3a"] if do_3b else PHASE_SHARES["3a"] + PHASE_SHARES["3b"]
-    out = runner.run(PhaseSpec("3a", "score", False, fix), share_3a)
+    out = runner.run(PhaseSpec("3a", "score", False, fix), PHASE_SHARES["3a"])
+    if not do_3b:
+        runner.skip(PHASE_SHARES["3b"])
     result.z0 = result.z3 = int(out.objective)
     result.s0 = frozenset(assigned_entries(prep, out.solution))
     fix = Fixings(q1_min=fix.q1_min, v_max=fix.v_max, s0=result.s0)
@@ -350,7 +353,7 @@ def _group_info(
     info: dict[str, Any] = {"dimension": q[0], "value": q[1], "scheduled_cne": n, "share": share}
     if caps is not None and q in caps:
         exposed = round(share * n)
-        slack = round_half_up(UTIL_SCALE * caps[q]) * n - UTIL_SCALE * exposed
+        slack = cap_units(caps[q]) * n - UTIL_SCALE * exposed
         info.update(cap=caps[q], r15_slack=slack, binding=slack < UTIL_SCALE)
     return info
 
@@ -458,8 +461,20 @@ def _solve_component(
     return results
 
 
+def _base_solution(results: Iterable[SubResult]) -> frozenset[int]:
+    """Unión de las soluciones de la fase 3a (sin sobrecupo) de los subproblemas."""
+    out: set[int] = set()
+    for r in results:
+        ph = r.phase("3a")
+        out.update(ph.solution if ph is not None else r.final)
+    return frozenset(out)
+
+
 def _frontier_queues(prep: Prepared, solution: frozenset[int]) -> set[QueueKey]:
     """Colas donde el filtro de candidatos pudo ser activo (§8.2).
+
+    ``solution`` es la de la fase 3a, sin sobrecupo: así la frontera, y con ella los
+    candidatos y las fases 1-3a, no dependen de p ni del interruptor de sobrecupo.
 
     Dos señales: (a) se agendó alguna entrada del último 10 % de candidatos; (b) queda
     capacidad libre en un bloque que una entrada descartada podría usar (su paciente no tiene
@@ -510,8 +525,7 @@ def run_optimized(instance: SchedulingInstance, config: SchedulerConfig) -> Solv
         )
     warnings: list[str] = []
     discarded: list[SubResult] = []
-    solution = frozenset(p for rs in solved.values() for r in rs for p in r.final)
-    hit = _frontier_queues(prep, solution)
+    hit = _frontier_queues(prep, _base_solution(r for rs in solved.values() for r in rs))
     frontier: dict[str, Any] = {
         "reached": sorted(f"{q[0]}|{q[1]}" for q in hit),
         "expanded": False,
@@ -546,8 +560,8 @@ def run_optimized(instance: SchedulingInstance, config: SchedulerConfig) -> Solv
                 prep, comp, f"c{n}x[{label_of(comp)}]", budget_of(comp), warm
             )
         solved = resolved
-        solution = frozenset(p for rs in solved.values() for r in rs for p in r.final)
-        still = _frontier_queues(prep, solution) & hit
+        base = _base_solution(r for rs in solved.values() for r in rs)
+        still = _frontier_queues(prep, base) & hit
         frontier["expanded"] = True
         frontier["still_reached"] = sorted(f"{q[0]}|{q[1]}" for q in still)
         if still:

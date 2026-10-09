@@ -49,6 +49,7 @@ class B:
     unit: int | None = 20
     service: int = 1
     resource_id: str | None = None
+    prebooked: int = 0  # unidades (CNE) o minutos (pabellón) ya tomados
 
 
 def utc(y: int, m: int, d: int, h: int = 11, mi: int = 30) -> datetime:
@@ -111,6 +112,8 @@ def build_instance(
             "start_at": b.start,
             "duration_min": b.duration,
             "unit_min": b.unit,
+            "prebooked_units": b.prebooked if b.unit is not None else 0,
+            "prebooked_min": b.prebooked if b.unit is None else 0,
         }
         for b in blocks
     ]

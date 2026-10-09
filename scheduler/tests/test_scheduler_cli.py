@@ -97,7 +97,7 @@ def test_policy_all_without_overbooking_writes_report_and_parquet(
     # Informe JSON.
     manifest = json.loads((synth_run_dir / "manifest.json").read_text(encoding="utf-8"))
     run_id = manifest["run"]["id"]
-    json_files = list(results_dir.glob(f"schedule_{run_id}_4w.json"))
+    json_files = list(results_dir.glob(f"schedule_{run_id}_4w_*.json"))
     assert len(json_files) == 1
     payload = json.loads(json_files[0].read_text(encoding="utf-8"))
     assert payload["disclaimer"] == DISCLAIMER
@@ -219,7 +219,7 @@ def test_optimized_with_overbooking_and_trained_model(
     assert result.exit_code == 0, result.output
     manifest = json.loads((synth_run_dir / "manifest.json").read_text(encoding="utf-8"))
     run_id = manifest["run"]["id"]
-    json_files = list(results_dir.glob(f"schedule_{run_id}_4w.json"))
+    json_files = list(results_dir.glob(f"schedule_{run_id}_4w_*.json"))
     assert len(json_files) == 1
     payload = json.loads(json_files[0].read_text(encoding="utf-8"))
     assert "optimized" in payload["policies"]

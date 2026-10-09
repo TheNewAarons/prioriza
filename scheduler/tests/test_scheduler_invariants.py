@@ -243,14 +243,20 @@ def test_overbooking_disabled_never_exceeds_capacity(
     assert all(p["name"] != "3b" for s in plan.report["solver"]["subproblems"] for p in s["phases"])
 
 
-@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-@given(instances())
-def test_phases_up_to_3a_do_not_depend_on_noshow(data: tuple[SchedulingInstance, float]) -> None:
-    """§15.4: con y sin sobrecupo, y con otras p, las fases 1-3a dan lo mismo."""
+@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@given(instances(), st.sampled_from([1.0, 2.0]))
+def test_phases_up_to_3a_do_not_depend_on_noshow(
+    data: tuple[SchedulingInstance, float], margin: float
+) -> None:
+    """§15.4: con y sin sobrecupo, y con otras p, las fases 1-3a dan lo mismo.
+
+    Con margen 1,0 la frontera de candidatos se activa a menudo: su expansión tampoco puede
+    depender del sobrecupo (hallazgo de la revisión de P8).
+    """
     inst, alpha = data
-    with_ob = solve(inst, _config(alpha))
+    with_ob = solve(inst, _config(alpha, candidate_margin=margin))
     off = OverbookingConfig(enabled=False, alpha=alpha, max_fraction=0.5)
-    without = solve(inst, _config(alpha, overbooking=off))
+    without = solve(inst, _config(alpha, overbooking=off, candidate_margin=margin))
     shifted = SchedulingInstance(
         as_of=inst.as_of,
         horizon_start=inst.horizon_start,
@@ -263,7 +269,8 @@ def test_phases_up_to_3a_do_not_depend_on_noshow(data: tuple[SchedulingInstance,
         yield_priorities=inst.yield_priorities,
         seed=inst.seed,
     )
-    other_p = solve(shifted, _config(alpha))
+    other_p = solve(shifted, _config(alpha, candidate_margin=margin))
+    event(f"frontera expandida={with_ob.report['frontier']['expanded']}")
 
     def s0(plan: SchedulePlan) -> set[tuple[str, str]]:
         rows = plan.assignments.filter(plan.assignments["phase_added"] == "3a")
@@ -273,6 +280,7 @@ def test_phases_up_to_3a_do_not_depend_on_noshow(data: tuple[SchedulingInstance,
         return [(s["f1"], s["f2"], s["z0"]) for s in plan.report["solver"]["subproblems"]]
 
     assert fixed(with_ob) == fixed(without) == fixed(other_p)
+    assert with_ob.report["frontier"] == without.report["frontier"] == other_p.report["frontier"]
     # Las entradas de S0 son las mismas; la fase 3b solo puede moverlas de bloque.
     assert {e for e, _ in s0(with_ob)} == {e for e, _ in s0(without)} == {e for e, _ in s0(other_p)}
 
@@ -289,7 +297,7 @@ def test_deterministic(data: tuple[SchedulingInstance, float]) -> None:
 
 
 @settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-@given(instances(), st.sampled_from([0.0, 0.2, 0.5]))
+@given(instances(), st.sampled_from([0.0, 0.1236, 0.2, 0.5]))
 def test_absolute_group_limits(data: tuple[SchedulingInstance, float], cap: float) -> None:
     inst, alpha = data
     cfg = _config(
@@ -313,3 +321,41 @@ def test_absolute_group_limits(data: tuple[SchedulingInstance, float], cap: floa
             )
     for flags in per.values():
         assert sum(flags) <= cap * len(flags) + 1e-9
+
+
+@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@given(instances(), st.sampled_from([("specialty", 400_000), ("auto", 2), ("auto", 3)]))
+def test_fallback_decompositions_keep_invariants(
+    data: tuple[SchedulingInstance, float], mode: tuple[str, int]
+) -> None:
+    """Respaldos por especialidad y por semana (§8.3) con el solver real: mismos invariantes."""
+    inst, alpha = data
+    decomposition, max_pairs = mode
+    cfg = _config(alpha, decomposition=decomposition, max_pairs_per_subproblem=max_pairs)
+    plan = solve(inst, cfg)
+    check_plan(inst, cfg, plan)
+    used = sorted({s["decomposition"] for s in plan.report["solver"]["subproblems"]})
+    event(f"descomposición={used}")
+
+
+@settings(max_examples=40, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@given(crowded())
+def test_frontier_does_not_depend_on_overbooking(data: tuple[SchedulingInstance, float]) -> None:
+    """Con margen 1,0 y colas llenas la frontera se activa: S0 y la frontera no cambian con 3b.
+
+    Regresión de la revisión de P8: la frontera se calculaba con el plan final (con sobrecupos)
+    y podía expandir los candidatos solo cuando el sobrecupo estaba activo.
+    """
+    inst, alpha = data
+    on = solve(inst, _config(alpha, candidate_margin=1.0))
+    off = OverbookingConfig(enabled=False, alpha=alpha, max_fraction=0.5)
+    without = solve(inst, _config(alpha, candidate_margin=1.0, overbooking=off))
+
+    def s0(plan: SchedulePlan) -> list[str]:
+        rows = plan.assignments.filter(plan.assignments["phase_added"] == "3a")
+        return sorted(str(e) for e in rows["entry_id"])
+
+    event(f"frontera expandida={on.report['frontier']['expanded']}")
+    assert on.report["frontier"] == without.report["frontier"]
+    assert on.report["summary"]["candidates"] == without.report["summary"]["candidates"]
+    assert s0(on) == s0(without)

@@ -155,7 +155,12 @@ def main(
         plan.ges.write_parquet(target / f"{name}_ges.parquet")
         plan.standby.write_parquet(target / f"{name}_standby.parquet")
     results_dir.mkdir(parents=True, exist_ok=True)
-    results_path = results_dir / f"schedule_{info.run_id}_{weeks}w.json"
+    # El nombre canónico es solo para la configuración por defecto; una variante (otra política,
+    # alpha, sin sobrecupo, etc.) lleva el digest para no pisar el resultado versionado.
+    variant = ""
+    if policy is not PolicyChoice.ALL or config != SchedulerConfig(horizon_weeks=weeks):
+        variant = f"_{policy.value}_{config.digest()[:8]}"
+    results_path = results_dir / f"schedule_{info.run_id}_{weeks}w{variant}.json"
     payload = {
         "disclaimer": DISCLAIMER,
         "run": {k: info.manifest_run[k] for k in ("id", "seed", "size", "scenario", "as_of")},

@@ -713,6 +713,8 @@ def _build(
         )
     report: dict[str, Any] = {
         "disclaimer": DISCLAIMER,
+        # Todo plan requiere revisión humana antes de usarse (CLAUDE.md); persist lo registra igual.
+        "review_status": "pending",
         "policy": policy,
         "as_of": inst.as_of.isoformat(),
         "horizon_start": inst.horizon_start.isoformat(),
@@ -894,6 +896,9 @@ def greedy_schedule(
 ) -> SchedulePlan:
     """Políticas de referencia ``fifo`` o ``priority`` (§10), sin CP-SAT ni sobrecupo."""
     cfg = config or SchedulerConfig()
+    # Sin sobrecupo: no hace falta p (si viene, se copia al plan igual).
+    off = cfg.overbooking.model_copy(update={"enabled": False})
+    cfg = cfg.model_copy(update={"overbooking": off})
     prep = prepare(instance, cfg)
     prep.candidates = frozenset(prep.pairs_of_entry)
     solution = greedy_assign(prep, prep.pairs_of_entry, order)

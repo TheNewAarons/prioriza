@@ -134,6 +134,17 @@ las tablas desde PostgreSQL o parquet. Estas son las interfaces reales del repo 
   Nombres de tests pasados a inglés (CLAUDE.md).
 - Pendiente: revisión de `reviewer` sobre `scheduler/` antes del siguiente prompt (CLAUDE.md); corregir la oferta
   sintética (§11.2) antes de la simulación.
+- 2026-10-09, Tier 1 (revisión de P8 por `reviewer`, opus, al iniciar P10): 1 ALTO, 4 MEDIO, 5 BAJO. Corregidos:
+  ALTO 1 (la frontera se calculaba sobre el plan final con sobrecupos: con sobrecupo activo podía expandir candidatos
+  y cambiar `S0`; ahora usa la solución de la fase 3a; regresión `test_frontier_does_not_depend_on_overbooking` y
+  §15.4 con margen 1,0), MEDIO 2 (presupuesto de 3a fijo; si no hay 3b su parte pasa a la fase 4), BAJO 6 (topes
+  R15 con `floor`), BAJO 7 (la CLI agrega sufijo de variante al JSON si la config no es la canónica), BAJO 8 (sesión
+  congelada con más citas que cupos → residual 0; sesiones con citas previas sin sobrecupo; `commit_weeks` documentado
+  como parámetro de quien llama), BAJO 9 (`greedy_schedule` sin p), BAJO 10 (tests reales de respaldos por
+  especialidad/semana, tope no redondo, `prebooked_*`, hypothesis con `derandomize`, `review_status: pending` en el
+  informe). Van en la rama de simulación (P10), que reescribe `adapters.py`: MEDIO 3 (corte del historial en `as_of`)
+  y MEDIO 4 (adaptadores sobre DataFrames). Sigue pendiente MEDIO 5 (presupuesto de tiempo global). Benchmark y
+  corrida canónica regenerados tras los arreglos.
 
 ## P9: benchmark y rendimiento del programador (`scheduler/`)
 

@@ -158,8 +158,14 @@ def test_missing_noshow_probability_is_an_error() -> None:
 
 
 def test_negative_residual_capacity_is_an_error() -> None:
-    inst = build_instance([E("a", "p2", date(2025, 6, 1))], [B("S1", utc(2025, 10, 8))])
-    over = replace(inst.blocks[0], prebooked_units=3)
+    """En pabellón no hay sobrecupo: más minutos tomados que planificables es un dato corrupto.
+
+    En CNE una sesión congelada con sobrecupo sí puede pasarse (residual 0, ver
+    ``test_scheduler_prebooked.py``).
+    """
+    entry = E("a", "p2", date(2025, 6, 1), specialty=IQ_SPEC, duration=60)
+    inst = build_instance([entry], [B("OR1", utc(2025, 10, 8), 360, IQ_SPEC, None)])
+    over = replace(inst.blocks[0], prebooked_min=400)
     bad = SchedulingInstance(
         as_of=inst.as_of,
         horizon_start=inst.horizon_start,

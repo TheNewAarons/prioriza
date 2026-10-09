@@ -124,8 +124,11 @@ def prepare(instance: SchedulingInstance, config: SchedulerConfig) -> Prepared:
     for b in blocks:
         if b.is_cne:
             assert b.unit_min is not None
-            cap = b.duration_min // b.unit_min - b.prebooked_units
-            omax = math.floor(ob.max_fraction * cap) if ob.enabled and cap > 0 else 0
+            # Una sesión congelada con sobrecupo puede traer más citas que cupos: residual 0.
+            # Con citas previas no se sobreagenda, porque su p no entra en el riesgo (R10/R11).
+            cap = max(0, b.duration_min // b.unit_min - b.prebooked_units)
+            fresh = b.prebooked_units == 0
+            omax = math.floor(ob.max_fraction * cap) if ob.enabled and cap > 0 and fresh else 0
         else:
             cap = math.floor(config.or_max_fill * b.duration_min) - b.prebooked_min
             omax = 0
