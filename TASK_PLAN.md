@@ -345,3 +345,10 @@ problemas abiertos.
   historial en `as_of` (MEDIO 3 de la revisión de P8), `supply_coverage` en el JSON y la CLI reutiliza la corrida
   sintética para cualquier `--weeks`. Hallazgo de diseño: a 10.000 entradas solo el 37 % de las celdas CNE recibe
   alguna sesión en 26 semanas (76 % del stock CNE); documentado como limitación principal en el diseño §3.
+- 2026-10-09, Tier 1 (P10, `make simulate`): 10.000 entradas, 26 semanas, 4 políticas × 5 réplicas (101-105), 5 min 56 s.
+  Medias: atendidos fifo 6.428, priority 6.483, optimized 6.515, optimized_overbooking 6.616; mediana de espera de
+  atendidos 357/301/295/295 días; GES incumplidas 1.359/1.201/1.035/1.034. Sobrecupo frente a optimized: +100,8
+  atendidos, −91,4 cupos CNE perdidos, 11,8 sesiones desbordadas y 153 pacientes afectados por réplica; exposición al
+  sobrecupo por grupo etario 23-27 % (0-14 la mayor). Negativos: la lista crece en todas las políticas (capacidad
+  nominal = demanda, granularidad de la oferta) y la espera del stock final es mayor con priority/optimized que con
+  fifo (154 frente a 139 días). Inasistencia CNE realizada 14,9-15,4 %; p predicha media 0,142.
