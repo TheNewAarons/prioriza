@@ -39,8 +39,8 @@ class ErrorOut(BaseModel):
     detail: str
 
 
-class MeOut(BaseModel):
-    """Usuario autenticado."""
+class MeOut(DisclaimerModel):
+    """Usuario autenticado (con el aviso, como toda respuesta con datos de la API)."""
 
     user: str
     role: Literal["gestor", "revisor", "lectura"]

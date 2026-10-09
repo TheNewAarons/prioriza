@@ -19,7 +19,7 @@ def test_full_flow(make_client) -> None:  # type: ignore[no-untyped-def]
 
     assert client.get("/v1/waitlist").status_code == 401
     me = client.get("/v1/me", headers=h("clave-gestor")).json()
-    assert me == {"user": "gestora.test", "role": "gestor"}
+    assert me == {"user": "gestora.test", "role": "gestor", "disclaimer": DISCLAIMER}
 
     wl = client.get("/v1/waitlist?limit=5", headers=h("clave-lectura"))
     assert wl.status_code == 200

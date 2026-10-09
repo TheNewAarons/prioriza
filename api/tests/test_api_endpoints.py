@@ -77,7 +77,7 @@ def test_me_by_role(make_client, key: str, user: str, role: str) -> None:  # typ
     """`/v1/me` devuelve usuario y rol de la clave."""
     r = make_client().get("/v1/me", headers={"X-API-Key": key})
     assert r.status_code == 200
-    assert r.json() == {"user": user, "role": role}
+    assert r.json() == {"user": user, "role": role, "disclaimer": DISCLAIMER}
 
 
 # ------------------------------------------------------------------ lista de espera
