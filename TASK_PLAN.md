@@ -783,10 +783,10 @@ cerrada de rótulos: `p90`, `p50`, `IC 95 %`, `0-14` y los nombres de grupo que 
 En `main` (commits directos). DeepSeek, Qwen y Kimi sin respuesta del proxy (35 s cada uno): T1 → `implementer`,
 T3 → `chore`, T2 → `docs-writer`.
 
-- [ ] P16-T1 (Asignada a: Tier 2 - DeepSeek) -> Fallback `implementer`: seguridad de API, panel y logs
-- [ ] P16-T3 (Asignada a: Tier 3 - Qwen) -> Fallback `chore`: configuración, Makefile y CI (en paralelo con T1)
+- [x] P16-T1 (Asignada a: Tier 2 - DeepSeek) -> Fallback `implementer`: seguridad de API, panel y logs
+- [x] P16-T3 (Asignada a: Tier 3 - Qwen) -> Fallback `chore`: configuración, Makefile y CI (en paralelo con T1)
 - [ ] P16-T2 (Asignada a: Tier 3 - Kimi) -> Fallback `docs-writer`: README completo y `docs/limitations.md` (al final)
-- [ ] P16-R (Tier 1) -> Revisión de seguridad de P16-T1
+- [x] P16-R (Tier 1) -> Hecha: 2 correcciones de seguridad y verificación en vivo (ver log)
 
 ### P16: contrato (Tier 1)
 
@@ -849,3 +849,19 @@ en mermaid, instalación, routing de tiers de CLAUDE.md explicado, demo, resulta
 docs.
 
 ### Log
+
+- 2026-10-09, Tier 3 (respaldo de `chore`, Haiku, P16-T3): Makefile con `make audit` (uv export | pip-audit), `.PHONY` actualizado, `make help` con `audit`; workflow CI.yml con comentario de desactivación, jobs `checks` y `audit` completos; `.env.example` documentadas variables de seguridad `PRIORIZA_API_*` y `PRIORIZA_DASHBOARD_*`; `docker-compose.yml` puertos publicados en `127.0.0.1`; sintaxis validada (YAML, bash, Makefile). P16-T1 (API) en progreso paralelo (lint falla por cambios en `api/src/api/settings.py`); T3 respeta frontera de archivos permitidos.
+- P16-T1 (implementer): límites, cabeceras, entorno, redacción de logs, `docs/security.md`; lint/typecheck/test en verde (1167 passed), pip-audit sin vulnerabilidades.
+- 2026-10-09, Tier 1 (P16-R, revisión de seguridad de P16-T1): (1) los trazados de excepción solo se redactaban en
+  manejadores con `RedactingFilter`; los propios de uvicorn (`uvicorn.error`) los recibían sin limpiar → la fábrica
+  de `LogRecord` deja `exc_text` y `stack_info` ya redactados (test
+  `test_traceback_redacted_in_handlers_without_filter`); (2) `TrustedHostMiddleware` quedaba por fuera de las
+  cabeceras de seguridad y sus 400 salían sin ellas → `SecurityHeadersMiddleware` pasa a ser el más externo (test).
+  Además: `data/demo/` (con `users.json` y sus claves) no estaba en `.gitignore` → agregado; `make audit` de `chore`
+  fallaba (`pip-audit` sin `uv run`, error 127) → corregido; `.env.example` tenía `MAX_BODY_SIZE` (es
+  `MAX_BODY_BYTES`), el timeout del panel en 10 (es 60) y le faltaban 10 variables → completado desde los settings.
+  Revisado sin cambios: límite de cuerpo con y sin `Content-Length`, largo de ids y parámetros, limitador por
+  usuario o IP con memoria acotada, CSP de la API y de `/docs`, producción sin docs y con archivo de usuarios 600, sin
+  CORS por defecto. Verificado en vivo con la demo: el panel funciona con la CSP y la lista de hosts (recorrido
+  completo, 0 errores de consola) y el access log de uvicorn registra `GET /v1/patients/[REDACTADO]` sin id ni
+  clave. `make lint typecheck test` (1.168) y `make audit` (sin vulnerabilidades) en verde.
