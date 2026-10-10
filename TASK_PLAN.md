@@ -777,3 +777,75 @@ cerrada de rótulos: `p90`, `p50`, `IC 95 %`, `0-14` y los nombres de grupo que 
   desde `facts`); tamaños del benchmark sin formato; α descrito como "factor"; UNKNOWN como "solución parcial";
   abandono "por inactividad" y "patrones de demanda por horario" inventados; ruta de JSON inexistente en la
   metodología. `make report` determinista (`cmp`), HTML revisado en Chrome.
+
+## P16: endurecimiento, documentación y limpieza
+
+En `main` (commits directos). DeepSeek, Qwen y Kimi sin respuesta del proxy (35 s cada uno): T1 → `implementer`,
+T3 → `chore`, T2 → `docs-writer`.
+
+- [ ] P16-T1 (Asignada a: Tier 2 - DeepSeek) -> Fallback `implementer`: seguridad de API, panel y logs
+- [ ] P16-T3 (Asignada a: Tier 3 - Qwen) -> Fallback `chore`: configuración, Makefile y CI (en paralelo con T1)
+- [ ] P16-T2 (Asignada a: Tier 3 - Kimi) -> Fallback `docs-writer`: README completo y `docs/limitations.md` (al final)
+- [ ] P16-R (Tier 1) -> Revisión de seguridad de P16-T1
+
+### P16: contrato (Tier 1)
+
+**Frontera de archivos** (T1 y T3 corren en paralelo): T1 solo toca `api/`, `dashboard/src`, `dashboard/tests`,
+`shared/src/shared/logging.py` (nuevo), `shared/tests/` y `docs/security.md` (nuevo). T3 solo toca `Makefile`,
+`pyproject.toml` raíz (salvo dependencias), `.github/`, `.pre-commit-config.yaml`, `.env.example`, `.gitignore`,
+`docker-compose.yml`, `*/Dockerfile`. Nadie más que Tier 1 toca `uv.lock` (ya agregó `pip-audit` como dependencia de
+desarrollo; auditoría base del 2026-10-09: sin vulnerabilidades conocidas en 395 dependencias).
+
+**P16-T1 (el código debe estar listo para datos reales aunque hoy sean sintéticos):**
+1. Límites en la API, todos configurables en `ApiSettings` con valores por defecto seguros y documentados:
+   - Tamaño máximo del cuerpo (por defecto 64 KiB) → 413 antes de leer el cuerpo completo (middleware ASGI que
+     revisa `Content-Length` y corta el flujo si se excede sin él).
+   - Largo máximo de parámetros de texto (ids, códigos, notas de revisión: p. ej. 64 para ids y 1.000 para notas) → 422.
+   - Programación: tope configurable de `horizon_weeks` (por defecto 12) y de `time_limit_s` (por defecto 600), además
+     de los límites de trabajos ya existentes.
+   - Límite de peticiones por clave en memoria (por defecto 120 por minuto, ventana deslizante) → 429 con
+     `Retry-After`; `/healthz` exento.
+   - Tiempo máximo de un trabajo de programación: si supera `time_limit_s` × factor razonable, se marca `failed` con
+     mensaje (sin matar el hilo si no es posible; documentarlo).
+2. Configuración segura por defecto:
+   - Cabeceras en toda respuesta de la API: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+     `Referrer-Policy: no-referrer`, `Cache-Control: no-store` en respuestas con datos, `Content-Security-Policy`
+     restrictiva en la API (las páginas `/docs` y `/redoc` necesitan su propia excepción o se desactivan en producción).
+   - `PRIORIZA_API_ENVIRONMENT` (`development` por defecto, `production`): en producción `/docs`, `/redoc` y
+     `/openapi.json` se desactivan salvo que se habiliten explícitamente; arrancar en producción sin archivo de usuarios
+     o con permisos del archivo más abiertos que 600 es un error (en desarrollo, advertencia).
+   - Sin CORS por defecto (lista blanca explícita si se configura); `TrustedHostMiddleware` con lista configurable.
+   - Panel: cabeceras equivalentes en Flask (`X-Frame-Options`, `nosniff`, `Referrer-Policy`, CSP compatible con Dash),
+     `debug` apagado por defecto, la clave de API nunca en logs ni en mensajes.
+3. Logs sin datos personales: `shared/src/shared/logging.py` con un filtro de redacción reutilizable (identificadores
+   de paciente y entrada en rutas y mensajes, RUT chilenos `\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]`, correos, cabecera
+   `X-API-Key` y cualquier valor de una clave conocida) aplicado a los loggers de la API, uvicorn (incluido el access
+   log: las rutas `/v1/patients/{id}` no deben quedar con el id) y el panel (werkzeug). Tests que verifiquen la
+   redacción con `caplog` y con el access log real de uvicorn o su formateador.
+4. `pip-audit`: correr sobre el lock exportado (`uv export --all-packages --no-hashes --no-emit-workspace`); toda
+   vulnerabilidad alta o crítica se corrige o se justifica en `docs/security.md` (hoy no hay ninguna).
+5. `docs/security.md`: modelo de amenazas breve, controles implementados con sus valores por defecto, qué falta antes
+   de usar datos reales (proveedor de identidad, TLS, cifrado en reposo, retención de auditoría y de logs, revisión
+   legal de protección de datos personales) sin afirmar cumplimiento legal.
+6. Tests de cada control (413, 422 por largo, 429 con `Retry-After`, cabeceras, producción sin docs, archivo de usuarios
+   con permisos abiertos, redacción de logs). `make lint typecheck test` en verde.
+
+**P16-T3:**
+- `Makefile`: `make audit` (`uv export … | pip-audit -r - --disable-pip --no-deps`, sale distinto de cero si hay
+  vulnerabilidades), `make help` completo y ordenado, `.PHONY` al día, sin stubs muertos, variables documentadas.
+- `.github/workflows/ci.yml`: jobs `checks` (lint, typecheck, test con `uv`) y `audit` (pip-audit); comentario que diga
+  que el workflow está desactivado en GitHub (`gh workflow enable CI` lo reactiva) y que el hook `pre-push` lo
+  reemplaza localmente.
+- `pyproject.toml` raíz: configuración de ruff, mypy y pytest coherente (testpaths y `files` de mypy en el mismo orden
+  que los miembros; marcadores declarados); sin cambiar dependencias.
+- `.pre-commit-config.yaml`, `.env.example` (todas las variables `PRIORIZA_API_*`, `PRIORIZA_DASHBOARD_*` y de la base
+  documentadas, sin secretos reales), `docker-compose.yml` y Dockerfiles coherentes (API y panel atados a la red
+  interna de compose; puertos publicados solo en `127.0.0.1`).
+- Verificar `make lint typecheck test`, `make audit` y `make help`.
+
+**P16-T2 (después de T1 y T3):** README completo con el aviso arriba del todo (qué es, por qué importa, arquitectura
+en mermaid, instalación, routing de tiers de CLAUDE.md explicado, demo, resultados resumidos tomados de
+`docs/results.md` sin inventar cifras, limitaciones) y `docs/limitations.md` consolidando las limitaciones de todos los
+docs.
+
+### Log
