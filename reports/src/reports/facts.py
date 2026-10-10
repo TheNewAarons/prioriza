@@ -422,6 +422,21 @@ def _scheduler(doc: _Doc) -> dict[str, Any]:
     capacity = opt.items("capacity_by_week")
     delta_keys = ("scheduled", "q1_scheduled", "ges_met", "ges_on_time", "sum_coef")
     warnings = [str(w) for w in opt.items("warnings")]
+    entries_waiting = opt.num("summary.entries_waiting")
+    with_block = opt.num("summary.with_compatible_block")
+    candidates = opt.num("summary.candidates")
+    not_candidate = opt.num("summary.not_candidate")
+    if candidates + not_candidate != with_block or with_block > entries_waiting:
+        raise FactsError(
+            f"{doc.name}: las entradas del resumen de la optimizada no cuadran "
+            "(candidatas + fuera de candidatas debe igualar las con bloque compatible)"
+        )
+    overbooking_blocks: list[dict[str, Any]] = []
+    for i, raw in enumerate(opt.items("overbooking.blocks")):
+        block = _Doc(raw, doc.name, f"overbooking.blocks[{i}]")
+        overbooking_blocks.append(
+            {"scheduled": block.num("scheduled"), "capacity": block.num("capacity")}
+        )
     equity_doc = {name: policies_doc.sub(name).items("equity") for name in order}
     return {
         "run": {k: run.req(k) for k in ("id", "as_of", "scenario", "seed", "size")},
@@ -445,15 +460,24 @@ def _scheduler(doc: _Doc) -> dict[str, Any]:
             "or_blocks": sum(w["or_blocks"] for w in capacity),
         },
         "optimized": {
-            "entries_waiting": opt.num("summary.entries_waiting"),
-            "candidates": opt.num("summary.candidates"),
-            "not_candidate": opt.num("summary.not_candidate"),
+            "entries_waiting": entries_waiting,
+            "candidates": candidates,
+            "not_candidate": not_candidate,
             "added_by_overbooking": opt.num("summary.added_by_overbooking"),
             "overbooked_flags": opt.num("summary.overbooked_flags"),
             "by_status": opt.req("summary.by_status"),
             "ges_unmet_by_cause": opt.req("ges.unmet_by_cause"),
             "overbooking_alpha": opt.num("overbooking.alpha"),
-            "overbooking_blocks": len(opt.items("overbooking.blocks")),
+            "overbooking_phase": "3b",  # fase del solver que agrega citas por sobrecupo
+            "with_compatible_block": with_block,
+            "no_compatible_block": entries_waiting - with_block,
+            "overbooking_blocks": len(overbooking_blocks),
+            "over_capacity_blocks": sum(
+                1 for b in overbooking_blocks if b["scheduled"] > b["capacity"]
+            ),
+            "over_capacity_appointments": sum(
+                max(0, b["scheduled"] - b["capacity"]) for b in overbooking_blocks
+            ),
             "overbooking_max_risk_exact": opt.num("overbooking.max_risk_exact"),
             "solver_status": opt.text("solver.status"),
             "subproblems": len(opt.items("solver.subproblems")),
@@ -945,10 +969,11 @@ def _simulation_groups(doc: _Doc, policies: list[str]) -> list[dict[str, Any]]:
         groups: list[dict[str, Any]] = []
         for value in sorted(acc):
             per_policy = acc[value]
-            if set(per_policy) != set(policies) or any(
-                len(per_policy[p]["entries"]) != n_rep for p in policies
-            ):
-                continue  # grupo ausente en alguna réplica o política: no es comparable
+            counts = {len(per_policy[p]["entries"]) for p in per_policy}
+            if set(per_policy) != set(policies) or len(counts) != 1:
+                continue  # sin datos para todas las políticas en las mismas réplicas
+            # Un grupo bajo el mínimo de entradas en alguna réplica no se descarta: se promedia
+            # sobre las réplicas en que aparece y se informa en cuántas (`replicas`).
             by_policy = {
                 p: {f: statistics.fmean(v) for f, v in per_policy[p].items()} for p in policies
             }
@@ -956,6 +981,7 @@ def _simulation_groups(doc: _Doc, policies: list[str]) -> list[dict[str, Any]]:
                 {
                     "value": value,
                     "entries": by_policy[policies[0]]["entries"],
+                    "replicas": counts.pop(),
                     "by_policy": by_policy,
                 }
             )
@@ -1003,6 +1029,8 @@ def _simulation_groups(doc: _Doc, policies: list[str]) -> list[dict[str, Any]]:
             {
                 "dimension": dim,
                 "n_groups": len(groups),
+                "n_partial": sum(1 for g in groups if g["replicas"] < n_rep),
+                "n_replicas": n_rep,
                 "groups": groups,
                 "shown": shown,
                 "truncated": len(shown) < len(groups),
@@ -1011,6 +1039,7 @@ def _simulation_groups(doc: _Doc, policies: list[str]) -> list[dict[str, Any]]:
                 "most_exposed": {
                     "value": most_exposed["value"],
                     "entries": most_exposed["entries"],
+                    "replicas": most_exposed["replicas"],
                     "exposure": most_exposed["by_policy"][exposure_policy]["overbooking_exposure"],
                     "gap": most_exposed["by_policy"][exposure_policy]["overbooking_exposure"]
                     - reference[exposure_policy]["overbooking_exposure"],

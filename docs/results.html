@@ -633,7 +633,7 @@ tr:last-child td { border-bottom: 0; }
 </tbody>
 </table></div>
 <h2>Modelo de inasistencias</h2>
-<p>Modelo principal: <code>logistic_regression_uncalibrated</code> (versión <code>noshow-4f0429cd-3ba6e988</code>), sin calibrar. Predice la probabilidad de que un paciente no se presente a su cita (inasistencia), usando solo las variables permitidas: <code>specialty_code</code>, <code>care_type</code>, <code>weekday</code>, <code>lead_days</code>, <code>prior_attended</code>, <code>prior_no_show</code>. Edad, previsión, comuna y servicio de salud no entran al modelo (se usan solo para medir equidad; motivos en la tabla de variables excluidas). Criterio de selección del modelo principal: Menor Brier en el conjunto de calibración entre los modelos sin calibrar (que no lo vieron al entrenar) y calibrados (predicciones fuera de pliegue, KFold contiguo). El conjunto de prueba no participa. Con datos sintéticos se valida la canalización (ingesta, features, entrenamiento, calibración, persistencia) pero no el desempeño en la población real. AUC mide la capacidad de separar asistencias de inasistencias; Brier es el error cuadrático medio; la calibración compara la probabilidad predicha contra la tasa observada. El intervalo de confianza del Δ Brier contra el baseline (1.000 remuestreos por paciente) excluye el cero: sí. Las brechas por grupo contra la verdad sintética muestran si el modelo da estimaciones sesgadas en grupos específicos; diferencias negativas indican sobrestimación.</p>
+<p>Modelo principal: <code>logistic_regression_uncalibrated</code> (versión <code>noshow-4f0429cd-3ba6e988</code>), sin calibrar. Predice la probabilidad de que un paciente no se presente a su cita (inasistencia), usando solo las variables permitidas: <code>specialty_code</code>, <code>care_type</code>, <code>weekday</code>, <code>lead_days</code>, <code>prior_attended</code>, <code>prior_no_show</code>. Edad, previsión, comuna y servicio de salud no entran al modelo (se usan solo para medir equidad; motivos en la tabla de variables excluidas). Criterio de selección del modelo principal: Menor Brier en el conjunto de calibración entre los modelos sin calibrar (que no lo vieron al entrenar) y calibrados (predicciones fuera de pliegue, KFold contiguo). El conjunto de prueba no participa. Con datos sintéticos se valida la canalización (ingesta, features, entrenamiento, calibración, persistencia) pero no el desempeño en la población real. AUC mide la capacidad de separar asistencias de inasistencias; Brier es el error cuadrático medio; la calibración compara la probabilidad predicha contra la tasa observada. El intervalo de confianza del Δ Brier contra el baseline (1.000 remuestreos por paciente) excluye el cero: sí. Las brechas por grupo contra la verdad sintética muestran si el modelo da estimaciones sesgadas en grupos específicos; la brecha es predicha menos verdad: una diferencia negativa indica subestimación de la inasistencia y una positiva, sobrestimación.</p>
 <p>Con datos sintéticos, estas métricas validan el pipeline (que aprende la estructura que el generador puso), no el desempeño en pacientes reales.</p>
 <p>Partición temporal (sin barajar):</p>
 <div class="table-wrap"><table>
@@ -832,7 +832,7 @@ tr:last-child td { border-bottom: 0; }
 </table></div>
 <h3>Equidad del modelo</h3>
 <p>Probabilidad media predicha por el modelo principal frente a la tasa observada y a la probabilidad verdadera media, por grupo, en el conjunto de prueba. Las variables de grupo no entran al modelo. Se reportan grupos con al menos 200 citas de prueba. La brecha es la probabilidad media predicha menos la probabilidad verdadera media del generador.</p>
-<p><strong>age_group</strong>: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad: +3,21 pp, en el grupo 15-19.</p>
+<p><strong>age_group</strong>: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): -3,21 pp, en el grupo 15-19.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -887,7 +887,7 @@ tr:last-child td { border-bottom: 0; }
 </tr>
 </tbody>
 </table></div>
-<p><strong>care_type</strong>: 2 grupos evaluados de 2; mayor brecha absoluta contra la verdad: +0,54 pp, en el grupo surgery.</p>
+<p><strong>care_type</strong>: 2 grupos evaluados de 2; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): -0,54 pp, en el grupo surgery.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -918,7 +918,7 @@ tr:last-child td { border-bottom: 0; }
 </tr>
 </tbody>
 </table></div>
-<p><strong>insurance</strong>: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad: +0,23 pp, en el grupo fonasa a.</p>
+<p><strong>insurance</strong>: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): +0,23 pp, en el grupo fonasa a.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -973,7 +973,7 @@ tr:last-child td { border-bottom: 0; }
 </tr>
 </tbody>
 </table></div>
-<p><strong>health_service_code</strong>: 29 grupos evaluados de 29; mayor brecha absoluta contra la verdad: +4,94 pp, en el grupo 1.</p>
+<p><strong>health_service_code</strong>: 29 grupos evaluados de 29; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): -4,94 pp, en el grupo 1.</p>
 <p>Se listan los 10 grupos con mayor brecha absoluta.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -1069,7 +1069,7 @@ tr:last-child td { border-bottom: 0; }
 </tr>
 </tbody>
 </table></div>
-<p><strong>commune_code</strong>: 44 grupos evaluados de 338; mayor brecha absoluta contra la verdad: +5,11 pp, en el grupo 15101. En el sintético la comuna no tiene efecto propio (solo vía servicio), así que este análisis no puede detectar daño por comuna aunque exista en la realidad.</p>
+<p><strong>commune_code</strong>: 44 grupos evaluados de 338; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): -5,11 pp, en el grupo 15101. En el sintético la comuna no tiene efecto propio (solo vía servicio), así que este análisis no puede detectar daño por comuna aunque exista en la realidad.</p>
 <p>Se listan los 10 grupos con mayor brecha absoluta.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -1342,7 +1342,7 @@ tr:last-child td { border-bottom: 0; }
 </tr>
 </tbody>
 </table></div>
-<p>Detalle de la optimizada: 40.870 candidatas de 100.000 en espera (31.978 fuera del conjunto de candidatas). Sobrecupo: nivel alfa 0,10, 343 bloques con sobrecupo, 540 citas agregadas por sobrecupo, riesgo exacto máximo 9,99 %. GES sin cumplir por causa:</p>
+<p>Detalle de la optimizada: de 100.000 entradas en espera, 72.848 tienen algún bloque compatible y 27.152 no tienen ninguno; de las que tienen bloque compatible, 40.870 son candidatas y 31.978 quedan fuera del conjunto de candidatas. Sobrecupo: nivel alfa 0,10, 343 bloques con sobrecupo (343 con citas por sobre su capacidad, 343 citas por sobre la capacidad en total); 540 entradas ingresan en la fase 3b (incluye reemplazos, por lo que no equivale a las citas sobre la capacidad), riesgo exacto máximo 9,99 %. GES sin cumplir por causa:</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -3394,7 +3394,7 @@ tr:last-child td { border-bottom: 0; }
 </tbody>
 </table></div>
 <h4>commune_code</h4>
-<p>Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): 05503 (53,8 %, +30,9 pp respecto del total, 49 entradas). 156 grupos evaluados.</p>
+<p>Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): 08308 (66,7 %, +43,9 pp respecto del total, 36 entradas, presente en 1 de 5 réplicas). 207 grupos evaluados. De ellos, 51 no alcanzan el mínimo de entradas en todas las réplicas: se promedian sobre las réplicas en que aparecen, por lo que sus cifras son menos estables.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -3410,39 +3410,39 @@ tr:last-child td { border-bottom: 0; }
 <tbody>
 <tr>
 <td>Orden de llegada</td>
-<td style="text-align:right">-21,4 pp</td>
-<td>10202</td>
-<td style="text-align:right">15,6 %</td>
-<td>10202</td>
+<td style="text-align:right">+26,2 pp</td>
+<td>06104</td>
+<td style="text-align:right">11,3 %</td>
+<td>10201</td>
 <td style="text-align:right">0,0 pp</td>
 <td>ninguno</td>
 </tr>
 <tr>
 <td>Solo prioridad</td>
-<td style="text-align:right">+27,4 pp</td>
+<td style="text-align:right">+27,9 pp</td>
 <td>07307</td>
-<td style="text-align:right">16,7 %</td>
-<td>10202</td>
+<td style="text-align:right">12,9 %</td>
+<td>08207</td>
 <td style="text-align:right">0,0 pp</td>
 <td>ninguno</td>
 </tr>
 <tr>
 <td>Optimizada</td>
-<td style="text-align:right">+28,4 pp</td>
+<td style="text-align:right">+28,9 pp</td>
 <td>07307</td>
-<td style="text-align:right">16,7 %</td>
-<td>10202</td>
+<td style="text-align:right">12,9 %</td>
+<td>08207</td>
 <td style="text-align:right">0,0 pp</td>
 <td>ninguno</td>
 </tr>
 <tr>
 <td>Optimizada con sobrecupo</td>
-<td style="text-align:right">+27,1 pp</td>
+<td style="text-align:right">+27,7 pp</td>
 <td>07307</td>
-<td style="text-align:right">16,7 %</td>
-<td>10202</td>
-<td style="text-align:right">+30,9 pp</td>
-<td>05503</td>
+<td style="text-align:right">12,9 %</td>
+<td>08207</td>
+<td style="text-align:right">+43,9 pp</td>
+<td>08308</td>
 </tr>
 </tbody>
 </table></div>
@@ -3462,6 +3462,39 @@ tr:last-child td { border-bottom: 0; }
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>08308</td>
+<td style="text-align:right">36</td>
+<td style="text-align:right">33,3 %</td>
+<td style="text-align:right">25,0 %</td>
+<td style="text-align:right">25,0 %</td>
+<td style="text-align:right">27,8 %</td>
+<td style="text-align:right">66,7 %</td>
+<td style="text-align:right">306,0</td>
+<td style="text-align:right">6,0</td>
+</tr>
+<tr>
+<td>09107</td>
+<td style="text-align:right">35</td>
+<td style="text-align:right">25,0 %</td>
+<td style="text-align:right">21,4 %</td>
+<td style="text-align:right">19,9 %</td>
+<td style="text-align:right">21,2 %</td>
+<td style="text-align:right">56,2 %</td>
+<td style="text-align:right">417,5</td>
+<td style="text-align:right">4,5</td>
+</tr>
+<tr>
+<td>05605</td>
+<td style="text-align:right">30</td>
+<td style="text-align:right">40,0 %</td>
+<td style="text-align:right">46,7 %</td>
+<td style="text-align:right">46,7 %</td>
+<td style="text-align:right">50,0 %</td>
+<td style="text-align:right">53,8 %</td>
+<td style="text-align:right">192,0</td>
+<td style="text-align:right">1,0</td>
+</tr>
 <tr>
 <td>05503</td>
 <td style="text-align:right">49</td>
@@ -3507,6 +3540,28 @@ tr:last-child td { border-bottom: 0; }
 <td style="text-align:right">2,0</td>
 </tr>
 <tr>
+<td>07308</td>
+<td style="text-align:right">39</td>
+<td style="text-align:right">39,7 %</td>
+<td style="text-align:right">54,7 %</td>
+<td style="text-align:right">55,3 %</td>
+<td style="text-align:right">56,6 %</td>
+<td style="text-align:right">47,0 %</td>
+<td style="text-align:right">109,4</td>
+<td style="text-align:right">5,0</td>
+</tr>
+<tr>
+<td>07408</td>
+<td style="text-align:right">31</td>
+<td style="text-align:right">27,4 %</td>
+<td style="text-align:right">35,5 %</td>
+<td style="text-align:right">32,3 %</td>
+<td style="text-align:right">37,1 %</td>
+<td style="text-align:right">46,7 %</td>
+<td style="text-align:right">177,0</td>
+<td style="text-align:right">1,5</td>
+</tr>
+<tr>
 <td>06111</td>
 <td style="text-align:right">59</td>
 <td style="text-align:right">30,3 %</td>
@@ -3516,61 +3571,6 @@ tr:last-child td { border-bottom: 0; }
 <td style="text-align:right">46,4 %</td>
 <td style="text-align:right">79,2</td>
 <td style="text-align:right">8,8</td>
-</tr>
-<tr>
-<td>13502</td>
-<td style="text-align:right">39</td>
-<td style="text-align:right">36,3 %</td>
-<td style="text-align:right">33,9 %</td>
-<td style="text-align:right">38,0 %</td>
-<td style="text-align:right">38,7 %</td>
-<td style="text-align:right">45,0 %</td>
-<td style="text-align:right">220,7</td>
-<td style="text-align:right">0,4</td>
-</tr>
-<tr>
-<td>09111</td>
-<td style="text-align:right">73</td>
-<td style="text-align:right">30,2 %</td>
-<td style="text-align:right">40,9 %</td>
-<td style="text-align:right">42,6 %</td>
-<td style="text-align:right">42,6 %</td>
-<td style="text-align:right">43,0 %</td>
-<td style="text-align:right">272,8</td>
-<td style="text-align:right">2,4</td>
-</tr>
-<tr>
-<td>04301</td>
-<td style="text-align:right">194</td>
-<td style="text-align:right">36,5 %</td>
-<td style="text-align:right">38,6 %</td>
-<td style="text-align:right">38,3 %</td>
-<td style="text-align:right">39,0 %</td>
-<td style="text-align:right">42,9 %</td>
-<td style="text-align:right">381,0</td>
-<td style="text-align:right">11,4</td>
-</tr>
-<tr>
-<td>06108</td>
-<td style="text-align:right">38</td>
-<td style="text-align:right">44,0 %</td>
-<td style="text-align:right">37,1 %</td>
-<td style="text-align:right">37,1 %</td>
-<td style="text-align:right">38,2 %</td>
-<td style="text-align:right">42,5 %</td>
-<td style="text-align:right">362,5</td>
-<td style="text-align:right">4,2</td>
-</tr>
-<tr>
-<td>04305</td>
-<td style="text-align:right">35</td>
-<td style="text-align:right">39,4 %</td>
-<td style="text-align:right">38,7 %</td>
-<td style="text-align:right">36,4 %</td>
-<td style="text-align:right">38,0 %</td>
-<td style="text-align:right">41,0 %</td>
-<td style="text-align:right">383,5</td>
-<td style="text-align:right">1,2</td>
 </tr>
 </tbody>
 </table></div>

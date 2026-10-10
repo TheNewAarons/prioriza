@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -177,4 +178,59 @@ def test_espejo_inconsistente(minimal_results: Path, tmp_path: Path) -> None:
 
     _edit(minimal_results / "simulation.json", edit)
     with pytest.raises(FactsError, match="espejo"):
+        load_facts(minimal_results, tmp_path)
+
+
+def test_equidad_simulacion_no_descarta_grupos_ausentes_en_una_replica(
+    minimal_results: Path,
+    tmp_path: Path,
+    drop_group_in_first_replica: Callable[[Path, str, str], None],
+) -> None:
+    """Un grupo bajo el mínimo de entradas en una réplica sigue en el informe, marcado."""
+    drop_group_in_first_replica(minimal_results, "insurance", "other")
+    dims = {
+        d["dimension"]: d for d in load_facts(minimal_results, tmp_path)["equity"]["simulation"]
+    }
+    insurance = dims["insurance"]
+    other = next(g for g in insurance["groups"] if g["value"] == "other")
+    assert other["replicas"] == insurance["n_replicas"] - 1
+    assert insurance["n_partial"] == 1
+    assert insurance["most_exposed"]["value"] == "other"  # el más expuesto no se oculta
+    assert insurance["most_exposed"]["replicas"] < insurance["n_replicas"]
+
+
+def test_brecha_peor_grupo_conserva_el_signo_del_json(
+    minimal_results: Path, tmp_path: Path
+) -> None:
+    """La brecha del peor grupo es predicha menos verdad, con el signo del JSON."""
+
+    def edit(data: Any) -> None:
+        for block in data["fairness"].values():
+            if isinstance(block, dict) and "groups" in block:
+                block["groups"][-1]["gap_vs_truth"] = -0.05
+
+    _edit(minimal_results / "noshow.json", edit)
+    fairness = load_facts(minimal_results, tmp_path)["noshow"]["fairness"]
+    dims = fairness["dimensions"]
+    assert len(dims) == 5
+    for d in dims:
+        assert d["worst"]["gap_vs_truth"] == -0.05
+
+
+def test_resumen_de_la_optimizada_cuadra(minimal_results: Path, tmp_path: Path) -> None:
+    """Cada resta de la frase de entradas/candidatas cuadra con los datos del JSON."""
+    opt = load_facts(minimal_results, tmp_path)["scheduler"]["optimized"]
+    assert opt["no_compatible_block"] + opt["with_compatible_block"] == opt["entries_waiting"]
+    assert opt["candidates"] + opt["not_candidate"] == opt["with_compatible_block"]
+    assert opt["over_capacity_appointments"] == 1
+    assert opt["over_capacity_blocks"] == 1
+
+
+def test_resumen_inconsistente_falla(minimal_results: Path, tmp_path: Path) -> None:
+    def edit(data: Any) -> None:
+        summary = data["policies"]["optimized"]["summary"]
+        summary["with_compatible_block"] = summary["with_compatible_block"] + 5
+
+    _edit(minimal_results / next(minimal_results.glob("schedule_*.json")).name, edit)
+    with pytest.raises(FactsError, match="no cuadran"):
         load_facts(minimal_results, tmp_path)

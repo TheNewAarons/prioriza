@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -176,3 +177,33 @@ def test_cli_falla_con_mensaje_claro(tmp_path: Path) -> None:
     )
     assert result.exit_code == 1
     assert "falta" in result.output
+
+
+def test_informe_avisa_de_grupos_en_menos_replicas_y_sentido_de_la_brecha(
+    minimal_results: Path,
+    tmp_path: Path,
+    drop_group_in_first_replica: Callable[[Path, str, str], None],
+) -> None:
+    drop_group_in_first_replica(minimal_results, "insurance", "other")
+    text = render_markdown(load_facts(minimal_results, tmp_path))
+    assert "no alcanzan el mínimo de entradas en todas las réplicas" in text
+    assert "presente en" in text
+    assert "una diferencia negativa indica subestimación" in text
+
+
+def test_informe_imprime_la_brecha_con_signo_y_las_entradas_cuadran(
+    minimal_results: Path, tmp_path: Path
+) -> None:
+    import json
+
+    path = minimal_results / "noshow.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for block in data["fairness"].values():
+        if isinstance(block, dict) and "groups" in block:
+            block["groups"][-1]["gap_vs_truth"] = -0.0321
+    path.write_text(json.dumps(data), encoding="utf-8")
+    text = render_markdown(load_facts(minimal_results, tmp_path))
+    assert "(predicha menos verdad, con su signo): -3,21 pp" in text
+    assert "entradas ingresan en la fase 3b" in text
+    assert "citas agregadas por sobrecupo" not in text
+    assert "210 entradas en espera, 210 tienen algún bloque compatible y 0 no tienen" in text

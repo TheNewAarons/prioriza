@@ -7,6 +7,7 @@ estructura que ``reports.facts`` lee.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -154,11 +155,16 @@ def _schedule() -> dict[str, Any]:
                 "entries_waiting": 210,
                 "candidates": 100,
                 "not_candidate": 110,
+                "with_compatible_block": 210,
                 "added_by_overbooking": 2,
                 "overbooked_flags": 1,
                 "by_status": {"scheduled": 15},
             },
-            "overbooking": {"alpha": 0.1, "blocks": [{}], "max_risk_exact": 0.09},
+            "overbooking": {
+                "alpha": 0.1,
+                "blocks": [{"scheduled": 11, "capacity": 10}],
+                "max_risk_exact": 0.09,
+            },
             "frontier": {"reached": ["s:1|iq:x"], "still_reached": []},
             "warnings": ["un aviso"],
         }
@@ -474,6 +480,22 @@ def write_minimal_results(target: Path) -> Path:
     for name, data in files.items():
         (target / name).write_text(json.dumps(data), encoding="utf-8")
     return target
+
+
+def _drop_group_in_first_replica(results: Path, dimension: str, value: str) -> None:
+    path = results / "simulation.json"
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    for policy in doc["replicas"][0]["policies"].values():
+        for block in policy["groups"]:
+            if block["dimension"] == dimension:
+                block["groups"] = [g for g in block["groups"] if g["value"] != value]
+    path.write_text(json.dumps(doc), encoding="utf-8")
+
+
+@pytest.fixture
+def drop_group_in_first_replica() -> Callable[[Path, str, str], None]:
+    """Quita un grupo de la primera réplica (simula que no alcanzó el mínimo de entradas)."""
+    return _drop_group_in_first_replica
 
 
 @pytest.fixture

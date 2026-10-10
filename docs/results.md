@@ -113,7 +113,7 @@ Efecto en el plan canónico (06-10-2025 a 03-11-2025, exclusivo):
 
 ## Modelo de inasistencias
 
-Modelo principal: `logistic_regression_uncalibrated` (versión `noshow-4f0429cd-3ba6e988`), sin calibrar. Predice la probabilidad de que un paciente no se presente a su cita (inasistencia), usando solo las variables permitidas: `specialty_code`, `care_type`, `weekday`, `lead_days`, `prior_attended`, `prior_no_show`. Edad, previsión, comuna y servicio de salud no entran al modelo (se usan solo para medir equidad; motivos en la tabla de variables excluidas). Criterio de selección del modelo principal: Menor Brier en el conjunto de calibración entre los modelos sin calibrar (que no lo vieron al entrenar) y calibrados (predicciones fuera de pliegue, KFold contiguo). El conjunto de prueba no participa. Con datos sintéticos se valida la canalización (ingesta, features, entrenamiento, calibración, persistencia) pero no el desempeño en la población real. AUC mide la capacidad de separar asistencias de inasistencias; Brier es el error cuadrático medio; la calibración compara la probabilidad predicha contra la tasa observada. El intervalo de confianza del Δ Brier contra el baseline (1.000 remuestreos por paciente) excluye el cero: sí. Las brechas por grupo contra la verdad sintética muestran si el modelo da estimaciones sesgadas en grupos específicos; diferencias negativas indican sobrestimación.
+Modelo principal: `logistic_regression_uncalibrated` (versión `noshow-4f0429cd-3ba6e988`), sin calibrar. Predice la probabilidad de que un paciente no se presente a su cita (inasistencia), usando solo las variables permitidas: `specialty_code`, `care_type`, `weekday`, `lead_days`, `prior_attended`, `prior_no_show`. Edad, previsión, comuna y servicio de salud no entran al modelo (se usan solo para medir equidad; motivos en la tabla de variables excluidas). Criterio de selección del modelo principal: Menor Brier en el conjunto de calibración entre los modelos sin calibrar (que no lo vieron al entrenar) y calibrados (predicciones fuera de pliegue, KFold contiguo). El conjunto de prueba no participa. Con datos sintéticos se valida la canalización (ingesta, features, entrenamiento, calibración, persistencia) pero no el desempeño en la población real. AUC mide la capacidad de separar asistencias de inasistencias; Brier es el error cuadrático medio; la calibración compara la probabilidad predicha contra la tasa observada. El intervalo de confianza del Δ Brier contra el baseline (1.000 remuestreos por paciente) excluye el cero: sí. Las brechas por grupo contra la verdad sintética muestran si el modelo da estimaciones sesgadas en grupos específicos; la brecha es predicha menos verdad: una diferencia negativa indica subestimación de la inasistencia y una positiva, sobrestimación.
 
 Con datos sintéticos, estas métricas validan el pipeline (que aprende la estructura que el generador puso), no el desempeño en pacientes reales.
 
@@ -166,7 +166,7 @@ Brier por modelo en el conjunto de calibración (criterio de selección):
 
 Probabilidad media predicha por el modelo principal frente a la tasa observada y a la probabilidad verdadera media, por grupo, en el conjunto de prueba. Las variables de grupo no entran al modelo. Se reportan grupos con al menos 200 citas de prueba. La brecha es la probabilidad media predicha menos la probabilidad verdadera media del generador.
 
-**age_group**: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad: +3,21 pp, en el grupo 15-19.
+**age_group**: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): -3,21 pp, en el grupo 15-19.
 
 | Grupo | Citas | Tasa observada | Predicha media | Verdad media | Brecha contra la verdad |
 |---|---:|---:|---:|---:|---:|
@@ -176,14 +176,14 @@ Probabilidad media predicha por el modelo principal frente a la tasa observada y
 | 45-64 | 9.965 | 13,7 % | 14,1 % | 13,7 % | +0,46 pp |
 | 65+ | 9.621 | 11,7 % | 14,0 % | 11,7 % | +2,27 pp |
 
-**care_type**: 2 grupos evaluados de 2; mayor brecha absoluta contra la verdad: +0,54 pp, en el grupo surgery.
+**care_type**: 2 grupos evaluados de 2; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): -0,54 pp, en el grupo surgery.
 
 | Grupo | Citas | Tasa observada | Predicha media | Verdad media | Brecha contra la verdad |
 |---|---:|---:|---:|---:|---:|
 | consultation | 26.900 | 16,0 % | 16,3 % | 16,2 % | +0,09 pp |
 | surgery | 4.722 | 5,6 % | 4,8 % | 5,3 % | -0,54 pp |
 
-**insurance**: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad: +0,23 pp, en el grupo fonasa a.
+**insurance**: 5 grupos evaluados de 5; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): +0,23 pp, en el grupo fonasa a.
 
 | Grupo | Citas | Tasa observada | Predicha media | Verdad media | Brecha contra la verdad |
 |---|---:|---:|---:|---:|---:|
@@ -193,7 +193,7 @@ Probabilidad media predicha por el modelo principal frente a la tasa observada y
 | fonasa d | 6.811 | 14,6 % | 14,5 % | 14,7 % | -0,16 pp |
 | other | 1.864 | 14,8 % | 14,6 % | 14,5 % | +0,09 pp |
 
-**health_service_code**: 29 grupos evaluados de 29; mayor brecha absoluta contra la verdad: +4,94 pp, en el grupo 1.
+**health_service_code**: 29 grupos evaluados de 29; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): -4,94 pp, en el grupo 1.
 
 Se listan los 10 grupos con mayor brecha absoluta.
 
@@ -210,7 +210,7 @@ Se listan los 10 grupos con mayor brecha absoluta.
 | 26 | 406 | 14,0 % | 14,5 % | 15,0 % | -0,46 pp |
 | 10 | 1.876 | 14,2 % | 15,2 % | 14,8 % | +0,43 pp |
 
-**commune_code**: 44 grupos evaluados de 338; mayor brecha absoluta contra la verdad: +5,11 pp, en el grupo 15101. En el sintético la comuna no tiene efecto propio (solo vía servicio), así que este análisis no puede detectar daño por comuna aunque exista en la realidad.
+**commune_code**: 44 grupos evaluados de 338; mayor brecha absoluta contra la verdad (predicha menos verdad, con su signo): -5,11 pp, en el grupo 15101. En el sintético la comuna no tiene efecto propio (solo vía servicio), así que este análisis no puede detectar daño por comuna aunque exista en la realidad.
 
 Se listan los 10 grupos con mayor brecha absoluta.
 
@@ -275,7 +275,7 @@ Diferencia de la optimizada frente a las políticas voraces:
 | GES antes del plazo | +523 (568,5 %) | +592 (2.573,9 %) |
 | Puntaje total | +1.721.632 (2,7 %) | +13.748.814 (26,1 %) |
 
-Detalle de la optimizada: 40.870 candidatas de 100.000 en espera (31.978 fuera del conjunto de candidatas). Sobrecupo: nivel alfa 0,10, 343 bloques con sobrecupo, 540 citas agregadas por sobrecupo, riesgo exacto máximo 9,99 %. GES sin cumplir por causa:
+Detalle de la optimizada: de 100.000 entradas en espera, 72.848 tienen algún bloque compatible y 27.152 no tienen ninguno; de las que tienen bloque compatible, 40.870 son candidatas y 31.978 quedan fuera del conjunto de candidatas. Sobrecupo: nivel alfa 0,10, 343 bloques con sobrecupo (343 con citas por sobre su capacidad, 343 citas por sobre la capacidad en total); 540 entradas ingresan en la fase 3b (incluye reemplazos, por lo que no equivale a las citas sobre la capacidad), riesgo exacto máximo 9,99 %. GES sin cumplir por causa:
 
 | Causa | GES |
 |---|---:|
@@ -636,7 +636,6 @@ Medias entre 5 réplicas, población de 10.000 entradas. La exposición al sobre
 #### age_group
 
 Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): 0-14 (26,9 %, +3,2 pp respecto del total, 1.827 entradas). 5 grupos evaluados.
-
 | Política | Mayor desvío de la tasa de atención | Grupo | Menor tasa de atención | Grupo | Mayor desvío de la exposición | Grupo |
 |---|---:|---|---:|---|---:|---|
 | Orden de llegada | -5,5 pp | 0-14 | 30,8 % | 0-14 | 0,0 pp | ninguno |
@@ -655,7 +654,6 @@ Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): 0-14 (26,9 %, +3,2 
 #### insurance
 
 Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): fonasa c (24,9 %, +1,3 pp respecto del total, 2.641 entradas). 5 grupos evaluados.
-
 | Política | Mayor desvío de la tasa de atención | Grupo | Menor tasa de atención | Grupo | Mayor desvío de la exposición | Grupo |
 |---|---:|---|---:|---|---:|---|
 | Orden de llegada | +1,7 pp | other | 35,9 % | fonasa c | 0,0 pp | ninguno |
@@ -673,29 +671,28 @@ Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): fonasa c (24,9 %, +
 
 #### commune_code
 
-Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): 05503 (53,8 %, +30,9 pp respecto del total, 49 entradas). 156 grupos evaluados.
-
+Grupo más expuesto al sobrecupo (Optimizada con sobrecupo): 08308 (66,7 %, +43,9 pp respecto del total, 36 entradas, presente en 1 de 5 réplicas). 207 grupos evaluados. De ellos, 51 no alcanzan el mínimo de entradas en todas las réplicas: se promedian sobre las réplicas en que aparecen, por lo que sus cifras son menos estables.
 | Política | Mayor desvío de la tasa de atención | Grupo | Menor tasa de atención | Grupo | Mayor desvío de la exposición | Grupo |
 |---|---:|---|---:|---|---:|---|
-| Orden de llegada | -21,4 pp | 10202 | 15,6 % | 10202 | 0,0 pp | ninguno |
-| Solo prioridad | +27,4 pp | 07307 | 16,7 % | 10202 | 0,0 pp | ninguno |
-| Optimizada | +28,4 pp | 07307 | 16,7 % | 10202 | 0,0 pp | ninguno |
-| Optimizada con sobrecupo | +27,1 pp | 07307 | 16,7 % | 10202 | +30,9 pp | 05503 |
+| Orden de llegada | +26,2 pp | 06104 | 11,3 % | 10201 | 0,0 pp | ninguno |
+| Solo prioridad | +27,9 pp | 07307 | 12,9 % | 08207 | 0,0 pp | ninguno |
+| Optimizada | +28,9 pp | 07307 | 12,9 % | 08207 | 0,0 pp | ninguno |
+| Optimizada con sobrecupo | +27,7 pp | 07307 | 12,9 % | 08207 | +43,9 pp | 08308 |
 
 Se listan los 10 grupos más expuestos al sobrecupo.
 
 | Grupo | Entradas | Atención, Orden de llegada | Atención, Solo prioridad | Atención, Optimizada | Atención, Optimizada con sobrecupo | Exposición al sobrecupo | Mediana de espera de atendidos, Optimizada con sobrecupo | GES incumplidas, Optimizada con sobrecupo |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 08308 | 36 | 33,3 % | 25,0 % | 25,0 % | 27,8 % | 66,7 % | 306,0 | 6,0 |
+| 09107 | 35 | 25,0 % | 21,4 % | 19,9 % | 21,2 % | 56,2 % | 417,5 | 4,5 |
+| 05605 | 30 | 40,0 % | 46,7 % | 46,7 % | 50,0 % | 53,8 % | 192,0 | 1,0 |
 | 05503 | 49 | 25,9 % | 33,6 % | 34,8 % | 36,9 % | 53,8 % | 167,9 | 6,2 |
 | 04204 | 43 | 44,7 % | 44,7 % | 45,6 % | 47,4 % | 52,0 % | 340,5 | 0,0 |
 | 10106 | 36 | 37,3 % | 36,3 % | 35,2 % | 35,8 % | 51,5 % | 307,5 | 2,4 |
 | 07402 | 37 | 39,3 % | 54,3 % | 55,7 % | 55,7 % | 50,2 % | 123,4 | 2,0 |
+| 07308 | 39 | 39,7 % | 54,7 % | 55,3 % | 56,6 % | 47,0 % | 109,4 | 5,0 |
+| 07408 | 31 | 27,4 % | 35,5 % | 32,3 % | 37,1 % | 46,7 % | 177,0 | 1,5 |
 | 06111 | 59 | 30,3 % | 39,7 % | 41,1 % | 42,8 % | 46,4 % | 79,2 | 8,8 |
-| 13502 | 39 | 36,3 % | 33,9 % | 38,0 % | 38,7 % | 45,0 % | 220,7 | 0,4 |
-| 09111 | 73 | 30,2 % | 40,9 % | 42,6 % | 42,6 % | 43,0 % | 272,8 | 2,4 |
-| 04301 | 194 | 36,5 % | 38,6 % | 38,3 % | 39,0 % | 42,9 % | 381,0 | 11,4 |
-| 06108 | 38 | 44,0 % | 37,1 % | 37,1 % | 38,2 % | 42,5 % | 362,5 | 4,2 |
-| 04305 | 35 | 39,4 % | 38,7 % | 36,4 % | 38,0 % | 41,0 % | 383,5 | 1,2 |
 
 ## Limitaciones
 
