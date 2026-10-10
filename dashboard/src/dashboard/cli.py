@@ -133,6 +133,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     args = parse_args(argv)
     settings = build_settings(args)
+    if settings.debug and settings.host not in LOCAL_HOSTS - {"0.0.0.0"}:
+        # El modo de depuración de Dash/Werkzeug permite ejecutar código desde el navegador.
+        raise SystemExit("El modo debug solo se permite con host local (127.0.0.1 o localhost).")
     proc = start_api(settings.api_url) if args.with_api else None
     try:
         from dashboard.app import create_app

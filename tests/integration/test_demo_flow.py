@@ -98,6 +98,7 @@ def api(demo: Demo) -> Iterator[TestClient]:
         models_dir=demo.root / "models",
         results_dir=demo.root / "results",
         users_file=demo.root / "users.json",
+        trusted_hosts=["testserver", "api.test"],  # hosts de los clientes de prueba (P16)
     )
     with TestClient(create_api(settings, executor=InlineExecutor())) as client:
         yield client

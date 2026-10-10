@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from shared.db.enums import Policy, ReviewStatus
 
 from api.auth import Role, User, current_user, require_roles
-from api.deps import CatalogDep, Limit, Offset, ServicesDep, errors, to_http
+from api.deps import CatalogDep, Limit, Offset, ServicesDep, check_note, errors, to_http
 from api.plans import PlanError, PlanRecord
 from api.schemas import (
     ActivateIn,
@@ -278,6 +278,7 @@ def plan_reviews(plan_id: uuid.UUID, svc: ServicesDep) -> ReviewListOut:
         403,
         404,
         409,
+        422,
         e403="el revisor no puede revisar un plan que pidió él mismo (regla de cuatro ojos)",
         e404=_E404,
     ),
@@ -289,6 +290,7 @@ def review_plan(
     user: Annotated[User, Depends(require_roles(Role.REVISOR))],
 ) -> PlanSummaryOut:
     """Decisión final de una persona con rol `revisor`; no puede revisar su propio pedido."""
+    check_note(svc.settings, body.note)
     try:
         return summary_out(svc.store.review(plan_id, user, body.decision, body.note))
     except PlanError as exc:
@@ -304,6 +306,7 @@ def review_plan(
         403,
         404,
         409,
+        422,
         e403="El rol 'revisor' no puede hacer esto; se requiere: gestor.",
         e404=_E404,
         e409="solo un plan 'approved' puede ser vigente; este está 'pending'",
@@ -317,6 +320,7 @@ def activate_plan(
 ) -> PlanSummaryOut:
     """Deja vigente un plan aprobado; el vigente anterior de la corrida queda desactivado."""
     note = body.note if body else None
+    check_note(svc.settings, note)
     try:
         return summary_out(svc.store.activate(plan_id, user, note))
     except PlanError as exc:

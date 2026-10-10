@@ -153,16 +153,53 @@ class JobManager:
         with self._lock:
             self._jobs[job_id] = replace(self._jobs[job_id], **changes)
 
+    def _timeout(self, job_id: uuid.UUID) -> None:
+        """Marca `failed` un trabajo que sigue en curso pasado su plazo (el hilo no se mata)."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None or job.status is not JobStatus.RUNNING:
+                return
+            self._jobs[job_id] = replace(
+                job,
+                status=JobStatus.FAILED,
+                error=(
+                    "la programación superó el tiempo máximo permitido "
+                    f"(referencia {job_id.hex[:8]}); reduce el horizonte o el límite de tiempo"
+                ),
+            )
+        log.error("el trabajo %s superó su tiempo máximo", job_id.hex[:8])
+
     def _run(self, job_id: uuid.UUID, request: ScheduleRequestIn, user: User) -> None:
         self._update(job_id, status=JobStatus.RUNNING)
+        deadline = (
+            request.time_limit_s * self.settings.job_timeout_factor
+            + self.settings.job_timeout_grace_s
+        )
+        watchdog = threading.Timer(deadline, self._timeout, args=(job_id,))
+        watchdog.daemon = True
+        watchdog.start()
         try:
             plan_id = self._compute(request, user)
         except Exception as exc:
             ref = job_id.hex[:8]
             log.exception("falló el trabajo de programación %s", ref)
-            self._update(job_id, status=JobStatus.FAILED, error=user_message(exc, ref))
+            with self._lock:
+                if self._jobs[job_id].status is JobStatus.RUNNING:
+                    self._jobs[job_id] = replace(
+                        self._jobs[job_id],
+                        status=JobStatus.FAILED,
+                        error=user_message(exc, ref),
+                    )
             return
-        self._update(job_id, status=JobStatus.SUCCEEDED, plan_id=plan_id)
+        finally:
+            watchdog.cancel()
+        with self._lock:
+            # Si venció el plazo, el trabajo ya figura `failed`: el plan guardado (si lo hubo)
+            # sigue `pending` y exige revisión humana, pero el trabajo no se reporta exitoso.
+            if self._jobs[job_id].status is JobStatus.RUNNING:
+                self._jobs[job_id] = replace(
+                    self._jobs[job_id], status=JobStatus.SUCCEEDED, plan_id=plan_id
+                )
 
     def _compute(self, request: ScheduleRequestIn, user: User) -> uuid.UUID:
         config = build_config(request)

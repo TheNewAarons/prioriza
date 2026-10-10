@@ -51,6 +51,29 @@ Limit = Annotated[int, Query(ge=1, le=500, description="Elementos por página (1
 Offset = Annotated[int, Query(ge=0, description="Elementos que se saltan.")]
 
 
+def check_schedule_limits(settings: ApiSettings, horizon_weeks: int, time_limit_s: float) -> None:
+    """422 si la programación pedida supera los topes configurados."""
+    if horizon_weeks > settings.max_horizon_weeks:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"horizon_weeks no puede superar {settings.max_horizon_weeks}",
+        )
+    if time_limit_s > settings.max_time_limit_s:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"time_limit_s no puede superar {settings.max_time_limit_s:g}",
+        )
+
+
+def check_note(settings: ApiSettings, note: str | None) -> None:
+    """422 si la nota de revisión supera `max_note_length`."""
+    if note is not None and len(note) > settings.max_note_length:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"la nota no puede superar {settings.max_note_length} caracteres",
+        )
+
+
 def to_http(exc: PlanError) -> HTTPException:
     """Traduce un error de dominio a 404, 403 o 409."""
     if isinstance(exc, NotFound):
@@ -72,6 +95,7 @@ _DESCRIPTIONS = {
         "La acción no corresponde al estado actual.",
         "el plan ya está 'approved'; la decisión de revisión es final",
     ),
+    422: ("Un parámetro supera los límites configurados.", "horizon_weeks no puede superar 12"),
     429: (
         "Demasiadas programaciones pendientes o en curso.",
         "ya tienes 2 programaciones pendientes o en curso; espera a que terminen",

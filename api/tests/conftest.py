@@ -33,6 +33,12 @@ KEYS = {
 }
 
 
+@pytest.fixture(autouse=True)
+def _test_hosts(monkeypatch: pytest.MonkeyPatch) -> None:
+    """El `TestClient` usa el host `testserver`, que no está en la lista blanca por defecto."""
+    monkeypatch.setenv("PRIORIZA_API_TRUSTED_HOSTS", "testserver,localhost")
+
+
 @pytest.fixture(scope="session")
 def run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Corrida sintética de 1.000 entradas con oferta para 4 semanas (semilla fija)."""

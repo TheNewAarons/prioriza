@@ -51,6 +51,10 @@ class UserDirectory:
     def __len__(self) -> int:
         return len(self._users)
 
+    def keys_for_redaction(self) -> list[str]:
+        """Claves conocidas, solo para registrarlas en el redactor de logs (nunca se imprimen)."""
+        return list(self._users)
+
     @classmethod
     def from_file(cls, path: Path) -> UserDirectory:
         """Lee `{api_key: {"user": nombre, "role": rol}}`; falla si el formato es inválido.

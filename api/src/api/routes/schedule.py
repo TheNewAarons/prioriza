@@ -8,7 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Response, status
 
 from api.auth import Role, User, current_user, require_roles
-from api.deps import ServicesDep, errors, to_http
+from api.deps import ServicesDep, check_schedule_limits, errors, to_http
 from api.jobs import JobRecord
 from api.plans import PlanError
 from api.schemas import JobOut, ScheduleRequestIn
@@ -26,7 +26,7 @@ def _job_out(job: JobRecord) -> JobOut:
     status_code=status.HTTP_202_ACCEPTED,
     summary="Pedir una programación (gestor)",
     responses=errors(
-        401, 403, 429, e403="El rol 'lectura' no puede hacer esto; se requiere: gestor."
+        401, 403, 422, 429, e403="El rol 'lectura' no puede hacer esto; se requiere: gestor."
     ),
 )
 def create_schedule_run(
@@ -39,6 +39,7 @@ def create_schedule_run(
 
     El plan resultante queda `pending`: requiere la aprobación de un revisor antes de usarse.
     """
+    check_schedule_limits(svc.settings, body.horizon_weeks, body.time_limit_s)
     try:
         job = svc.jobs.submit(body, user)
     except PlanError as exc:

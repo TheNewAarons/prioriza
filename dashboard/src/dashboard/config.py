@@ -22,3 +22,12 @@ class DashboardSettings(BaseSettings):
     # La primera petición a la API carga la corrida completa y puede tardar.
     timeout_s: float = Field(default=60.0, gt=0.0)
     debug: bool = False
+    # Cabeceras de seguridad de las respuestas del panel. La política deja pasar lo que Dash
+    # necesita (scripts y estilos en línea, `eval` de plotly) y la tipografía de Google Fonts;
+    # todo lo demás queda en `'self'`. Una cadena vacía desactiva la cabecera CSP.
+    content_security_policy: str = (
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; "
+        "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    )

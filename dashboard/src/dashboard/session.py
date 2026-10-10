@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from dash.development.base_component import Component
+from shared.logging import register_secret
 
 from dashboard.api_client import ApiAuthError, ApiClient, ApiError
 from dashboard.components.common import empty_state, error_panel
@@ -45,6 +46,7 @@ def from_store(data: Any) -> Session | None:
     key, user, role = data.get("api_key"), data.get("user"), data.get("role")
     if not (isinstance(key, str) and key and isinstance(user, str) and isinstance(role, str)):
         return None
+    register_secret(key)
     return Session(key, user, role)
 
 
@@ -70,6 +72,7 @@ def attempt_login(client: ApiClient, api_key: str | None) -> LoginResult:
     role = str(me.get("role", ""))
     if role not in ROLES:
         return LoginResult(None, "La API devolvió un rol desconocido. Revisa su versión.")
+    register_secret(key)
     return LoginResult(Session(key, str(me.get("user", "")), role), None)
 
 
