@@ -259,6 +259,30 @@ class RunCatalog:
             "entries": out,
         }
 
+    def entry_score(self, entry_id: str) -> dict[str, Any] | None:
+        """Puntaje, puesto, componentes y plazo GES de una entrada en espera (`None` si no está)."""
+        found = self.entries.filter((pl.col("entry_id") == entry_id) & pl.col("rank").is_not_null())
+        ranking = self.rankings.get(entry_id)
+        if found.is_empty() or ranking is None:
+            return None
+        row = found.row(0, named=True)
+        ranked = ranking.get(entry_id)
+        return {
+            **{c: row[c] for c in WAITLIST_COLUMNS if c != "entry_id"},
+            "explanation": explanation_to_dict(explain_ranked(ranking, entry_id, self.rules)),
+            "components": [
+                {
+                    "field": c.field,
+                    "label": c.label,
+                    "raw_value": c.raw_value,
+                    "normalized": c.normalized,
+                    "weight": c.weight,
+                    "contribution": c.contribution,
+                }
+                for c in ranked.score.components
+            ],
+        }
+
     def calendar(
         self,
         counts: pl.DataFrame,

@@ -5,19 +5,30 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from shared.db.enums import Policy, ReviewStatus
+from shared.disclaimer import DISCLAIMER
 
+from api import export
 from api.auth import Role, User, current_user, require_roles
+from api.catalog import CatalogUnavailable
+from api.compare import compare_equity, compare_metrics
 from api.deps import CatalogDep, Limit, Offset, ServicesDep, check_note, errors, to_http
 from api.plans import PlanError, PlanRecord
 from api.schemas import (
     ActivateIn,
+    AssignmentOut,
     AssignmentPageOut,
+    BlockLoadOut,
     CalendarPageOut,
+    CompareSideOut,
+    EntryReasonOut,
+    EntryScoreOut,
     ExplanationPageOut,
     GesCauseCount,
+    GesItemOut,
     GesPageOut,
+    PlanCompareOut,
     PlanDetailOut,
     PlanPageOut,
     PlanSummaryOut,
@@ -28,6 +39,7 @@ from api.schemas import (
 
 router = APIRouter(prefix="/v1", tags=["planes"], dependencies=[Depends(current_user)])
 
+EXPORT_PAGE = 5_000
 _E404 = "no existe el plan 00000000-0000-0000-0000-000000000000"
 
 
@@ -114,6 +126,58 @@ def current_plan(svc: ServicesDep) -> PlanDetailOut:
     return detail_out(rec)
 
 
+def _side(rec: PlanRecord) -> CompareSideOut:
+    return CompareSideOut(
+        plan_id=rec.id,
+        policy=Policy(rec.policy),
+        review_status=rec.review_status,
+        is_current=rec.is_current,
+        created_at=rec.created_at,
+        requested_by=rec.requested_by,
+        solver_status=rec.solver_status,
+    )
+
+
+@router.get(
+    "/plans/compare",
+    response_model=PlanCompareOut,
+    summary="Comparar dos planes de la misma corrida",
+    responses=errors(
+        401, 404, 422, e422="los planes son de corridas distintas; no se pueden comparar"
+    ),
+)
+def compare_plans(
+    a: Annotated[uuid.UUID, Query(description="Id del primer plan.")],
+    b: Annotated[uuid.UUID, Query(description="Id del segundo plan.")],
+    svc: ServicesDep,
+) -> PlanCompareOut:
+    """Métricas, GES, sobrecupo, equidad por grupo y estados de revisión; diferencias `b - a`.
+
+    Solo entre planes de la misma corrida sintética (422 si no). Muestra tal cual los resultados
+    desfavorables: `better` indica qué plan gana en cada métrica, o `tie` / `none`.
+    """
+    if a == b:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, detail="elige dos planes distintos"
+        )
+    try:
+        rec_a, rec_b = svc.store.get(a), svc.store.get(b)
+    except PlanError as exc:
+        raise to_http(exc) from exc
+    if rec_a.run_id != rec_b.run_id:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="los planes son de corridas distintas; no se pueden comparar",
+        )
+    return PlanCompareOut(
+        run_id=rec_a.run_id,
+        a=_side(rec_a),
+        b=_side(rec_b),
+        metrics=compare_metrics(rec_a, rec_b),
+        equity=compare_equity(rec_a, rec_b),
+    )
+
+
 @router.get(
     "/plans/{plan_id}",
     response_model=PlanDetailOut,
@@ -143,6 +207,143 @@ def plan_assignments(
     except PlanError as exc:
         raise to_http(exc) from exc
     return AssignmentPageOut(total=page.total, limit=limit, offset=offset, items=page.items)
+
+
+@router.get(
+    "/plans/{plan_id}/export",
+    summary="Exportar las asignaciones del plan a CSV",
+    responses={
+        200: {
+            "description": (
+                "CSV UTF-8 con coma. Las líneas que empiezan con `#` son el aviso y el estado "
+                "de revisión: el lector debe saltarlas. Sin datos personales."
+            ),
+            "content": {
+                "text/csv": {"example": f"# aviso: {DISCLAIMER}\nEntrada,Paciente sintético,..."}
+            },
+        },
+        **errors(401, 404, 422, e404=_E404),
+    },
+)
+def export_plan(
+    plan_id: uuid.UUID,
+    svc: ServicesDep,
+    export_format: Annotated[
+        Literal["csv"], Query(alias="format", description="Solo `csv` por ahora.")
+    ] = "csv",
+    limit: Annotated[
+        int | None,
+        Query(ge=1, description="Filas a exportar; por defecto y como máximo `max_export_rows`."),
+    ] = None,
+    offset: Offset = 0,
+) -> Response:
+    """Citas propuestas en CSV, para quien revisa el plan fuera del panel.
+
+    Tope de filas: `PRIORIZA_API_MAX_EXPORT_ROWS` (50.000 por defecto). Si el plan tiene más,
+    el archivo lo avisa en una línea `# truncado` y `offset` permite seguir. Un `limit` mayor al
+    tope es 422. Las cabeceras `X-Total-Rows` y `X-Exported-Rows` traen los conteos.
+    """
+    cap = svc.settings.max_export_rows
+    if limit is not None and limit > cap:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"limit no puede superar {cap}",
+        )
+    want = limit or cap
+    try:
+        rec = svc.store.get(plan_id)
+        rows: list[dict[str, Any]] = []
+        total = 0
+        while len(rows) < want:
+            page = svc.store.assignments(
+                plan_id, limit=min(EXPORT_PAGE, want - len(rows)), offset=offset + len(rows)
+            )
+            total = page.total
+            rows.extend(page.items)
+            if not page.items:
+                break
+        if not rows:
+            total = svc.store.assignments(plan_id, limit=1, offset=0).total
+    except PlanError as exc:
+        raise to_http(exc) from exc
+    body = export.render_csv(
+        rows,
+        plan_id=str(plan_id),
+        review_status=rec.review_status.value,
+        total=total,
+        offset=offset,
+    )
+    return Response(
+        content=body,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="plan-{str(plan_id)[:8]}.csv"',
+            "X-Total-Rows": str(total),
+            "X-Exported-Rows": str(len(rows)),
+        },
+    )
+
+
+@router.get(
+    "/plans/{plan_id}/entries/{entry_id}/reason",
+    response_model=EntryReasonOut,
+    summary="Por qué esta entrada tiene (o no) su cupo",
+    responses=errors(401, 404, e404="el plan no tiene explicación para la entrada"),
+)
+def entry_reason(plan_id: uuid.UUID, entry_id: str, svc: ServicesDep) -> EntryReasonOut:
+    """Une la explicación del plan, la cita, la garantía GES, la carga del bloque y el puntaje.
+
+    No inventa datos: cada bloque sale de lo que el plan guardó o de la lista de espera. La fase
+    se deduce del plan (`3b` si entró por sobreagendamiento).
+    """
+    try:
+        rec = svc.store.get(plan_id)
+        rows = svc.store.entry_reason(plan_id, entry_id)
+    except PlanError as exc:
+        raise to_http(exc) from exc
+    if rows.explanation is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="el plan no tiene explicación para la entrada"
+        )
+    exp = rows.explanation
+    assignment = AssignmentOut(**rows.assignment) if rows.assignment else None
+    phase: str | None = None
+    if assignment is not None:
+        if rec.policy == "optimized":
+            phase = "3b" if exp.get("detail") == "added_by_overbooking" else "3a"
+        else:
+            phase = rec.policy
+    block_load = None
+    if assignment is not None:
+        for blk in (rec.report.get("overbooking") or {}).get("blocks", []):
+            if blk.get("slot_id") == assignment.slot_id:
+                block_load = BlockLoadOut(
+                    capacity=blk["capacity"],
+                    scheduled=blk["scheduled"],
+                    overbooked=blk["overbooked"],
+                    risk_exact=blk["risk_exact"],
+                )
+                break
+    score = None
+    try:
+        found = svc.catalogs.get().entry_score(entry_id)
+    except CatalogUnavailable:
+        found = None
+    if found is not None:
+        score = EntryScoreOut(**found)
+    return EntryReasonOut(
+        plan_id=plan_id,
+        entry_id=entry_id,
+        policy=Policy(rec.policy),
+        status=exp["status"],
+        detail=exp.get("detail"),
+        text=exp["text"],
+        phase=phase,
+        assignment=assignment,
+        block_load=block_load,
+        ges=GesItemOut(**rows.ges) if rows.ges else None,
+        score=score,
+    )
 
 
 @router.get(

@@ -8,6 +8,9 @@ por recurso, GES no cumplidas y explicaciones) y 3) decidir (aprobar o rechazar 
 marcar vigente solo el gestor). El sistema apoya, no decide: todo plan nace pendiente y requiere
 revisión humana.
 
+Además: descargar el plan en CSV, comparar dos planes lado a lado y ver "por qué este cupo" de
+una entrada (`step_export`, `build_compare`, `build_reason`).
+
 Funciones puras: `build_run_request`, `step_jobs`, `plan_options`, `pick_plan`, `build_plan_header`,
 `decision_view`, `step_decision`, `prepare_calendar`, `fetch_calendar`, `ges_rows`,
 `explanation_rows`, `build_audit` y `request_visibility`. Los callbacks solo las encadenan.
@@ -20,7 +23,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import parse_qs
 
-from dash import Input, Output, State, callback, ctx, dcc, html
+from dash import Input, Output, State, callback, ctx, dcc, html, no_update
 from dash.development.base_component import Component
 
 from dashboard import fmt, runtime, theme
@@ -33,7 +36,7 @@ from dashboard.api_client import (
 )
 from dashboard.components.attrs import aria
 from dashboard.components.badges import job_badge, plan_badges
-from dashboard.components.charts import calendar_heatmap
+from dashboard.components.charts import calendar_heatmap, component_bars
 from dashboard.components.common import (
     empty_state,
     error_panel,
@@ -443,6 +446,7 @@ def ges_rows(page: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "entry": fmt.short_id(it["entry_id"]),
+            "entry_id": it["entry_id"],
             "deadline": fmt.date_es(it["ges_deadline"]),
             "state": "✓ Cumplida" if it["met"] else "● No cumplida",
             "cause": "—" if it["met"] else fmt.cause_label(it["cause"]),
@@ -470,6 +474,7 @@ def explanation_rows(page: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "entry": fmt.short_id(it["entry_id"]),
+            "entry_id": it["entry_id"],
             "status": fmt.status_label(it["status"]),
             "detail": fmt.cause_label(it["detail"]) if it.get("detail") else "—",
             "text": it["text"],
@@ -486,6 +491,345 @@ def total_pages(total: int, size: int) -> int:
 def resolve_page(trigger: str | None, table_id: str, page_current: int | None) -> int:
     """Cambiar plan o filtro vuelve a la primera página; cambiar de página la respeta."""
     return (page_current or 0) if trigger == table_id else 0
+
+
+# ------------------------------------------------------------------ descargar CSV
+
+
+@dataclass(frozen=True)
+class ExportStep:
+    """Resultado de pedir el CSV: el archivo o el mensaje de error."""
+
+    filename: str | None
+    content: str | None
+    message: Component | None
+
+
+def step_export(client: ApiClient, session: Session, plan_id: str | None) -> ExportStep:
+    """Pide el CSV del plan a la API; el archivo conserva el aviso de investigación."""
+    if not plan_id:
+        return ExportStep(None, None, error_panel("Elige un plan primero."))
+    try:
+        content = client.plan_export_csv(session.api_key, plan_id)
+    except ApiError as exc:
+        return ExportStep(None, None, error_panel(exc.message))
+    return ExportStep(f"plan-{fmt.short_id(plan_id)}.csv", content, None)
+
+
+# ------------------------------------------------------------------ comparar dos planes
+
+PCT_KEYS = frozenset({"max_overflow_risk", "scheduled_rate", "exposure_share", "flagged_share"})
+DIMENSION_LABELS = {
+    "all": "Total",
+    "age_group": "Grupo etario",
+    "insurance": "Previsión",
+    "commune_code": "Comuna",
+}
+VERDICT_TEXT = {
+    "b": f"{theme.STATUS['ok'].icon} Mejor en B",
+    "a": f"{theme.STATUS['overdue'].icon} Peor en B",
+    "tie": "Igual",
+    "none": "Solo informa",
+}
+REVIEW_TEXT = {
+    "pending": "Pendiente de revisión",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+}
+EQUITY_MAX_ROWS = 300
+
+
+def compare_value(key: str, value: float | None) -> str:
+    """Valor de una métrica de comparación: porcentaje para tasas y riesgos, entero si no."""
+    if key in PCT_KEYS:
+        return fmt.pct(value)
+    return fmt.num(value)
+
+
+def compare_diff(key: str, diff: float | None) -> str:
+    """Diferencia `b - a` con signo; en puntos porcentuales para tasas y riesgos."""
+    if key in PCT_KEYS:
+        return fmt.signed(None if diff is None else diff * 100, 1, "pp")
+    return fmt.signed(diff)
+
+
+def tally(rows: Sequence[dict[str, Any]]) -> dict[str, int]:
+    """Cuántas métricas gana A, gana B, empatan o solo informan (`better`)."""
+    counts = {"a": 0, "b": 0, "tie": 0, "none": 0}
+    for r in rows:
+        counts[r["better"]] += 1
+    return counts
+
+
+def compare_sentence(data: dict[str, Any]) -> str:
+    """Frase de lectura generada desde los datos; dice sin rodeos dónde B es peor."""
+    m, e = tally(data["metrics"]), tally(data["equity"])
+    text = (
+        f"En las métricas globales el plan B es mejor en {m['b']}, peor en {m['a']} "
+        f"e igual en {m['tie']}."
+    )
+    if data["equity"]:
+        text += (
+            f" Por grupo, es mejor en {e['b']} comparaciones, peor en {e['a']} "
+            f"e igual en {e['tie']}."
+        )
+    else:
+        text += " Ninguno de los dos planes trae equidad por grupo."
+    return text
+
+
+def _side_rows(a: dict[str, Any], b: dict[str, Any]) -> list[list[str]]:
+    def row(label: str, fn: Any) -> list[str]:
+        return [label, fn(a), fn(b)]
+
+    return [
+        row("Política", lambda p: policy_label(p["policy"], None)),
+        row("Revisión", lambda p: REVIEW_TEXT.get(p["review_status"], p["review_status"])),
+        row("Vigente", lambda p: "Sí" if p["is_current"] else "No"),
+        row("Pedido por", lambda p: p.get("requested_by") or "sin registro"),
+        row("Creado", lambda p: fmt.date_es(p["created_at"])),
+        row("Estado del solver", lambda p: str(p.get("solver_status") or "—")),
+    ]
+
+
+def _equity_rows(items: Sequence[dict[str, Any]]) -> list[list[Any]]:
+    # Primero lo desfavorable para B: no se esconde nada.
+    order = {"a": 0, "tie": 2, "b": 1, "none": 3}
+    ranked = sorted(items, key=lambda r: (order[r["better"]], r["dimension"], r["value"], r["key"]))
+    return [
+        [
+            DIMENSION_LABELS.get(r["dimension"], r["dimension"]),
+            fmt.group_label(r["dimension"], r["value"]),
+            r["label"],
+            compare_value(r["key"], r["a"]),
+            compare_value(r["key"], r["b"]),
+            compare_diff(r["key"], r["diff"]),
+            VERDICT_TEXT[r["better"]],
+        ]
+        for r in ranked
+    ]
+
+
+def build_compare(data: dict[str, Any]) -> Component:
+    """Dos planes lado a lado: identificación, métricas globales y equidad por grupo."""
+    a, b = data["a"], data["b"]
+    metrics = data["metrics"]
+    children: list[Component] = [
+        html.Div(
+            [
+                html.H3("Plan A"),
+                plan_badges(a["review_status"], a["is_current"]),
+                html.Span(fmt.short_id(a["plan_id"]), className="note"),
+                html.H3("Plan B"),
+                plan_badges(b["review_status"], b["is_current"]),
+                html.Span(fmt.short_id(b["plan_id"]), className="note"),
+            ],
+            style={
+                "display": "flex",
+                "gap": f"{theme.S3}px",
+                "alignItems": "baseline",
+                "flexWrap": "wrap",
+            },
+        ),
+        simple_table(["Dato", "Plan A", "Plan B"], _side_rows(a, b)),
+        note(compare_sentence(data), ink=True),
+        simple_table(
+            ["Métrica", "Plan A", "Plan B", "Diferencia (B - A)", "Lectura"],
+            [
+                [
+                    m["label"],
+                    compare_value(m["key"], m["a"]),
+                    compare_value(m["key"], m["b"]),
+                    compare_diff(m["key"], m["diff"]),
+                    VERDICT_TEXT[m["better"]],
+                ]
+                for m in metrics
+            ],
+            numeric=(1, 2, 3),
+        ),
+        note(
+            "Más es mejor en citas y GES cumplidas; menos es mejor en GES no cumplidas, "
+            "tasas de exposición y riesgo de desborde. Los sobrecupos solo informan."
+        ),
+    ]
+    equity = data["equity"]
+    if equity:
+        rows = _equity_rows(equity)
+        shown = rows[:EQUITY_MAX_ROWS]
+        details: list[Component] = [
+            html.Summary(f"Equidad por grupo ({fmt.num(len(rows))} comparaciones)"),
+            simple_table(
+                [
+                    "Dimensión",
+                    "Grupo",
+                    "Métrica",
+                    "Plan A",
+                    "Plan B",
+                    "Diferencia (B - A)",
+                    "Lectura",
+                ],
+                shown,
+                numeric=(3, 4, 5),
+            ),
+        ]
+        if len(rows) > len(shown):
+            details.append(
+                note(f"Se muestran las primeras {len(shown)}, con lo desfavorable para B primero.")
+            )
+        children.append(html.Details(details, open=True))
+    return html.Div(children, className="stack")
+
+
+# ------------------------------------------------------------------ por qué este cupo
+
+PHASE_LABELS = {
+    "3a": "Fase 3a: agendada sin necesitar sobrecupo",
+    "3b": "Fase 3b: entró gracias al sobreagendamiento",
+    "fifo": "Orden de llegada (sin fases)",
+    "priority": "Solo prioridad (sin fases)",
+}
+
+
+def selected_entry(
+    rows: Sequence[dict[str, Any]] | None, selected: Sequence[int] | None
+) -> str | None:
+    """Id completo de la entrada elegida en una tabla (`None` si no hay selección válida)."""
+    if not rows or not selected:
+        return None
+    index = selected[0]
+    if not 0 <= index < len(rows):
+        return None
+    entry_id = rows[index].get("entry_id")
+    return str(entry_id) if entry_id else None
+
+
+def _when(iso: str) -> str:
+    return f"{fmt.date_es(iso)} {iso[11:16]} UTC"
+
+
+def reason_facts(data: dict[str, Any]) -> list[list[str]]:
+    """Filas `[dato, valor]` del motivo del cupo; solo lo que la API entregó."""
+    facts: list[list[str]] = []
+    status = fmt.status_label(data["status"])
+    if data.get("detail") == "added_by_overbooking":
+        status += " (entró gracias al sobreagendamiento)"
+    facts.append(["Estado en el plan", status])
+    score = data.get("score")
+    if score is not None:
+        facts.append(
+            [
+                "Puntaje",
+                f"{fmt.num(score['score'], 1)} de 100, puesto {fmt.num(score['rank'])} en su cola",
+            ]
+        )
+        facts.append(
+            [
+                "Prioridad clínica",
+                f"{str(score['clinical_priority']).upper()} (dato de entrada definido por "
+                "profesionales; el sistema no la cambia)",
+            ]
+        )
+        facts.append(["Días de espera", fmt.num(score["wait_days"])])
+    else:
+        facts.append(["Puntaje", "La entrada ya no está en la lista de espera actual"])
+    ges = data.get("ges")
+    if ges is not None:
+        ges_text = f"plazo {fmt.date_es(ges['ges_deadline'])}, "
+        ges_text += "cumplida" if ges["met"] else f"no cumplida ({fmt.cause_label(ges['cause'])})"
+        if ges.get("days_late"):
+            ges_text += f", {fmt.num(ges['days_late'])} días de atraso"
+        facts.append(["Plazo GES", ges_text])
+    else:
+        facts.append(["Plazo GES", "Sin obligación GES en el horizonte de este plan"])
+    assignment = data.get("assignment")
+    if assignment is None:
+        facts.append(["Fase en que se agendó", "No quedó agendada en este plan"])
+        return facts
+    facts.append(["Fase en que se agendó", PHASE_LABELS.get(data.get("phase") or "", "—")])
+    facts.append(
+        [
+            "Cita",
+            f"{_when(assignment['scheduled_start'])}, cupo {fmt.short_id(assignment['slot_id'])}",
+        ]
+    )
+    facts.append(
+        [
+            "Sobrecupo",
+            "Sí, comparte hora con otro paciente" if assignment["is_overbooked"] else "No",
+        ]
+    )
+    prob = assignment.get("predicted_noshow_prob")
+    facts.append(["Riesgo de inasistencia estimado", fmt.pct(prob) if prob is not None else "—"])
+    load = data.get("block_load")
+    if load is not None:
+        facts.append(
+            [
+                "Riesgo de desborde de la sesión",
+                f"{fmt.pct(load['risk_exact'])} (capacidad {fmt.num(load['capacity'])}, "
+                f"citas {fmt.num(load['scheduled'])}, sobrecupos {fmt.num(load['overbooked'])})",
+            ]
+        )
+    return facts
+
+
+def build_reason(data: dict[str, Any]) -> Component:
+    """Motivo del cupo de una entrada: texto del plan, datos clave y desglose del puntaje."""
+    children: list[Component] = [
+        html.H3(f"Por qué esta entrada, {fmt.short_id(data['entry_id'])}"),
+        html.P(data["text"]),
+        simple_table(["Dato", "Valor"], reason_facts(data)),
+    ]
+    score = data.get("score")
+    components = (score or {}).get("components") or []
+    if components:
+        children.append(
+            figure_block(
+                component_bars(title="Aporte de cada componente al puntaje", components=components),
+                aria_label="Desglose del puntaje por componente: "
+                + "; ".join(
+                    f"{c['label']} {fmt.num(c['contribution'], 1)} puntos" for c in components
+                ),
+                headers=["Componente", "Valor", "Peso", "Puntos"],
+                rows=[
+                    [
+                        c["label"],
+                        "—" if c["raw_value"] is None else str(c["raw_value"]),
+                        fmt.num(c["weight"], 0),
+                        fmt.num(c["contribution"], 1),
+                    ]
+                    for c in components
+                ],
+            )
+        )
+    lines = ((score or {}).get("explanation") or {}).get("lines") or []
+    if lines:
+        children.append(html.Ul([html.Li(line) for line in lines]))
+    children.append(
+        note("Es la explicación de una propuesta del sistema; la decisión final es de una persona.")
+    )
+    return html.Div(children, className="stack")
+
+
+def fetch_reason(client: ApiClient, session: Session, plan_id: str, entry_id: str) -> Component:
+    """Lee el motivo del cupo de la API y lo dibuja."""
+    return build_reason(client.plan_entry_reason(session.api_key, plan_id, entry_id))
+
+
+def fetch_compare(client: ApiClient, session: Session, plan_a: str, plan_b: str) -> Component:
+    """Lee la comparación de la API y la dibuja."""
+    return build_compare(client.plan_compare(session.api_key, plan_a, plan_b))
+
+
+def compare_defaults(
+    options: Sequence[dict[str, str]], current_a: str | None, current_b: str | None
+) -> tuple[str | None, str | None]:
+    """Plan A y B elegidos: se conservan si siguen; si no, el más antiguo y el más reciente."""
+    valid = {o["value"] for o in options}
+    if len(options) < 2:
+        return None, None
+    a = current_a if current_a in valid else options[1]["value"]
+    b = current_b if current_b in valid else options[0]["value"]
+    return a, b
 
 
 # ------------------------------------------------------------------ decidir
@@ -714,6 +1058,20 @@ def plan_section() -> list[Component]:
         ),
         html.Div(id="prog-plan-empty"),
         html.Div(id="prog-plan-head"),
+        html.Div(
+            [
+                html.Button(
+                    "Descargar CSV", id="prog-download-btn", n_clicks=0, className="btn btn--quiet"
+                ),
+                dcc.Download(id="prog-download"),
+                html.Span(
+                    "El archivo trae el aviso de investigación; las líneas con # no son datos.",
+                    className="note",
+                ),
+            ],
+            className="actions",
+        ),
+        html.Div(id="prog-download-msg", role="status", **aria({"aria-live": "polite"})),
         html.H3("Calendario por recurso"),
         html.Div(
             [
@@ -773,6 +1131,7 @@ def plan_section() -> list[Component]:
                 {"name": "Detalle", "id": "text"},
             ],
             page_size=GES_PAGE_SIZE,
+            selectable=True,
             right_aligned=("late",),
         ),
         html.H3("Explicación por entrada"),
@@ -800,7 +1159,48 @@ def plan_section() -> list[Component]:
                 {"name": "Explicación", "id": "text"},
             ],
             page_size=EXP_PAGE_SIZE,
+            selectable=True,
         ),
+        html.H3("Por qué este cupo"),
+        note(
+            "Elige una fila de la tabla de garantías GES o de explicaciones para ver el motivo "
+            "de su cupo."
+        ),
+        dcc.Loading(html.Div(id="why-body"), type="default"),
+    ]
+
+
+def compare_section() -> list[Component]:
+    """Zona 4: elegir dos planes y verlos lado a lado."""
+    return [
+        html.Div(
+            [
+                field(
+                    "Plan A",
+                    dcc.Dropdown(
+                        id="cmp-a",
+                        options=[],
+                        placeholder="Elige el plan A",
+                        clearable=False,
+                        searchable=False,
+                    ),
+                    control_id="cmp-a",
+                ),
+                field(
+                    "Plan B",
+                    dcc.Dropdown(
+                        id="cmp-b",
+                        options=[],
+                        placeholder="Elige el plan B",
+                        clearable=False,
+                        searchable=False,
+                    ),
+                    control_id="cmp-b",
+                ),
+            ],
+            className="filters",
+        ),
+        dcc.Loading(html.Div(id="cmp-body"), type="default"),
     ]
 
 
@@ -885,7 +1285,7 @@ def decide_section() -> list[Component]:
 
 
 def layout() -> Component:
-    """Las tres zonas numeradas y los almacenes de estado de la página."""
+    """Las zonas numeradas y los almacenes de estado de la página."""
     return html.Div(
         [
             dcc.Store(id="prog-jobs", storage_type="session", data=[]),
@@ -901,6 +1301,7 @@ def layout() -> Component:
             ),
             section("Revisar el plan", *plan_section(), step=2),
             section("Decidir", *decide_section(), step=3),
+            section("Comparar planes", *compare_section(), step=4),
         ],
         className="steps",
     )
@@ -1060,6 +1461,7 @@ def on_calendar(
     Output("ges-summary", "children"),
     Output("ges-count", "children"),
     Output("ges-cause", "options"),
+    Output("ges-table", "selected_rows"),
     Input("prog-plan", "value"),
     Input("ges-cause", "value"),
     Input("ges-table", "page_current"),
@@ -1070,7 +1472,7 @@ def on_ges(
 ) -> tuple[Any, ...]:
     """GES no cumplidas del plan por causa, con tabla paginada en el servidor."""
     if not plan_id:
-        return [], 1, 0, "", "", []
+        return [], 1, 0, "", "", [], []
     page = resolve_page(ctx.triggered_id, "ges-table", page_current)
 
     def build(session: Session) -> dict[str, Any]:
@@ -1084,7 +1486,7 @@ def on_ges(
 
     result = call_guarded(session_data, build)
     if result.value is None:
-        return [], 1, 0, result.error, "", []
+        return [], 1, 0, result.error, "", [], []
     data = result.value
     options = [
         {"label": fmt.cause_label(c["cause"]), "value": c["cause"]} for c in data["by_cause"]
@@ -1097,6 +1499,7 @@ def on_ges(
         build_cause_summary(data["by_cause"]),
         count,
         options,
+        [],
     )
 
 
@@ -1105,6 +1508,7 @@ def on_ges(
     Output("exp-table", "page_count"),
     Output("exp-table", "page_current"),
     Output("exp-count", "children"),
+    Output("exp-table", "selected_rows"),
     Input("prog-plan", "value"),
     Input("exp-status", "value"),
     Input("exp-table", "page_current"),
@@ -1115,7 +1519,7 @@ def on_explanations(
 ) -> tuple[Any, ...]:
     """Explicaciones por entrada, filtrables por estado, paginadas en el servidor."""
     if not plan_id:
-        return [], 1, 0, ""
+        return [], 1, 0, "", []
     page = resolve_page(ctx.triggered_id, "exp-table", page_current)
 
     def build(session: Session) -> dict[str, Any]:
@@ -1124,13 +1528,14 @@ def on_explanations(
 
     result = call_guarded(session_data, build)
     if result.value is None:
-        return [], 1, 0, "No se pudieron leer las explicaciones."
+        return [], 1, 0, "No se pudieron leer las explicaciones.", []
     data = result.value
     return (
         explanation_rows(data),
         total_pages(data["total"], EXP_PAGE_SIZE),
         page,
         f"{fmt.num(data['total'])} entradas con ese estado.",
+        [],
     )
 
 
@@ -1185,3 +1590,90 @@ def on_confirm_panel(
 ) -> tuple[dict[str, str], str]:
     """Muestra el panel de confirmación elevado mientras haya una decisión por confirmar."""
     return confirm_text((pending or {}).get("action"), plan_id)
+
+
+@callback(
+    Output("prog-download", "data"),
+    Output("prog-download-msg", "children"),
+    Input("prog-download-btn", "n_clicks"),
+    State("prog-plan", "value"),
+    State("session", "data"),
+    prevent_initial_call=True,
+)
+def on_download(_clicks: int, plan_id: str | None, session_data: Any) -> tuple[Any, Any]:
+    """Descarga el CSV del plan elegido (lo pide la API con la clave de la sesión)."""
+    session = from_store(session_data)
+    if session is None:
+        return no_update, error_panel("Entra con tu clave de API.")
+    step = step_export(runtime.get_client(), session, plan_id)
+    if step.content is None or step.filename is None:
+        return no_update, step.message
+    return {"content": step.content, "filename": step.filename, "type": "text/csv"}, ""
+
+
+@callback(
+    Output("why-body", "children"),
+    Input("exp-table", "selected_rows"),
+    Input("ges-table", "selected_rows"),
+    Input("prog-plan", "value"),
+    State("exp-table", "data"),
+    State("ges-table", "data"),
+    State("session", "data"),
+)
+def on_reason(
+    exp_selected: list[int] | None,
+    ges_selected: list[int] | None,
+    plan_id: str | None,
+    exp_rows: list[dict[str, Any]] | None,
+    ges_rows_data: list[dict[str, Any]] | None,
+    session_data: Any,
+) -> Any:
+    """Motivo del cupo de la entrada elegida en cualquiera de las dos tablas."""
+    if not plan_id:
+        return ""
+    if ctx.triggered_id == "ges-table":
+        entry_id = selected_entry(ges_rows_data, ges_selected)
+    else:
+        entry_id = selected_entry(exp_rows, exp_selected) or selected_entry(
+            ges_rows_data, ges_selected
+        )
+    if entry_id is None:
+        return ""
+    result = call_guarded(
+        session_data, lambda s: fetch_reason(runtime.get_client(), s, plan_id, entry_id)
+    )
+    return result.error if result.value is None else result.value
+
+
+@callback(
+    Output("cmp-a", "options"),
+    Output("cmp-b", "options"),
+    Output("cmp-a", "value"),
+    Output("cmp-b", "value"),
+    Input("prog-plan", "options"),
+    State("cmp-a", "value"),
+    State("cmp-b", "value"),
+)
+def on_compare_options(
+    options: list[dict[str, str]] | None, current_a: str | None, current_b: str | None
+) -> tuple[Any, ...]:
+    """Los mismos planes del selector principal, con dos elegidos por defecto."""
+    options = options or []
+    a, b = compare_defaults(options, current_a, current_b)
+    return options, options, a, b
+
+
+@callback(
+    Output("cmp-body", "children"),
+    Input("cmp-a", "value"),
+    Input("cmp-b", "value"),
+    Input("session", "data"),
+)
+def on_compare(plan_a: str | None, plan_b: str | None, session_data: Any) -> Any:
+    """Comparación lado a lado; los planes de corridas distintas muestran el aviso de la API."""
+    if not plan_a or not plan_b:
+        return empty_state("Necesitas al menos dos planes para compararlos.")
+    result = call_guarded(
+        session_data, lambda s: fetch_compare(runtime.get_client(), s, plan_a, plan_b)
+    )
+    return result.error if result.value is None else result.value

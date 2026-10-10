@@ -115,6 +115,15 @@ class Page[T]:
     total: int
 
 
+@dataclass(frozen=True)
+class EntryRows:
+    """Lo que el plan guardó de una entrada: explicación, cita propuesta y garantía GES."""
+
+    explanation: dict[str, Any] | None
+    assignment: dict[str, Any] | None
+    ges: dict[str, Any] | None
+
+
 def same_person(a: str, b: str) -> bool:
     """Compara nombres de usuario sin distinguir mayúsculas ni espacios en los extremos."""
     return a.strip().casefold() == b.strip().casefold()
@@ -219,6 +228,10 @@ class PlanStore(Protocol):
 
     def slot_counts(self, plan_id: uuid.UUID) -> pl.DataFrame:
         """Citas por cupo: columnas `slot_id`, `scheduled` (sin sobrecupo) y `overbooked`."""
+        ...
+
+    def entry_reason(self, plan_id: uuid.UUID, entry_id: str) -> EntryRows:
+        """Fila de explicación, asignación y GES de una entrada (`None` donde no existe)."""
         ...
 
     def reviews(self, plan_id: uuid.UUID) -> list[ReviewRecord]:
@@ -396,6 +409,19 @@ class MemoryPlanStore:
             (~pl.col("is_overbooked")).sum().cast(pl.Int64).alias("scheduled"),
             pl.col("is_overbooked").sum().cast(pl.Int64).alias("overbooked"),
         )
+
+    def entry_reason(self, plan_id: uuid.UUID, entry_id: str) -> EntryRows:
+        with self._lock:
+            stored = self._stored(plan_id)
+            frames = (stored.explanations, stored.assignments, stored.ges)
+
+        def one(df: pl.DataFrame) -> dict[str, Any] | None:
+            if "entry_id" not in df.columns:
+                return None
+            found = df.filter(pl.col("entry_id") == entry_id)
+            return found.row(0, named=True) if found.height else None
+
+        return EntryRows(*(one(df) for df in frames))
 
     def reviews(self, plan_id: uuid.UUID) -> list[ReviewRecord]:
         with self._lock:

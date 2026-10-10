@@ -58,6 +58,17 @@ def pct(fraction: float | None, decimals: int = 1) -> str:
     return f"{num(fraction * 100, decimals)}{NBSP}%"
 
 
+def signed(value: float | int | None, decimals: int = 0, unit: str = "") -> str:
+    """Número con signo explícito (`+3`, `-2,5`, `0`); `—` si falta."""
+    if value is None:
+        return "—"
+    text = num(abs(value), decimals)
+    if round(value, decimals) == 0:
+        return f"0{NBSP}{unit}".rstrip()
+    sign = "+" if value > 0 else "-"
+    return f"{sign}{text}{NBSP}{unit}".rstrip()
+
+
 def days(value: float | int | None) -> str:
     """Días con unidad (`301 días`)."""
     if value is None:

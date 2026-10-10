@@ -153,7 +153,7 @@ Resumen de la lista de espera                      Corrida 32c9e349, 100.000 ent
 
 ### Programación
 
-Tres zonas en secuencia (aquí sí hay orden real, así que van numeradas 1, 2 y 3):
+Cuatro zonas en secuencia (aquí sí hay orden real, así que van numeradas 1 a 4):
 
 1. **Pedir una programación** (solo gestor): política (orden de llegada, solo prioridad, optimizada), semanas del horizonte, sobrecupo (solo para optimizada) y límite de tiempo. Botón "Programar". Debajo, los trabajos de la sesión con su estado (◷ en cola, ◷ en curso con latido, ✓ terminado, ● falló con el mensaje).
 2. **Revisar el plan**: selector de plan (los más recientes primero, con insignia de estado). Para el plan elegido:
@@ -161,7 +161,11 @@ Tres zonas en secuencia (aquí sí hay orden real, así que van numeradas 1, 2 y
    - **Calendario por recurso**: mapa de calor con recursos en filas y días del horizonte en columnas; cada celda muestra el número de citas (texto dentro de la celda) y el color solo refuerza; las celdas con sobrecupo llevan un borde y el símbolo `+n`.
    - **Garantías GES no cumplidas** con su causa, agrupadas por causa (sin bloque en el horizonte, vence antes del primer bloque, cupos tomados), con el conteo y la tabla de entradas.
    - Explicaciones por entrada, filtrables por estado.
+   - **Descargar CSV**: botón `btn--quiet` bajo el encabezado del plan, visible para todos los roles; baja las citas del plan (`GET /v1/plans/{id}/export`) con el aviso de investigación en la primera línea `# aviso:`. Un mensaje `alert--error` junto al botón dice qué falló.
+   - **Por qué este cupo**: las filas de las tablas de GES y de explicaciones son seleccionables (una a la vez). Al elegir una se muestra, bajo las tablas, el motivo del cupo: texto del plan, tabla Dato/Valor (estado, puntaje y puesto, prioridad clínica como dato de entrada, plazo GES, fase en que se agendó, cita, sobrecupo, riesgo de inasistencia y de desborde) y las barras de aporte de cada componente (`component_bars`, igual que en el detalle de la lista). Solo se muestra lo que entrega `GET /v1/plans/{id}/entries/{entry}/reason`; lo que falta se escribe como "No quedó agendada" o "—".
 3. **Decidir** (solo revisor): botones "Aprobar plan" y "Rechazar plan" con nota opcional; abre el panel de confirmación elevado que repite el plan y su efecto ("Aprobar no lo deja vigente: un gestor debe activarlo."). Para gestor, si el plan está aprobado: "Marcar como vigente". La auditoría (quién, rol, cuándo, nota) se lista debajo.
+
+4. **Comparar planes**: dos selectores ("Plan A" y "Plan B", con los mismos planes del selector principal; por defecto el más antiguo contra el más reciente). Muestra: insignias de estado y vigencia de cada plan, tabla Dato/Plan A/Plan B (política, revisión, vigente, quién lo pidió, cuándo, solver), una frase de lectura generada desde los datos ("el plan B es mejor en 1, peor en 2 e igual en 1"), la tabla de métricas con diferencia `B - A` y la columna "Lectura" (`✓ Mejor en B`, `● Peor en B`, `Igual`, `Solo informa`; icono y texto, nunca solo color), y la equidad por grupo en un `details` abierto con **lo desfavorable para B primero** (máximo 300 filas, con nota si hay más). Si los planes son de corridas distintas la API responde 422 y el panel muestra su mensaje. Los resultados desfavorables nunca se ocultan.
 
 ### Simulación
 

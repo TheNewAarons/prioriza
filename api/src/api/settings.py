@@ -54,6 +54,7 @@ class ApiSettings(BaseSettings):
     # Largo máximo de identificadores en la ruta o la consulta, y de las notas de revisión (422).
     max_id_length: int = Field(default=64, ge=1)
     max_note_length: int = Field(default=1_000, ge=1)
+    max_export_rows: int = Field(default=50_000, ge=1)
     # Tope de la programación pedida (422).
     max_horizon_weeks: int = Field(default=12, ge=1)
     max_time_limit_s: float = Field(default=600.0, gt=0.0)

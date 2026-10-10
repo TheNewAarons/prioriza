@@ -149,20 +149,7 @@ class ApiClient:
                 hit = self._cache.get(key)
             if hit is not None and self._clock() - hit[0] < self._ttl:
                 return hit[1]
-        try:
-            response = self._http.request(
-                method,
-                path,
-                params=clean or None,
-                json=dict(body) if body is not None else None,
-                headers={"X-API-Key": api_key},
-            )
-        except httpx.HTTPError as exc:
-            raise ApiUnavailable(
-                f"La API no responde en {self.base_url}. Levántala con `make api`."
-            ) from exc
-        if response.status_code >= 400:
-            raise error_for(response)
+        response = self._send(method, path, api_key, params=clean, body=body)
         try:
             data = response.json()
         except ValueError as exc:
@@ -173,6 +160,32 @@ class ApiClient:
             with self._lock:
                 self._cache[key] = (self._clock(), data)
         return data
+
+    def _send(
+        self,
+        method: str,
+        path: str,
+        api_key: str,
+        *,
+        params: Mapping[str, Any] | None = None,
+        body: Mapping[str, Any] | None = None,
+    ) -> httpx.Response:
+        """Hace la petición; errores de red y de la API salen como excepciones tipadas."""
+        try:
+            response = self._http.request(
+                method,
+                path,
+                params=dict(params) if params else None,
+                json=dict(body) if body is not None else None,
+                headers={"X-API-Key": api_key},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailable(
+                f"La API no responde en {self.base_url}. Levántala con `make api`."
+            ) from exc
+        if response.status_code >= 400:
+            raise error_for(response)
+        return response
 
     def clear_cache(self) -> None:
         """Descarta la caché (p. ej. al salir)."""
@@ -244,6 +257,23 @@ class ApiClient:
         return dict(
             self.request("GET", f"/v1/plans/{plan_id}/explanations", api_key, params=params)
         )
+
+    def plan_export_csv(self, api_key: str, plan_id: str) -> str:
+        """CSV de las asignaciones del plan (texto UTF-8 tal como lo entrega la API)."""
+        response = self._send(
+            "GET", f"/v1/plans/{plan_id}/export", api_key, params={"format": "csv"}
+        )
+        return response.text
+
+    def plan_compare(self, api_key: str, plan_a: str, plan_b: str) -> dict[str, Any]:
+        """Comparación de dos planes de la misma corrida."""
+        params = {"a": plan_a, "b": plan_b}
+        return dict(self.request("GET", "/v1/plans/compare", api_key, params=params))
+
+    def plan_entry_reason(self, api_key: str, plan_id: str, entry_id: str) -> dict[str, Any]:
+        """Por qué una entrada tiene (o no) su cupo en el plan."""
+        path = f"/v1/plans/{plan_id}/entries/{entry_id}/reason"
+        return dict(self.request("GET", path, api_key))
 
     def plan_reviews(self, api_key: str, plan_id: str) -> dict[str, Any]:
         """Auditoría del plan."""

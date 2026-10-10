@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session, defer, sessionmaker
 from api.auth import User
 from api.plans import (
     EXPLANATION_COLUMNS,
+    EntryRows,
     InvalidTransition,
     NewPlan,
     NotFound,
@@ -204,6 +205,38 @@ class SqlPlanStore:
             schema={"slot_id": pl.String, "scheduled": pl.Int64, "overbooked": pl.Int64},
             orient="row",
         )
+
+    def entry_reason(self, plan_id: uuid.UUID, entry_id: str) -> EntryRows:
+        explanations = self.explanations(plan_id, status=None, limit=10**9, offset=0).items
+        explanation = next((r for r in explanations if r["entry_id"] == entry_id), None)
+        ges = next((r for r in self._stored_ges(plan_id) if r["entry_id"] == entry_id), None)
+        assignment: dict[str, Any] | None = None
+        try:
+            entry_uuid = uuid.UUID(entry_id)
+        except ValueError:
+            return EntryRows(explanation, None, ges)
+        with self._factory() as session:
+            row = session.execute(
+                sa.select(
+                    Appointment.entry_id,
+                    Appointment.patient_id,
+                    Appointment.slot_id,
+                    Appointment.specialty_code,
+                    Appointment.scheduled_start,
+                    Appointment.duration_min,
+                    Appointment.lead_days,
+                    Appointment.is_overbooked,
+                    Appointment.predicted_noshow_prob,
+                ).where(Appointment.schedule_run_id == plan_id, Appointment.entry_id == entry_uuid)
+            ).first()
+        if row is not None:
+            assignment = {
+                **row._asdict(),
+                "entry_id": str(row.entry_id),
+                "patient_id": str(row.patient_id),
+                "slot_id": str(row.slot_id),
+            }
+        return EntryRows(explanation, assignment, ges)
 
     def reviews(self, plan_id: uuid.UUID) -> list[ReviewRecord]:
         with self._factory() as session:

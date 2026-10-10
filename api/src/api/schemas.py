@@ -291,6 +291,94 @@ class ExplanationPageOut(DisclaimerModel):
     items: list[ExplanationOut]
 
 
+class EntryScoreOut(BaseModel):
+    """Puntaje de priorización de la entrada (la prioridad clínica es un dato de entrada)."""
+
+    patient_id: str
+    clinical_priority: ClinicalPriority
+    is_ges: bool
+    ges_deadline: date | None
+    entry_date: date
+    wait_days: int | None
+    score: float | None
+    rank: int | None
+    tier: StrictTierName | None
+    explanation: dict[str, Any] | None
+    components: list[ComponentOut]
+
+
+class BlockLoadOut(BaseModel):
+    """Carga del bloque con sobrecupo donde quedó la cita (de `report.overbooking.blocks`)."""
+
+    capacity: int
+    scheduled: int
+    overbooked: int
+    risk_exact: float = Field(description="Probabilidad de desborde de la sesión (0 a 1).")
+
+
+class EntryReasonOut(DisclaimerModel):
+    """Por qué una entrada tiene (o no) su cupo en el plan, con todo lo que el plan guardó.
+
+    `phase` es `3a` (agendada sin sobrecupo) o `3b` (entró gracias al sobreagendamiento) en la
+    política optimizada, y el nombre de la política en las demás. `None` si no quedó agendada.
+    """
+
+    plan_id: uuid.UUID
+    entry_id: str
+    policy: Policy
+    status: str
+    detail: str | None
+    text: str
+    phase: str | None
+    assignment: AssignmentOut | None
+    block_load: BlockLoadOut | None
+    ges: GesItemOut | None
+    score: EntryScoreOut | None = Field(
+        description="Puntaje actual de la lista de espera; null si ya no está en espera."
+    )
+
+
+class CompareSideOut(BaseModel):
+    """Identificación de uno de los dos planes comparados."""
+
+    plan_id: uuid.UUID
+    policy: Policy
+    review_status: ReviewStatus
+    is_current: bool
+    created_at: datetime
+    requested_by: str | None
+    solver_status: str | None
+
+
+class CompareMetricOut(BaseModel):
+    """Una métrica en ambos planes; `diff` = b - a. `better` dice qué plan es mejor."""
+
+    key: str
+    label: str
+    direction: Literal["higher_is_better", "lower_is_better", "neutral"]
+    a: float | None
+    b: float | None
+    diff: float | None
+    better: Literal["a", "b", "tie", "none"]
+
+
+class CompareEquityOut(CompareMetricOut):
+    """Métrica de equidad de un grupo (dimensión y valor)."""
+
+    dimension: str
+    value: str
+
+
+class PlanCompareOut(DisclaimerModel):
+    """Dos planes de la misma corrida lado a lado; los resultados desfavorables se muestran."""
+
+    run_id: str
+    a: CompareSideOut
+    b: CompareSideOut
+    metrics: list[CompareMetricOut]
+    equity: list[CompareEquityOut]
+
+
 class ReviewIn(BaseModel):
     """Decisión del revisor sobre un plan pendiente (final)."""
 

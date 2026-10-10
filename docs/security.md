@@ -30,6 +30,8 @@ Todos los valores viven en `ApiSettings` (`PRIORIZA_API_*`) o `DashboardSettings
 | Largo de notas de revisión y activación | `MAX_NOTE_LENGTH` | 1000 | 422 | `test_long_review_note_is_422` |
 | Tope de `horizon_weeks` | `MAX_HORIZON_WEEKS` | 12 | 422 | `test_schedule_horizon_and_time_limit_caps` |
 | Tope de `time_limit_s` | `MAX_TIME_LIMIT_S` | 600 | 422 | `test_schedule_horizon_and_time_limit_caps` |
+| Tope de filas de `GET /v1/plans/{id}/export` (el archivo avisa con `# truncado`; `limit` mayor es 422) | `MAX_EXPORT_ROWS` | 50000 | 422 | `test_export_cap_is_enforced`, `test_export_limit_offset_and_truncation_notice` |
+| Inyección de fórmulas en el CSV exportado (celdas de texto que empiezan con `=`, `+`, `-`, `@`, tab o CR se prefijan con `'`) | (fija) | siempre | `'` delante | `test_formula_neutralization`, `test_export_neutralizes_formulas_in_stored_rows` |
 | Peticiones por usuario (ventana deslizante de 60 s, en memoria; sin clave válida, por IP); `/healthz` exento | `RATE_LIMIT_PER_MINUTE` | 120 | 429 + `Retry-After` | `test_rate_limit_429_with_retry_after_and_healthz_exempt`, `test_rate_limit_window_slides`, `test_rate_limit_fake_keys_share_ip_bucket` |
 | Tiempo máximo de un trabajo: `time_limit_s * JOB_TIMEOUT_FACTOR + JOB_TIMEOUT_GRACE_S` | `JOB_TIMEOUT_FACTOR`, `JOB_TIMEOUT_GRACE_S` | 2.0 y 30 s | trabajo `failed` | `test_job_timeout_marks_failed` |
 | Cabeceras `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`, CSP (`default-src 'none'`; `/docs` y `/redoc` con su propia CSP) | (fijas) | siempre | todas las respuestas, incluidas 413, 422 y 429 | `test_security_headers_on_every_response`, `test_docs_have_their_own_csp` |

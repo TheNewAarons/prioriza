@@ -214,3 +214,31 @@ def test_plan_without_requester_cannot_be_reviewed(
     with pytest.raises(PermissionDenied):
         store.review(plan_id, REVISOR, ReviewStatus.APPROVED, None)
     assert store.get(plan_id).review_status is ReviewStatus.PENDING
+
+
+def test_entry_reason_export_and_compare_in_sql(
+    loaded: tuple[Path, sa.Engine], tmp_path: Path
+) -> None:
+    """Las tres funciones de P18-D funcionan igual con el almacén SQL."""
+    run_dir, engine = loaded
+    client = _client(run_dir, engine, tmp_path)
+    h = {"X-API-Key": "g"}
+    ids = []
+    for policy in ("fifo", "priority"):
+        job = client.post(
+            "/v1/schedule-runs", json={"policy": policy, "horizon_weeks": 4}, headers=h
+        ).json()
+        job = client.get(f"/v1/schedule-runs/{job['job_id']}", headers=h).json()
+        assert job["status"] == "succeeded", job
+        ids.append(job["plan_id"])
+    a, b = ids
+    page = client.get(f"/v1/plans/{a}/assignments?limit=1", headers=h).json()
+    entry = page["items"][0]["entry_id"]
+    reason = client.get(f"/v1/plans/{a}/entries/{entry}/reason", headers=h)
+    assert reason.status_code == 200, reason.text
+    assert reason.json()["assignment"]["entry_id"] == entry
+    assert reason.json()["phase"] == "fifo"
+    export = client.get(f"/v1/plans/{a}/export", headers=h)
+    assert export.status_code == 200
+    assert int(export.headers["x-total-rows"]) == page["total"]
+    assert client.get(f"/v1/plans/compare?a={a}&b={b}", headers=h).status_code == 200

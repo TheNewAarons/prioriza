@@ -127,7 +127,7 @@ Tres roles con control de acceso:
 
 | Acción | `lectura` | `gestor` | `revisor` |
 |--------|-----------|----------|-----------|
-| Ver lista de espera, pacientes, planes, simulación | ✓ | ✓ | ✓ |
+| Ver lista de espera, pacientes, planes (incluidos exportar, comparar y "por qué este cupo"), simulación | ✓ | ✓ | ✓ |
 | Solicitar una programación | ✗ | ✓ | ✗ |
 | Aprobar o rechazar un plan pendiente | ✗ | ✗ | ✓ |
 | Marcar vigente un plan aprobado | ✗ | ✓ | ✗ |
@@ -525,6 +525,74 @@ Códigos de respuesta:
 - **200**: Asignaciones encontradas.
 - **401**: Clave faltante o inválida.
 - **404**: Plan no existe.
+
+#### `GET /v1/plans/{plan_id}/export`
+Requiere clave (cualquier rol). Descarga las asignaciones del plan en CSV. Lo usa el botón "Descargar CSV" de la vista Programación.
+
+**Parámetros**: `format` (solo `csv`, por defecto `csv`; otro valor es 422), `limit` (filas a exportar; por defecto y como máximo `PRIORIZA_API_MAX_EXPORT_ROWS`, 50.000; un valor mayor es 422) y `offset` (por defecto 0, para continuar un archivo recortado).
+
+```bash
+curl -H "X-API-Key: EJEMPLO-clave-revisor-no-usar-en-produccion" \
+  'http://localhost:8000/v1/plans/660f8400-e29b-41d4-a716-446655440111/export?format=csv'
+```
+
+Respuesta (`text/csv; charset=utf-8`, `Content-Disposition: attachment`, sin `disclaimer` JSON: el aviso va en el archivo):
+```csv
+# aviso: Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.
+# plan: 660f8400-e29b-41d4-a716-446655440111; estado de revisión: pending; todo plan requiere revisión humana antes de usarse
+Entrada,Paciente sintético,Cupo,Especialidad,Inicio (UTC),Duración (min),Anticipación (días),Sobrecupo,Probabilidad de inasistencia
+entry-uuid-1,patient-uuid-a,slot-uuid-x,cne_medical:medicina_interna,2026-10-14T09:00:00+00:00,20,5,no,0.15
+```
+
+- **Formato**: UTF-8 sin BOM, coma como separador, `\n` como fin de línea. Las columnas y sus encabezados (en español) son estables: Entrada, Paciente sintético, Cupo, Especialidad, Inicio (UTC), Duración (min), Anticipación (días), Sobrecupo (`sí`/`no`), Probabilidad de inasistencia.
+- **Líneas de comentario**: las líneas que empiezan con `#` (aviso, plan y estado de revisión, y `# truncado` si se recortó por el tope) no son datos. **El lector CSV debe saltarlas** (en pandas, `comment="#"`; en polars, `comment_prefix="#"`).
+- **Sin datos personales**: solo ids sintéticos y columnas operativas; nada de edad, comuna, previsión ni sexo.
+- **Fórmulas**: las celdas de texto que empiezan con `=`, `+`, `-`, `@`, tabulación o retorno de carro se prefijan con `'` para que una hoja de cálculo no las ejecute.
+- **Tamaño**: si el plan tiene más filas que el tope, el archivo trae la línea `# truncado: ...` y las cabeceras `X-Total-Rows` y `X-Exported-Rows` dicen cuántas filas hay y cuántas se enviaron; se continúa con `offset`.
+
+Códigos de respuesta: **200**, **401**, **404** (plan no existe), **422** (`format` distinto de `csv` o `limit` sobre el tope).
+
+#### `GET /v1/plans/compare`
+Requiere clave (cualquier rol). Compara dos planes **de la misma corrida** lado a lado: `?a={plan_id}&b={plan_id}`.
+
+```bash
+curl -H "X-API-Key: EJEMPLO-clave-revisor-no-usar-en-produccion" \
+  'http://localhost:8000/v1/plans/compare?a=660f8400-e29b-41d4-a716-446655440111&b=770f8400-e29b-41d4-a716-446655440222'
+```
+
+Respuesta:
+```json
+{
+  "disclaimer": "...",
+  "run_id": "32c9e349-...",
+  "a": {"plan_id": "660f8400-...", "policy": "fifo", "review_status": "pending", "is_current": false, "created_at": "...", "requested_by": "gestora.test", "solver_status": "NOT_APPLICABLE"},
+  "b": {"plan_id": "770f8400-...", "policy": "optimized", "review_status": "approved", "is_current": true, "created_at": "...", "requested_by": "gestora.test", "solver_status": "OPTIMAL"},
+  "metrics": [
+    {"key": "scheduled", "label": "Citas agendadas", "direction": "higher_is_better", "a": 5952, "b": 6100, "diff": 148, "better": "b"},
+    {"key": "ges_unmet", "label": "GES no cumplidas", "direction": "lower_is_better", "a": 10, "b": 12, "diff": 2, "better": "a"}
+  ],
+  "equity": [
+    {"key": "exposure_share", "label": "Exposición al sobrecupo", "direction": "lower_is_better", "dimension": "age_group", "value": "0_14", "a": 0.0, "b": 0.31, "diff": 0.31, "better": "a"}
+  ]
+}
+```
+
+- `diff` es siempre `b - a` (absoluta; en fracciones para tasas y riesgos). `better` es `a`, `b`, `tie` o `none` (métrica solo informativa, como los sobrecupos, o dato faltante en un plan).
+- Métricas globales (`key`): `scheduled`, `q1_scheduled` (máxima prioridad), `ges_met`, `ges_unmet`, `ges_on_time`, `overbooked_flags`, `added_by_overbooking`, `max_overflow_risk`. Equidad: `scheduled_rate`, `exposure_share` y `flagged_share` por cada grupo del informe (la unión de los grupos de ambos planes).
+- **Los resultados desfavorables se muestran tal cual**: si el plan B es peor en una métrica o en un grupo, `better` vale `a`.
+- Códigos de respuesta: **200**, **401**, **404** (un plan no existe), **422** (`a` igual a `b`, id mal formado o planes de corridas distintas: "los planes son de corridas distintas; no se pueden comparar").
+
+#### `GET /v1/plans/{plan_id}/entries/{entry_id}/reason`
+Requiere clave (cualquier rol). "Por qué este cupo": reúne en una respuesta lo que el plan y la lista de espera ya saben de una entrada; no calcula nada nuevo.
+
+```bash
+curl -H "X-API-Key: EJEMPLO-clave-revisor-no-usar-en-produccion" \
+  http://localhost:8000/v1/plans/660f8400-e29b-41d4-a716-446655440111/entries/entry-uuid-1/reason
+```
+
+Campos de la respuesta (además de `disclaimer`): `plan_id`, `entry_id`, `policy`; `status`, `detail` y `text` (la explicación de `/explanations`); `phase` (`3a` agendada sin sobrecupo o `3b` entró gracias al sobreagendamiento en la política optimizada; el nombre de la política en `fifo` y `priority`; `null` si no quedó agendada; se deduce de `detail`); `assignment` (la cita: cupo, inicio, `is_overbooked`, `predicted_noshow_prob`; `null` si no quedó agendada); `block_load` (capacidad, citas, sobrecupos y `risk_exact` de desborde de la sesión con sobrecupo donde quedó la cita; `null` si el plan no lo informa); `ges` (la garantía GES del plan: plazo, cumplimiento, atraso, causa; `null` si no tiene obligación en el horizonte); y `score` (puntaje, puesto, nivel, prioridad clínica como dato de entrada, espera, `components` y `explanation` de la lista de espera; `null` si la entrada ya no está en espera o la corrida no está disponible).
+
+Códigos de respuesta: **200**, **401**, **404** (el plan no existe o no tiene explicación para esa entrada; los planes escritos por la CLI con `--persist` no guardan explicaciones). El id de la entrada se redacta en los logs (`/entries/[REDACTADO]`).
 
 #### `GET /v1/plans/{plan_id}/explanations`
 Requiere clave. Por qué cada entrada quedó (o no) en el plan.
