@@ -12,7 +12,7 @@ import json
 import platform
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 import joblib
 import numpy as np
@@ -41,6 +41,7 @@ from noshow.features import (
 )
 from noshow.metrics import cramers_v, evaluate, group_calibration, paired_brier_bootstrap
 from noshow.models import (
+    CalibrationMethod,
     SpecialtyRateBaseline,
     build_gradient_boosting,
     build_logistic,
@@ -127,27 +128,70 @@ def _logistic_coefficients(model: Any) -> list[dict[str, Any]]:
     return [{"feature": str(n), "coefficient": round(float(c), 6)} for n, c in rows]
 
 
-def train(run: RunData, config: TrainConfig) -> TrainOutput:
-    """Entrena y evalúa todos los modelos sobre una corrida ya cargada."""
+@dataclass(frozen=True)
+class PreparedData:
+    """Matriz de features ya dividida y columnas efectivas del modelo principal.
+
+    La usan ``train`` y el diagnóstico de ``noshow.diagnostic`` para garantizar el mismo split
+    y las mismas columnas permitidas.
+    """
+
+    split: TemporalSplit
+    categorical: list[str]
+    numeric: list[str]
+    optional: tuple[str, ...]
+    constant: list[str]
+
+
+@dataclass(frozen=True)
+class FittedCandidates:
+    """Modelos ajustados, calibración elegida y selección del principal en calibración."""
+
+    raw: dict[str, Any]
+    candidates: dict[str, Any]
+    method: CalibrationMethod
+    selection: dict[str, float]
+    primary: str
+
+
+def prepare(run: RunData, config: TrainConfig) -> PreparedData:
+    """Features, split temporal y columnas permitidas (sin constantes en entrenamiento)."""
     feats = build_features(run.appointment, run.catalog_specialty, run.waitlist_entry)
     split = temporal_split(feats, config.test_days, config.calibration_days)
     optional = usable_optional(split.train)
     categorical, numeric = model_columns(optional)
     constant = sorted(c for c in categorical + numeric if split.train[c].n_unique() <= 1)
-    categorical = [c for c in categorical if c not in constant]
-    numeric = [c for c in numeric if c not in constant]
-    columns = categorical + numeric
-    X_tr, y_tr = _xy(split.train, columns)
-    X_cal, y_cal = _xy(split.calibration, columns)
-    X_te, y_te = _xy(split.test, columns)
+    return PreparedData(
+        split=split,
+        categorical=[c for c in categorical if c not in constant],
+        numeric=[c for c in numeric if c not in constant],
+        optional=optional,
+        constant=constant,
+    )
 
-    baseline = SpecialtyRateBaseline(smoothing=config.baseline_smoothing).fit(X_tr, y_tr)
-    raw = {
-        "logistic_regression": build_logistic(categorical, numeric, config.seed).fit(X_tr, y_tr),
-        "gradient_boosting": build_gradient_boosting(categorical, numeric, config.seed).fit(
-            X_tr, y_tr
-        ),
+
+def build_candidates(categorical: list[str], numeric: list[str], seed: int) -> dict[str, Any]:
+    """Modelos aprendidos sin ajustar (logística y boosting) con hiperparámetros fijos."""
+    return {
+        "logistic_regression": build_logistic(categorical, numeric, seed),
+        "gradient_boosting": build_gradient_boosting(categorical, numeric, seed),
     }
+
+
+def fit_and_select(
+    unfitted: dict[str, Any],
+    X_tr: pl.DataFrame,
+    y_tr: np.ndarray,
+    X_cal: pl.DataFrame,
+    y_cal: np.ndarray,
+    config: TrainConfig,
+) -> FittedCandidates:
+    """Ajusta en entrenamiento, calibra y elige el principal con el conjunto de calibración.
+
+    El principal es el candidato (con o sin calibrar) de menor Brier en calibración; el
+    conjunto de prueba no participa.
+    """
+    raw = {name: model.fit(X_tr, y_tr) for name, model in unfitted.items()}
     method = choose_calibration_method(y_cal)
     selection: dict[str, float] = {}
     candidates: dict[str, Any] = {}
@@ -159,6 +203,27 @@ def train(run: RunData, config: TrainConfig) -> TrainOutput:
         selection[name] = _brier(y_cal, oof)
         candidates[name] = calibrate(model, X_cal, y_cal, method)
     primary = min(selection, key=lambda n: (selection[n], n))
+    return FittedCandidates(
+        raw=raw, candidates=candidates, method=method, selection=selection, primary=primary
+    )
+
+
+def train(run: RunData, config: TrainConfig) -> TrainOutput:
+    """Entrena y evalúa todos los modelos sobre una corrida ya cargada."""
+    prep = prepare(run, config)
+    split, optional, constant = prep.split, prep.optional, prep.constant
+    categorical, numeric = prep.categorical, prep.numeric
+    columns = categorical + numeric
+    X_tr, y_tr = _xy(split.train, columns)
+    X_cal, y_cal = _xy(split.calibration, columns)
+    X_te, y_te = _xy(split.test, columns)
+
+    baseline = SpecialtyRateBaseline(smoothing=config.baseline_smoothing).fit(X_tr, y_tr)
+    fitted = fit_and_select(
+        build_candidates(categorical, numeric, config.seed), X_tr, y_tr, X_cal, y_cal, config
+    )
+    raw, candidates = fitted.raw, fitted.candidates
+    method, selection, primary = fitted.method, fitted.selection, fitted.primary
 
     preds = {"baseline_specialty_rate": _proba(baseline, X_te)}
     preds.update({name: _proba(model, X_te) for name, model in sorted(candidates.items())})
@@ -294,8 +359,58 @@ def _fairness(
     return out
 
 
+PRODUCTION_MODEL_NAMES: Final[frozenset[str]] = frozenset(
+    {
+        "baseline_specialty_rate",
+        "logistic_regression",
+        "logistic_regression_uncalibrated",
+        "gradient_boosting",
+        "gradient_boosting_uncalibrated",
+    }
+)
+
+
+def _seen_columns(model: Any) -> set[str]:
+    """Columnas de entrada que vio un modelo ajustado (vacío si no se puede saber)."""
+    if isinstance(model, SpecialtyRateBaseline):
+        return {model.column}
+    return {str(c) for c in getattr(model, "feature_names_in_", [])}
+
+
+def assert_production_bundle(bundle: dict[str, Any]) -> None:
+    """Falla si el bundle trae modelos ajenos a producción o columnas prohibidas.
+
+    Barrera antes de persistir: los modelos de diagnóstico (``noshow.diagnostic``), que sí ven
+    variables excluidas por equidad, nunca deben llegar a ``noshow_model.joblib``.
+    """
+    models: dict[str, Any] = bundle["models"]
+    unknown = sorted(set(models) - PRODUCTION_MODEL_NAMES)
+    if unknown:
+        raise ValueError(f"modelos ajenos a producción en el bundle: {unknown}")
+    if bundle["primary"] not in models:
+        raise ValueError(f"el principal {bundle['primary']!r} no está en el bundle")
+    columns = set(bundle["columns"]["categorical"]) | set(bundle["columns"]["numeric"])
+    leaked = sorted(columns & FORBIDDEN_FEATURES)
+    if leaked:
+        raise ValueError(f"variables prohibidas en las columnas del bundle: {leaked}")
+    for name, model in sorted(models.items()):
+        seen = _seen_columns(model)
+        if not seen:
+            raise ValueError(f"no se pueden verificar las columnas del modelo {name!r}")
+        leaked = sorted(seen & FORBIDDEN_FEATURES)
+        if leaked or not seen <= columns:
+            raise ValueError(
+                f"el modelo {name!r} vio columnas fuera del bundle o prohibidas: "
+                f"{sorted(seen - columns) or leaked}"
+            )
+
+
 def save(output: TrainOutput, models_dir: Path, results_path: Path) -> Path:
-    """Escribe el artefacto ``joblib`` y su ``metadata.json`` y el informe ``results``."""
+    """Escribe el artefacto ``joblib`` y su ``metadata.json`` y el informe ``results``.
+
+    Antes de escribir verifica el bundle con ``assert_production_bundle``.
+    """
+    assert_production_bundle(output.bundle)
     run_id = str(output.bundle["data_version"]["run_id"])
     target = models_dir / run_id
     target.mkdir(parents=True, exist_ok=True)

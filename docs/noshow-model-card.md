@@ -85,6 +85,51 @@ Con datos reales, ginecología y obstetricia, urología y mama delatarían el se
 | `clinical_priority` | No existe en el historial. Además, el sobreagendamiento no debe aprender de la prioridad clínica. |
 | `noshow_frailty`, `true_noshow_prob` | Verdad sintética del generador: prohibida. Solo se lee `appointment_truth` para la referencia del oráculo. |
 
+## Costo de las variables excluidas
+
+**Diagnóstico de solo medición.** Ningún modelo de esta sección se guarda en `noshow_model.joblib`, ni lo usa el programador o la simulación, y las variables siguen prohibidas en producción. Su único fin es cuantificar cuánto desempeño se pierde por excluirlas (`results/noshow.json`, clave `diagnostic_excluded`, con `purpose` y `used_by_scheduler: false`).
+
+**Método.** Cada variante agrega a las variables permitidas una o todas las excluidas por equidad (`age_group`, `insurance`, `commune_code`, `health_service_code`) y repite el pipeline del principal sin cambios: mismo split temporal, mismos candidatos e hiperparámetros, misma regla de calibración, misma selección por Brier en el bloque de calibración y misma semilla. Se informa el candidato que esa selección elige, evaluado en prueba. La diferencia de Brier contra el principal lleva un IC 95 % por bootstrap de pacientes (1.000 réplicas, negativa = la variante es mejor). Sexo, etnia y nacionalidad no existen en los datos y nunca entran, ni siquiera aquí; la verdad sintética (`noshow_frailty`, `true_noshow_prob`) solo se usa como referencia, igual que en el resto de la evaluación. Para el boosting, la comuna (338 niveles) supera el máximo de 255 categorías de `HistGradientBoostingClassifier`, así que en esas variantes se agrupan las comunas infrecuentes; la logística usa el mismo one-hot de producción (niveles con menos de 20 casos agrupados).
+
+Corrida `32c9e349` (seed 42, n 100.000, escenario `baseline`, `dataset_sha256` `3ba6e988…`), conjunto de prueba (31.622 citas):
+
+| Variante | Candidato elegido | AUC | Brier | ECE | Δ Brier vs principal [IC 95 %] | Brecha al oráculo cerrada |
+|---|---|---|---|---|---|---|
+| Principal (sin excluidas) | logística sin calibrar | 0,6248 | 0,120548 | 0,0064 | | |
+| + grupo etario | logística sin calibrar | 0,6326 | 0,120185 | 0,0068 | **−0,000364** [−0,000521; −0,000192] | 3,8 % |
+| + previsión | logística calibrada | 0,6244 | 0,120612 | 0,0070 | +0,000063 [−0,000058; +0,000193] | −0,7 % |
+| + comuna | logística calibrada | 0,6200 | 0,120953 | 0,0109 | **+0,000405** [+0,000176; +0,000635] | −4,2 % |
+| + servicio de salud | logística sin calibrar | 0,6257 | 0,120468 | 0,0077 | −0,000080 [−0,000207; +0,000042] | 0,8 % |
+| + las cuatro | logística calibrada | 0,6262 | 0,120522 | 0,0064 | −0,000026 [−0,000291; +0,000252] | 0,3 % |
+| Oráculo (verdad sintética) | | 0,7370 | 0,110977 | 0,0037 | | 100 % |
+
+"Brecha al oráculo cerrada" = (Brier principal − Brier variante) / (Brier principal − Brier oráculo).
+
+**Lectura, tal cual:**
+
+- **El costo en desempeño global es pequeño.** La mejor variante (grupo etario) mejora el Brier en 0,00036 (0,3 % del Brier del principal) y el AUC en 0,008 (0,625 → 0,633). La mejora es estadísticamente significativa, pero cierra solo el 3,8 % de la distancia al oráculo. La brecha con el oráculo sigue siendo, casi entera, la fragilidad latente no observable (A3), no las variables excluidas.
+- **La previsión no aporta nada.** En el escenario `baseline` el generador no la usa, así que este resultado es una propiedad del sintético, no evidencia de que la previsión no prediga en datos reales.
+- **La comuna empeora el modelo** (Brier +0,0004, IC que excluye el 0; AUC −0,005). En el sintético no tiene efecto propio, solo vía servicio, y sus 338 niveles agregan ruido que los hiperparámetros fijos no regularizan. El servicio, que lleva la misma señal geográfica con 29 niveles, mejora poco y sin significancia: solo dos servicios (Arica e Iquique) tienen tasas distintas y aportan pocas citas.
+- **Las cuatro juntas mejoran menos que la edad sola.** El ruido de comuna y previsión anula la ganancia de la edad, y la selección elige la logística calibrada, cuya media predicha (0,151) absorbe la tasa más alta del bloque de calibración (ver "Modelos, calibración y selección"). Incluso la logística sin calibrar de esa variante (Brier 0,120561, en `test_metrics_by_candidate`) queda detrás de la variante con solo edad. Con otra regularización o codificación de la comuna la variante conjunta podría rendir más; no se exploró, porque ajustar hiperparámetros para un modelo que no se va a usar gastaría el bloque de prueba sin beneficio.
+- **Donde sí hay costo es en la calibración por grupo.** Brecha máxima (predicha − verdad) por dimensión, grupos con n ≥ 200:
+
+| Dimensión | Principal | + grupo etario | + servicio | + las cuatro |
+|---|---|---|---|---|
+| Grupo etario | 3,21 pp | 0,80 pp | 3,19 pp | 1,00 pp |
+| Servicio de salud | 4,94 pp | 5,03 pp | 2,55 pp | 2,27 pp |
+| Comuna | 5,11 pp | 5,23 pp | 3,05 pp | 2,66 pp |
+| Previsión | 0,23 pp | 0,22 pp | 0,22 pp | 0,87 pp |
+
+  Con la edad, la subestimación de 15-44 años (−3,1 a −3,2 pp) y la sobreestimación de 65+ (+2,3 pp) casi desaparecen (−0,5 y −0,05 pp). Con el servicio, la brecha máxima por servicio (Arica en el principal) baja de 4,9 a 2,5 pp. Es decir, en este sintético las variables excluidas mejorarían la calibración por grupo bastante más que las métricas globales. Agregar las cuatro **empeora** la calibración por previsión (0,23 → 0,87 pp): el modelo aprende diferencias de previsión que el generador no tiene.
+
+**Por qué igual no se usan.** La decisión es normativa y no depende de que la mejora sea pequeña:
+
+1. **Trato según pertenencia a un grupo.** Con edad o territorio como variables, el sobreagendamiento recaería sobre una persona por ser joven o vivir en Arica, no por su propio historial de asistencia. Concentraría las colisiones en esos grupos (hallazgo M3) y, en datos reales, haría circular la desventaja: más sobrecupo, peor experiencia y más inasistencia en el mismo grupo.
+2. **Proxies.** Previsión, comuna y servicio son proxies de nivel socioeconómico, etnia y nacionalidad (CLAUDE.md). Que en el sintético la previsión no prediga nada no lo asegura en datos reales, donde sí podría hacerlo y por esa razón.
+3. **El costo es acotado y conocido.** La pérdida global es de 0,3 % del Brier. La de calibración por grupo ya se publica en la sección Equidad y la simulación mide su efecto en el sobreagendamiento. Si una institución quisiera corregir esas brechas, el camino compatible con estas reglas es auditar y ajustar la política de sobrecupo por grupo (por ejemplo, con topes de exposición), no darle esas variables al modelo.
+
+Cómo se protege: `noshow.diagnostic` devuelve solo números (sin estimadores) y no importa `joblib`; `save` rechaza cualquier bundle con modelos o columnas ajenos a producción (`assert_production_bundle`); los tests de `noshow/tests/test_noshow_diagnostic.py` fallan si cambian `MODEL_FEATURES` o `FORBIDDEN_FEATURES`, si un modelo de diagnóstico llega al bundle, si el diagnóstico deja de ser determinista o si el programador o la simulación importan el módulo (directa o transitivamente). El diagnóstico corre por defecto en `prioriza-noshow train` (~20 s extra con n = 100.000; `--no-diagnostic` lo apaga) y no cambia `test_metrics`, `metadata.json` ni las predicciones del bundle.
+
 ## Modelos, calibración y selección
 
 - **Baseline:** tasa histórica por especialidad en entrenamiento, contraída hacia la tasa global (m = 20); especialidades no vistas reciben la tasa global.
@@ -204,7 +249,7 @@ make train-noshow     # = uv run --package noshow prioriza-noshow train --seed 4
 |---|---|
 | `models/noshow/<run_id>/noshow_model.joblib` | Bundle con los candidatos (logística y boosting, con y sin calibrar) y el baseline, el nombre del principal y las columnas de entrada. No se versiona en git. |
 | `models/noshow/<run_id>/metadata.json` | Versión del modelo (huella de configuración, columnas e hiperparámetros + `dataset_sha256`), versión de datos, límites del split, método de calibración y versiones de librerías. |
-| `results/noshow.json` | Métricas, curvas de calibración, selección, equidad, fuerza de proxies, coeficientes de la logística y política de variables. |
+| `results/noshow.json` | Métricas, curvas de calibración, selección, equidad, fuerza de proxies, coeficientes de la logística, política de variables y el diagnóstico de solo medición de las variables excluidas (`diagnostic_excluded`). |
 
 Referencias: `docs/decisions.md` §9, `docs/design/synthetic-noshow-review.md`, `noshow/src/noshow/features.py`, `docs/synthetic-data.md` §4.
 
