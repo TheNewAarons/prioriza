@@ -914,3 +914,24 @@ Más modificados (commits): `docs/decisions.md` 17, `TASK_PLAN.md` 11, `Makefile
   M-05 `joblib_sha256` y `load_verified_bundle` (modelos previos hay que reentrenarlos), M-06 contraseña por defecto rechazada
   en producción; tests de regresión en cada uno. `make lint typecheck test`: 1.182 pasadas, 14 omitidas (db). `make report` regenerado.
 - 2026-10-10, Tier 1 (P17-T4): 12 bajos y los 2 medios abiertos pasados a `docs/backlog.md`.
+
+## P18: mejoras de credibilidad, programador y panel
+
+Origen: lista de mejoras de la conversación del 2026-10-10. Se hace en olas para regenerar resultados una sola vez al final.
+Proxy Tier 2/3 caído: Tier 2 → `implementer`/`optimizer`, Tier 3 → `test-writer`/`docs-writer`/`chore`.
+
+**Ola 1 (en paralelo, archivos distintos):**
+- [ ] P18-A (Tier 1 - `architect`) -> Diseño: oferta realista (sesiones multicelda), presupuesto de tiempo global, y arreglo conjunto de M-03/M-04. Solo plan.
+- [ ] P18-B (Tier 2 - `ml-engineer`) -> Diagnóstico: costo en desempeño de las variables excluidas por equidad (solo medición, nunca usado por el programador). `noshow/`, `results/noshow.json`.
+- [ ] P18-C (Tier 2 - `data-researcher`) -> Fuentes públicas para los supuestos del generador sin fuente (solo hallazgos; no edita).
+- [ ] P18-D (Tier 2 - `implementer`) -> Panel/API: exportar plan (CSV), comparar dos planes, "por qué este cupo"; `test-writer` sube cobertura de `programacion.py` y `cli.py`.
+
+**Ola 2 (después de P18-A):**
+- [ ] P18-E (Tier 1 - `optimizer`) -> Programador: M-03, M-04, presupuesto global de tiempo.
+- [ ] P18-F (Tier 2 - `implementer`) -> Generador/simulación: oferta realista según P18-A; calibración con fuentes de P18-C que sean verificables.
+
+**Ola 3:**
+- [ ] P18-G (Tier 1) -> Simulación con más réplicas y grupos pequeños agrupados; regenerar `results/`, informe, README, límites y docs; `reviewer`; commit.
+
+### Log
+
