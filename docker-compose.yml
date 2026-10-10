@@ -10,7 +10,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -23,7 +23,7 @@ services:
       dockerfile: api/Dockerfile
     env_file: .env
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     environment:
       <<: *app-env
       PRIORIZA_API_USERS_FILE: /app/config/users.json
@@ -55,7 +55,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "${DASHBOARD_PORT:-8050}:8050"
+      - "127.0.0.1:${DASHBOARD_PORT:-8050}:8050"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8050/healthz', timeout=3)"]
       interval: 10s

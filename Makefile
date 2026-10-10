@@ -1,4 +1,4 @@
-.PHONY: api up down migrate ingest synth train-noshow schedule bench-scheduler simulate demo report dashboard test lint typecheck format sync hooks help
+.PHONY: api up down migrate ingest synth train-noshow schedule bench-scheduler simulate demo report dashboard test lint typecheck format sync hooks audit help
 
 up:
 	@[ -f .env ] || cp .env.example .env
@@ -78,6 +78,11 @@ sync:
 hooks:
 	uv run pre-commit install
 
+audit:
+	@tmp=$$(mktemp) && trap 'rm -f "$$tmp"' EXIT && \
+	uv export --all-packages --no-hashes --no-emit-workspace --format requirements-txt --quiet > "$$tmp" && \
+	uv run pip-audit -r "$$tmp" --disable-pip --no-deps --progress-spinner off
+
 help:
 	@echo "Prioriza - Sistema de gestión de listas de espera hospitalarias"
 	@echo ""
@@ -101,4 +106,5 @@ help:
 	@echo "  format             Formatea código con ruff"
 	@echo "  sync               Sincroniza dependencias de uv"
 	@echo "  hooks              Instala los hooks de git (pre-commit y pre-push)"
+	@echo "  audit              Audita dependencias con pip-audit"
 	@echo "  help               Muestra esta ayuda"

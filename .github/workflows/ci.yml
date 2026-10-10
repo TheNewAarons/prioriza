@@ -1,4 +1,6 @@
-# Flujo CI/CD: lint, typecheck y tests sin dependencias de red.
+# Flujo CI/CD: lint, typecheck, tests y auditoría sin dependencias de red.
+# Estado: desactivado en GitHub Actions (gh workflow disable CI; reactivar con gh workflow enable CI).
+# El hook pre-push local (.pre-commit-config.yaml) lo reemplaza durante el desarrollo.
 name: CI
 
 on:
@@ -38,7 +40,7 @@ jobs:
       - run: make lint
 
       # Valida tipos con mypy en modo strict.
-      # Comentario: Garantiza tipado estricto en shared/, priority/ y scheduler/.
+      # Comentario: Garantiza tipado estricto en shared/, priority/, scheduler/, api/ y dashboard/.
       - run: make typecheck
 
       # Ejecuta tests con pytest en modo offline.
@@ -47,3 +49,24 @@ jobs:
       - run: make test
         env:
           UV_OFFLINE: "1"
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # Descarga el código fuente.
+      - uses: actions/checkout@v4
+
+      # Instala uv con caché habilitado y Python 3.12.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      # Sincroniza dependencias con lock file congelado.
+      - run: uv sync --all-packages --frozen
+
+      # Audita vulnerabilidades conocidas en dependencias.
+      # Comentario: Detecta CVE en el árbol de dependencias. Falla si hay vulnerabilidades no justificadas.
+      - run: make audit

@@ -85,3 +85,5 @@ models/
 
 # Usuarios y claves de la API (copiar de api/users.example.json; nunca versionar)
 api/config/
+# Demo de punta a punta (scripts/demo.sh): datos, resultados, logs y claves de usuarios locales.
+data/demo/
