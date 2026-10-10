@@ -8,7 +8,7 @@
 
 - La fragilidad latente de cada paciente (u_i) no es observable. Con ~1,5 citas previas por paciente, el techo práctico de AUC con variables observables es ~0,63-0,65, frente a 0,74 del oráculo (hallazgo A3 de `docs/design/synthetic-noshow-review.md`).
 - El historial sintético no tiene término de espera (vale 0 en el generador), así que el modelo no puede aprender el efecto de la espera que sí tendrán las citas futuras (hallazgo A2).
-- El modelo no ve servicio de salud, comuna ni edad (excluidos por equidad), así que no distingue que Arica (22 %) e Iquique (21 %) tienen tasas base más altas ni el efecto de la edad que el generador sí usa. Las brechas resultantes están en la sección Equidad.
+- El modelo no ve servicio de salud, comuna ni edad (excluidos por equidad), así que no distingue que Arica e Iquique tienen tasas base más altas (probabilidad verdadera media de 19,8 % en ambos en el conjunto de prueba, frente a 14,6 % del modelo principal en el total) ni el efecto de la edad que el generador sí usa. Las brechas resultantes están en la sección Equidad.
 
 ## Resumen
 
@@ -25,13 +25,13 @@ Estima la probabilidad de que un paciente no se presente a una cita (consulta nu
 
 | Parámetro | Valor |
 |---|---|
-| `run_id` | `32c9e349-74f9-5c85-bf4b-990796b47323` |
+| `run_id` | `d7a0c251-9a0f-5d0a-9941-5140560fb5b2` |
 | Semilla | 42 |
 | Tamaño (`size`) | 100.000 entradas en lista de espera (85.083 pacientes; 127.517 citas de historial) |
 | Escenario | `baseline` (efecto de edad, sin efecto de previsión, efecto aleatorio por especialidad) |
 | `as_of` | 2025-09-30 |
-| `dataset_sha256` | `6ef9a83e7b146304e59c854e2910fef53dd902a12e46d78c04dcd5cea106b6fe` |
-| Generador | 0.1.0 (`params_sha256` `a8e042e2…`, `targets_sha256` `22f5a727…`) |
+| `dataset_sha256` | `652dd76d8b71124a897674fb8b90efb84aba02031288ec1d556e31b363184103` |
+| Generador | 0.3.0 (`params_sha256` `0bf4b473…`, `targets_sha256` `22f5a727…`) |
 
 ### Split temporal
 
@@ -91,16 +91,16 @@ Con datos reales, ginecología y obstetricia, urología y mama delatarían el se
 
 **Método.** Cada variante agrega a las variables permitidas una o todas las excluidas por equidad (`age_group`, `insurance`, `commune_code`, `health_service_code`) y repite el pipeline del principal sin cambios: mismo split temporal, mismos candidatos e hiperparámetros, misma regla de calibración, misma selección por Brier en el bloque de calibración y misma semilla. Se informa el candidato que esa selección elige, evaluado en prueba. La diferencia de Brier contra el principal lleva un IC 95 % por bootstrap de pacientes (1.000 réplicas, negativa = la variante es mejor). Sexo, etnia y nacionalidad no existen en los datos y nunca entran, ni siquiera aquí; la verdad sintética (`noshow_frailty`, `true_noshow_prob`) solo se usa como referencia, igual que en el resto de la evaluación. Para el boosting, la comuna (338 niveles) supera el máximo de 255 categorías de `HistGradientBoostingClassifier`, así que en esas variantes se agrupan las comunas infrecuentes; la logística usa el mismo one-hot de producción (niveles con menos de 20 casos agrupados).
 
-Corrida `32c9e349` (seed 42, n 100.000, escenario `baseline`, `dataset_sha256` `3ba6e988…`), conjunto de prueba (31.622 citas):
+Corrida `d7a0c251` (seed 42, n 100.000, escenario `baseline`, `dataset_sha256` `652dd76d…`), conjunto de prueba (31.622 citas):
 
 | Variante | Candidato elegido | AUC | Brier | ECE | Δ Brier vs principal [IC 95 %] | Brecha al oráculo cerrada |
 |---|---|---|---|---|---|---|
 | Principal (sin excluidas) | logística sin calibrar | 0,6248 | 0,120548 | 0,0064 | | |
-| + grupo etario | logística sin calibrar | 0,6326 | 0,120185 | 0,0068 | **−0,000364** [−0,000521; −0,000192] | 3,8 % |
-| + previsión | logística calibrada | 0,6244 | 0,120612 | 0,0070 | +0,000063 [−0,000058; +0,000193] | −0,7 % |
-| + comuna | logística calibrada | 0,6200 | 0,120953 | 0,0109 | **+0,000405** [+0,000176; +0,000635] | −4,2 % |
-| + servicio de salud | logística sin calibrar | 0,6257 | 0,120468 | 0,0077 | −0,000080 [−0,000207; +0,000042] | 0,8 % |
-| + las cuatro | logística calibrada | 0,6262 | 0,120522 | 0,0064 | −0,000026 [−0,000291; +0,000252] | 0,3 % |
+| + grupo etario | logística sin calibrar | 0,6326 | 0,120185 | 0,0068 | **−0,000364** [−0,000535; −0,000198] | 3,8 % |
+| + previsión | logística calibrada | 0,6244 | 0,120612 | 0,0070 | +0,000063 [−0,000053; +0,000183] | −0,7 % |
+| + comuna | logística calibrada | 0,6200 | 0,120953 | 0,0109 | **+0,000405** [+0,000164; +0,000645] | −4,2 % |
+| + servicio de salud | logística sin calibrar | 0,6257 | 0,120468 | 0,0077 | −0,000080 [−0,000206; +0,000041] | 0,8 % |
+| + las cuatro | logística calibrada | 0,6262 | 0,120522 | 0,0064 | −0,000026 [−0,000302; +0,000268] | 0,3 % |
 | Oráculo (verdad sintética) | | 0,7370 | 0,110977 | 0,0037 | | 100 % |
 
 "Brecha al oráculo cerrada" = (Brier principal − Brier variante) / (Brier principal − Brier oráculo).
@@ -143,8 +143,8 @@ Cómo se protege: `noshow.diagnostic` devuelve solo números (sin estimadores) y
 | Candidato | Brier en calibración |
 |---|---|
 | Regresión logística, sin calibrar | **0,125951** |
-| Regresión logística, calibrada | 0,125976 |
-| Gradient boosting, calibrado | 0,126566 |
+| Regresión logística, calibrada | 0,125987 |
+| Gradient boosting, calibrado | 0,126559 |
 | Gradient boosting, sin calibrar | 0,126732 |
 
 **Principal: regresión logística sin calibrar.** La calibración isotónica no mejoró a la logística, que ya venía bien calibrada. En prueba también la empeoró levemente (Brier 0,120548 → 0,120621; ECE 0,0064 → 0,0072): la isotónica absorbe la tasa del bloque de calibración (15,22 %), mayor que la de prueba (14,46 %), y sube la media predicha de 0,1459 a 0,1517. Como el proceso sintético es estacionario, esa diferencia es variación muestral, no deriva. Al boosting sí lo mejoró (ECE 0,0176 → 0,0092). Con datos reales, que sí tienen deriva, la selección puede preferir el modelo calibrado con el periodo más reciente; la regla es la misma.
@@ -167,7 +167,7 @@ ECE con 10 bins de igual frecuencia; la curva de calibración completa de cada m
 | | Valor |
 |---|---|
 | Δ Brier (principal − baseline) | −0,000958 |
-| IC 95 % | [−0,001227; −0,000683] |
+| IC 95 % | [−0,001254; −0,000652] |
 | Remuestreo | Bootstrap de pacientes, 1.000 réplicas |
 
 **El modelo principal supera al baseline en Brier** y el IC 95 % no incluye 0. La mejora es pequeña (~0,8 % del Brier del baseline), coherente con el techo descrito arriba. Se remuestrean pacientes porque sus citas comparten la fragilidad latente.
@@ -253,4 +253,4 @@ make train-noshow     # = uv run --package noshow prioriza-noshow train --seed 4
 
 Referencias: `docs/decisions.md` §9, `docs/design/synthetic-noshow-review.md`, `noshow/src/noshow/features.py`, `docs/synthetic-data.md` §4.
 
-Modelo `noshow-4f0429cd-6ef9a83e`, 2026-10-08.
+Modelo `noshow-4f0429cd-652dd76d` (corrida canónica `d7a0c251`, generador 0.3.0).

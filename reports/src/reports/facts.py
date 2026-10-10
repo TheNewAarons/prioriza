@@ -108,6 +108,28 @@ VARIANT_LABELS = {
 }
 
 
+DIAGNOSTIC_VARIANTS = (
+    ("plus_age_group", "+ grupo etario"),
+    ("plus_insurance", "+ previsión"),
+    ("plus_commune_code", "+ comuna"),
+    ("plus_health_service_code", "+ servicio de salud"),
+    ("plus_all_excluded", "+ las cuatro"),
+)
+"""Variantes del diagnóstico de variables excluidas, en el orden en que se muestran."""
+
+CANDIDATE_LABELS = {
+    "logistic_regression": "logística calibrada",
+    "logistic_regression_uncalibrated": "logística sin calibrar",
+    "gradient_boosting": "boosting calibrado",
+    "gradient_boosting_uncalibrated": "boosting sin calibrar",
+}
+
+BUDGET_UNIT_LABELS = {
+    "deterministic": "unidades de tiempo determinista de CP-SAT (no son segundos)",
+    "wall": "segundos de pared",
+}
+
+
 class FactsError(ValueError):
     """Falta un archivo o un campo, o la estructura no es la esperada."""
 
@@ -403,6 +425,32 @@ def _delta(a: dict[str, Any], b: dict[str, Any], keys: tuple[str, ...]) -> dict[
     return out
 
 
+def _budget(opt: _Doc) -> dict[str, Any]:
+    """Presupuesto de tiempo del plan (``solver.budget``) con sus fracciones derivadas."""
+    b = opt.sub("solver.budget")
+    unit = b.text("unit")
+    total = b.num("total")
+    spent = b.num("spent")
+    first = b.sub("first_pass")
+    frontier = b.sub("frontier")
+    exhausted = b.req("exhausted")
+    if not isinstance(exhausted, bool):
+        raise b._fail("exhausted", "se esperaba un booleano en")
+    return {
+        "unit": unit,
+        "unit_label": BUDGET_UNIT_LABELS.get(unit, unit),
+        "total": total,
+        "spent": spent,
+        "spent_share": spent / total if total else None,
+        "exhausted": exhausted,
+        "overrun": b.num("overrun"),
+        "phases_ended_by_limit": b.num("phases_ended_by_limit"),
+        "components_skipped": frontier.num("components_skipped"),
+        "first_pass": {"allotted": first.num("allotted"), "spent": first.num("spent")},
+        "frontier": {"allotted": frontier.num("allotted"), "spent": frontier.num("spent")},
+    }
+
+
 def _scheduler(doc: _Doc) -> dict[str, Any]:
     run = doc.sub("run")
     comparison_rows = doc.items("comparison")
@@ -438,6 +486,7 @@ def _scheduler(doc: _Doc) -> dict[str, Any]:
             {"scheduled": block.num("scheduled"), "capacity": block.num("capacity")}
         )
     equity_doc = {name: policies_doc.sub(name).items("equity") for name in order}
+    budget = _budget(opt)
     return {
         "run": {k: run.req(k) for k in ("id", "as_of", "scenario", "seed", "size")},
         "horizon_start": opt.text("horizon_start"),
@@ -487,6 +536,8 @@ def _scheduler(doc: _Doc) -> dict[str, Any]:
             "wall_time_discarded_s": wall_discarded,
             "wall_time_total_s": wall_plan + wall_discarded,
             "deterministic_time_plan": opt.num("solver.time.plan.deterministic_time"),
+            "reproducible": bool(opt.req("reproducible")),
+            "budget": budget,
             "frontier_reached": len(opt.items("frontier.reached")),
             "frontier_still_reached": len(opt.items("frontier.still_reached")),
         },
@@ -602,6 +653,76 @@ def _sched_equity(
 # ------------------------------------------------------------------ Modelo de inasistencias
 
 
+def _diagnostic(doc: _Doc) -> dict[str, Any]:
+    """Costo de las variables excluidas (``diagnostic_excluded``): solo medición."""
+    diag = doc.sub("diagnostic_excluded")
+    ref = diag.sub("reference.test_metrics")
+    oracle = diag.sub("oracle_reference")
+    ref_brier = ref.num("brier")
+    primary = {
+        "label": "Principal (sin excluidas)",
+        "candidate": CANDIDATE_LABELS.get(
+            diag.text("reference.model"), diag.text("reference.model")
+        ),
+        **{k: ref.num(k) for k in ("auc", "brier", "ece")},
+    }
+    rows: list[dict[str, Any]] = []
+    for key, label in DIAGNOSTIC_VARIANTS:
+        v = diag.sub(f"variants.{key}")
+        vs = v.sub("vs_primary")
+        diff = vs.num("brier_difference")
+        significant = vs.req("significant_at_95")
+        if not isinstance(significant, bool):
+            raise vs._fail("significant_at_95", "se esperaba un booleano en")
+        verdict = ("better" if diff < 0 else "worse") if significant else "unclear"
+        candidate = v.text("selected_candidate")
+        rows.append(
+            {
+                "variant": key,
+                "label": label,
+                "added_features": [str(x) for x in v.items("added_features")],
+                "candidate": CANDIDATE_LABELS.get(candidate, candidate),
+                "auc": v.num("test_metrics.auc"),
+                "brier": v.num("test_metrics.brier"),
+                "ece": v.num("test_metrics.ece"),
+                "brier_difference": diff,
+                "ci95_low": vs.num("ci95_low"),
+                "ci95_high": vs.num("ci95_high"),
+                "n_boot": vs.num("n_boot"),
+                "resampling_unit_label": RESAMPLING_LABELS.get(
+                    vs.text("resampling_unit"), vs.text("resampling_unit")
+                ),
+                "significant": significant,
+                "verdict": verdict,
+                "share_closed": v.num("share_of_oracle_brier_gap_closed"),
+            }
+        )
+    oracle_row = {
+        "label": "Oráculo (probabilidad verdadera del generador)",
+        **{k: oracle.num(k) for k in ("auc", "brier", "ece")},
+        "brier_difference": oracle.num("brier") - ref_brier,
+    }
+
+    def labels(verdict: str) -> list[str]:
+        return [r["label"] for r in rows if r["verdict"] == verdict]
+
+    return {
+        "purpose": diag.text("purpose"),
+        "method": diag.text("method"),
+        "used_by_scheduler": bool(diag.req("used_by_scheduler")),
+        "persisted": bool(diag.req("persisted")),
+        "never_included": [str(x) for x in diag.items("never_included")],
+        "primary": primary,
+        "variants": rows,
+        "oracle": oracle_row,
+        "n_boot": rows[0]["n_boot"],
+        "resampling_unit_label": rows[0]["resampling_unit_label"],
+        "better": labels("better"),
+        "worse": labels("worse"),
+        "unclear": labels("unclear"),
+    }
+
+
 def _noshow(doc: _Doc) -> dict[str, Any]:
     primary = doc.text("selection.primary")
     metrics_doc = doc.sub("test_metrics")
@@ -697,6 +818,7 @@ def _noshow(doc: _Doc) -> dict[str, Any]:
             }
             for part in ("train", "calibration", "test")
         },
+        "diagnostic": _diagnostic(doc),
         "models": models,
         "primary_metrics": next(m for m in models if m["is_primary"]),
         "curve": curve,
@@ -1080,6 +1202,14 @@ def _simulation(doc: _Doc, canonical_size: int) -> dict[str, Any]:
     supply = []
     for care in ("consultation", "surgery"):
         c = coverage.sub(care)
+        histogram = c.sub("duration_histogram").data
+        hist_total = sum(histogram.values())
+        durations = [
+            {"minutes": int(k), "blocks": histogram[k], "share": histogram[k] / hist_total}
+            for k in sorted(histogram, key=int)
+        ]
+        # el sobrecupo solo existe en consulta: la cirugía no trae esos campos
+        overbooking = care == "consultation"
         supply.append(
             {
                 "care_type": care,
@@ -1091,10 +1221,22 @@ def _simulation(doc: _Doc, canonical_size: int) -> dict[str, Any]:
                         "cells_with_block",
                         "stock",
                         "stock_in_cells_with_block",
+                        "minutes_target",
+                        "minutes_offered",
                     )
                 },
                 "cells_share": c.num("cells_with_block") / c.num("cells"),
                 "stock_share": c.num("stock_in_cells_with_block") / c.num("stock"),
+                "minutes_share": c.num("minutes_offered") / c.num("minutes_target"),
+                "durations": durations,
+                "has_overbooking": overbooking,
+                "seats": c.num("seats") if overbooking else None,
+                "seats_without_overbooking_share": (
+                    c.num("seats_without_overbooking_share") if overbooking else None
+                ),
+                "blocks_without_overbooking_share": (
+                    c.num("blocks_without_overbooking_share") if overbooking else None
+                ),
             }
         )
     scheduler_by_policy = []

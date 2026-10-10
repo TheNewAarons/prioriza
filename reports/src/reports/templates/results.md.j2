@@ -184,6 +184,24 @@ Riesgo de proxies entre las variables usadas:
 | `{{ e.name }}` | {{ e.reason | cell }} |
 {% endfor %}
 
+{% set dg = noshow.diagnostic %}
+### Costo de las variables excluidas
+
+{# narrativa: aclarar que es solo medición, que ningún modelo del diagnóstico lo usa el programador, y que las variables excluidas siguen prohibidas por ser proxies y por equidad; leer qué variantes mejoran de forma significativa, cuáles empeoran y cuáles no se distinguen del principal. #}
+Esta subsección es solo una medición: cuánto desempeño se pierde por no usar las variables excluidas por equidad. Ningún modelo del diagnóstico se guarda ni lo usan el programador o la simulación (`used_by_scheduler`: {{ yn(dg.used_by_scheduler) }}; modelos persistidos: {{ yn(dg.persisted) }}). Las variables siguen excluidas del modelo de producción porque son proxies de condiciones socioeconómicas o territoriales y porque el modelo no debe tratar distinto a los grupos por ellas; que una variante mejore no cambia esa decisión. {{ dg.purpose }}
+
+Cada variante agrega variables al principal y repite el mismo pipeline (mismo split temporal, candidatos, calibración y semilla). Δ Brier = Brier de la variante menos el del principal, con IC 95 % por bootstrap ({{ dg.n_boot | num }} remuestreos por {{ dg.resampling_unit_label }}); negativo significa que la variante es mejor. La última columna es la proporción de la distancia de Brier entre el principal y el oráculo que la variante cierra. Nunca entran: {% for n in dg.never_included %}`{{ n }}`{{ ", " if not loop.last else "." }}{% endfor %}
+
+| Variante | Candidato elegido | AUC | Brier | ECE | Δ Brier vs principal | Significativo (IC 95 % excluye el cero) | Lectura | Brecha al oráculo cerrada |
+|---|---|---:|---:|---:|---|---|---|---:|
+| {{ dg.primary.label }} | {{ dg.primary.candidate }} | {{ dg.primary.auc | num(4) }} | {{ dg.primary.brier | num(6) }} | {{ dg.primary.ece | num(4) }} | referencia | no aplica | referencia | no aplica |
+{% for v in dg.variants %}
+| {{ v.label }} | {{ v.candidate }} | {{ v.auc | num(4) }} | {{ v.brier | num(6) }} | {{ v.ece | num(4) }} | {{ v.brier_difference | signed(6) }} (IC 95 % {{ v.ci95_low | signed(6) }} a {{ v.ci95_high | signed(6) }}) | {{ yn(v.significant) }} | {{ {"better": "mejora", "worse": "empeora", "unclear": "sin diferencia clara"}[v.verdict] }} | {{ v.share_closed | pct(1) }} |
+{% endfor %}
+| {{ dg.oracle.label }} | no aplica | {{ dg.oracle.auc | num(4) }} | {{ dg.oracle.brier | num(6) }} | {{ dg.oracle.ece | num(4) }} | {{ dg.oracle.brier_difference | signed(6) }} (sin IC) | no aplica | referencia | no aplica |
+
+Lectura. Variantes que mejoran el Brier de forma significativa: {{ dg.better | join(", ") if dg.better else "ninguna" }}. Variantes que lo empeoran de forma significativa: {{ dg.worse | join(", ") if dg.worse else "ninguna" }}. Variantes sin diferencia clara con el principal: {{ dg.unclear | join(", ") if dg.unclear else "ninguna" }}. Una variante que empeora se informa tal cual: agregar variables no garantiza mejor desempeño fuera de la muestra de entrenamiento.
+
 ## Programador
 
 {# narrativa: explicar qué asigna el programador (pacientes a cupos de consulta y pabellón respetando capacidad y plazos), el orden lexicográfico de sus objetivos, cómo se usa el sobrecupo controlado, qué significan los estados del solver y qué cambia frente a las políticas voraces. #}
@@ -211,13 +229,47 @@ Detalle de la optimizada: de {{ sched.optimized.entries_waiting | num }} entrada
 | `{{ cause }}` | {{ n | num }} |
 {% endfor %}
 
-Tiempo y estados del solver (optimizada): {{ sched.optimized.subproblems | num }} subproblemas, {{ sched.optimized.wall_time_plan_s | num(1) }} s de pared en el plan final más {{ sched.optimized.wall_time_discarded_s | num(1) }} s de una primera pasada descartada ({{ sched.optimized.wall_time_total_s | num(1) }} s en total); límite configurado de {{ sched.time_limit_s | num }} s para todo el plan, repartido entre subproblemas; con la primera pasada descartada el total puede superarlo. Estado global: `{{ sched.optimized.solver_status }}`. Colas que alcanzaron la frontera de candidatas: {{ sched.optimized.frontier_reached | num }}, y {{ sched.optimized.frontier_still_reached | num }} siguieron en la frontera tras ampliarla.
+Tiempo y estados del solver (optimizada): {{ sched.optimized.subproblems | num }} subproblemas, {{ sched.optimized.wall_time_plan_s | num(1) }} s de pared medidos en el plan final más {{ sched.optimized.wall_time_discarded_s | num(1) }} s de una primera pasada descartada ({{ sched.optimized.wall_time_total_s | num(1) }} s de pared en total); el tiempo de pared es informativo y el límite del plan se mide con el presupuesto descrito más abajo. Estado global: `{{ sched.optimized.solver_status }}`. Colas que alcanzaron la frontera de candidatas: {{ sched.optimized.frontier_reached | num }}, y {{ sched.optimized.frontier_still_reached | num }} siguieron en la frontera tras ampliarla.
 
 | Fase | Subproblemas por estado | Total | Brecha máxima de la fase |
 |---|---|---:|---:|
 {% for ph in sched.optimized.status_by_phase %}
 | {{ ph.phase }} | {% for status, n in ph.counts.items() %}{{ status }}: {{ n | num }}{{ ", " if not loop.last else "" }}{% endfor %} | {{ ph.total | num }} | {{ sched.optimized.gap_by_phase[ph.phase] | pct(3) if sched.optimized.gap_by_phase[ph.phase] is defined and sched.optimized.gap_by_phase[ph.phase] is not none else "no aplica" }} |
 {% endfor %}
+
+{% set bg = sched.optimized.budget %}
+### Presupuesto de tiempo del plan
+
+{# narrativa: explicar que el límite de tiempo del plan es un presupuesto único repartido entre la primera pasada y la expansión de frontera, en qué unidad se mide, cuánto se gastó, y decir con claridad si se agotó (resultado desfavorable que se reporta tal cual). #}
+El límite de tiempo del plan es un presupuesto único que se reparte entre la primera pasada y la expansión de la frontera de candidatas. Unidad: {{ bg.unit_label }}. Plan reproducible (mismas entradas dan el mismo plan): {{ yn(sched.optimized.reproducible) }}.
+
+| Concepto | Valor |
+|---|---:|
+| Presupuesto total | {{ bg.total | num(1) }} |
+| Gastado en total | {{ bg.spent | num(1) }}{{ " (" ~ (bg.spent_share | pct(1)) ~ " del total)" if bg.spent_share is not none else "" }} |
+| Primera pasada: asignado | {{ bg.first_pass.allotted | num(1) }} |
+| Primera pasada: gastado | {{ bg.first_pass.spent | num(1) }} |
+| Expansión de frontera: asignado | {{ bg.frontier.allotted | num(1) }} |
+| Expansión de frontera: gastado | {{ bg.frontier.spent | num(1) }} |
+| Componentes omitidos en la expansión | {{ bg.components_skipped | num }} |
+| Fases terminadas por el límite de tiempo | {{ bg.phases_ended_by_limit | num }} |
+| Sobregiro | {{ bg.overrun | num(1) }} |
+| Presupuesto agotado | {{ yn(bg.exhausted) }} |
+
+{% if bg.exhausted %}
+**El presupuesto se agotó.** Es un resultado desfavorable y se informa tal cual: parte de las fases se cerró por el límite de tiempo y no por haber probado el óptimo, así que el plan puede estar por debajo del mejor posible con más tiempo; los estados y brechas por fase de la tabla anterior muestran dónde ocurrió.
+{% else %}
+El presupuesto no se agotó: el plan se cerró antes de consumirlo por completo.
+{% endif %}
+{% if bg.phases_ended_by_limit > 0 %}
+{{ bg.phases_ended_by_limit | num }} {{ "fase terminó" if bg.phases_ended_by_limit == 1 else "fases terminaron" }} por el límite de tiempo en lugar de por una prueba de optimalidad.
+{% endif %}
+{% if bg.components_skipped > 0 %}
+{{ bg.components_skipped | num }} {{ "componente no se resolvió" if bg.components_skipped == 1 else "componentes no se resolvieron" }} de nuevo en la expansión de la frontera por falta de presupuesto.
+{% endif %}
+{% if bg.overrun > 0 %}
+El plan gastó más que lo asignado (sobregiro de {{ bg.overrun | num(1) }}).
+{% endif %}
 
 {% if sched.warnings %}
 Avisos del programador:
@@ -310,6 +362,28 @@ Algunas combinaciones de servicio y especialidad (celdas) no reciben ningún blo
 |---|---:|---:|---:|---:|---:|
 {% for s in sim.supply %}
 | {{ care_text[s.care_type] }} | {{ s.blocks | num }} | {{ s.cells | num }} | {{ s.cells_with_block | num }} ({{ s.cells_share | pct(1) }}) | {{ s.stock | num }} | {{ s.stock_in_cells_with_block | num }} ({{ s.stock_share | pct(1) }}) |
+{% endfor %}
+
+Minutos ofrecidos frente a la meta de la calibración:
+
+| Tipo de atención | Minutos meta | Minutos ofrecidos | Ofrecido / meta |
+|---|---:|---:|---:|
+{% for s in sim.supply %}
+| {{ care_text[s.care_type] }} | {{ s.minutes_target | num }} | {{ s.minutes_offered | num }} | {{ s.minutes_share | pct(1) }} |
+{% endfor %}
+
+Histograma de duraciones de las sesiones (minutos por sesión):
+
+| Tipo de atención | Duración (min) | Bloques | Proporción de los bloques |
+|---|---:|---:|---:|
+{% for s in sim.supply %}
+{% for d in s.durations %}
+| {{ care_text[s.care_type] }} | {{ d.minutes | num }} | {{ d.blocks | num }} | {{ d.share | pct(1) }} |
+{% endfor %}
+{% endfor %}
+
+{% for s in sim.supply if s.has_overbooking %}
+En {{ care_text[s.care_type] | lower }}, {{ s.seats_without_overbooking_share | pct(1) }} de los {{ s.seats | num }} cupos están en sesiones que no admiten sobrecupo, y esas sesiones son {{ s.blocks_without_overbooking_share | pct(1) }} de los {{ s.blocks | num }} bloques. Cambio de equidad: el sobrecupo se permite según la duración de la sesión y las sesiones cortas no admiten ninguno, así que el sobreagendamiento solo puede operar en las sesiones largas. Los pacientes que dependen de sesiones cortas no se benefician de los cupos recuperados por inasistencia, mientras que quienes acceden a sesiones largas sí; si las sesiones cortas se concentran en ciertos servicios, comunas o previsiones, el efecto del sobrecupo se reparte de forma desigual, y por eso se mide por grupo en la sección de equidad.
 {% endfor %}
 
 ### Programador dentro de la simulación

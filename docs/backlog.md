@@ -2,14 +2,18 @@
 
 > Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.
 
-Pendientes de baja prioridad y hallazgos medios abiertos de la revisión P17 ([`review.md`](review.md)). Ninguno cambia las conclusiones publicadas; los de la sección "Medios abiertos" tienen un riesgo latente o de coherencia con la formulación y conviene resolverlos antes de ampliar el alcance. Las referencias de línea son las del commit de la revisión.
+Pendientes de baja prioridad de la revisión P17 ([`review.md`](review.md)) y pendientes de P18. Los dos hallazgos medios que seguían abiertos (M3 y M4) se resolvieron en P18 (sección "Resueltos en P18"). Las referencias de línea de los bajos son las del commit de la revisión.
 
-## Medios abiertos (requieren al especialista del programador)
+## Resueltos en P18
 
-| Id | Dónde | Qué pasa | Por qué sigue abierto |
-|---|---|---|---|
-| M3 | `scheduler/src/scheduler/cpsat.py:586`, `plan.py:111-119` | La regla R4 (un cupo por paciente y día) no considera citas ya congeladas (`prebooked_*`). Con `commit_weeks ≥ 2` en la simulación, o con citas `scheduled` previas en `make schedule`, un paciente puede quedar con dos citas el mismo día y la verificación del plan no lo detecta. | Es latente: con `commit_weeks = 1` (valor por defecto, usado en todos los resultados publicados) no hay citas congeladas. El arreglo agrega pares `(patient_id, fecha local)` ocupados a `SchedulingInstance`, los filtra en `prepare` y los verifica en `_Assembler`; cambia la API de la instancia y exige regenerar resultados. |
-| M4 | `scheduler/src/scheduler/phases.py:310-319` | La fase 4 (equilibrio) no fija el conjunto de pacientes agendados, aunque la formulación §8.1 dice que solo puede mover bloques. Con la 3a en `FEASIBLE` o con cupo libre, podría agregar pacientes, que quedarían etiquetados `phase_added = "3b"` sin que la 3b haya corrido (`plan.py:270`) y desactivarían la comprobación de §9.4 (`plan.py:178`). | El plan sigue cumpliendo todas las restricciones duras; es una incoherencia con la formulación y de etiquetado. Arreglar (fijar `a_i` de los agendados en la fase 4) cambia el plan canónico, y regenerarlo toma unos 160 s más la simulación. |
+- **M3 (revisión P17): R4 con citas congeladas.** `SchedulingInstance.busy_patient_days` (tabla opcional `busy`) descarta en `prepare` los pares de un paciente en un día en que ya tiene cita, con la causa `patient_day_busy` y verificación en el ensamblador; ver `docs/decisions.md` ("Citas previas en R4 (M-03)") y `docs/scheduler-formulation.md` §4 y §15 (punto 9).
+- **M4 (revisión P17): fase 4 con agendados fijos.** La fase 4 fija `a_i = 1` en `S3` y `a_i = 0` fuera (`Fixings.assigned_exact`), y el ensamblador verifica agendados finales = `S3` y `phase_added = "3b"` solo si la 3b corrió; ver `docs/decisions.md` ("Fase 4 con agendados fijos (M-04)") y `docs/scheduler-formulation.md` §8.1.
+- **Presupuesto de tiempo global del programador.** `time_limit_s` es el presupuesto del plan completo, en tiempo determinista, repartido entre primera pasada y expansión de frontera (`docs/scheduler-formulation.md` §8.5). En el plan canónico gasta 103,0 de 120 unidades; el presupuesto se agotó (53 fases terminaron por el límite), resultado que se informa tal cual (§11.3).
+
+## Pendientes de P18
+
+- **Barrido del presupuesto `B` = 60, 120 y 240: sin ejecutar.** Todo el benchmark y el plan canónico usan `B` = 120; no se conoce cuánto cambia el plan de 50.000 × 4 (el único con presupuesto agotado en el benchmark) ni el plan canónico con otro presupuesto.
+- **Cobertura de la oferta de la simulación (generador 0.3.0).** Con 10.000 entradas, 58,3 % de las celdas CNE reciben alguna sesión (91,8 % del stock) y en pabellón 65,1 % (88,8 % del stock). En pabellón hay un leve retroceso frente a la oferta 0.2.0 (89,7 % a 88,8 % del stock cubierto), y la cobertura de celdas CNE queda por debajo de la meta que se había fijado en P18; ver `docs/decisions.md` ("Calentamiento") y `docs/results.md`.
 
 ## Bajos: programador
 
@@ -30,4 +34,4 @@ Pendientes de baja prioridad y hallazgos medios abiertos de la revisión P17 ([`
 - **`ErrorOut` no lleva el aviso** (`api/src/api/schemas.py:36`). Las respuestas con datos sí; los errores no. Valorar si agregarlo.
 - **Cobertura baja** en `dashboard/views/programacion.py` (65 %), `dashboard/cli.py` (49 %), `simulation/world.py` (59 %), y en las migraciones 0002, 0003 y 0005 (57-58 %). Los tests `db` (almacén SQL de planes, carga sintética) se omiten sin PostgreSQL: con el CI desactivado nadie los corre por defecto.
 - **CI desactivado** (decisión del 2026-10-09). Los chequeos dependen del hook `pre-push` y de la disciplina de correr `make lint typecheck test audit`.
-- **Pendientes anteriores a P17**: presupuesto de tiempo global del programador (el plan canónico tarda 163,5 s frente a un objetivo de 120 s), límites de equidad de P6 sin formalizar, `dash-bootstrap-components` declarada y sin uso, y la fase P11 que nunca se hizo.
+- **Pendientes anteriores a P17**: límites de equidad de P6 sin formalizar, `dash-bootstrap-components` declarada y sin uso, y la fase P11 que nunca se hizo.

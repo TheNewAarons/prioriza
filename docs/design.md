@@ -126,7 +126,7 @@ Una pantalla de acceso con un campo "Clave de API" y el botón "Entrar". La clav
 Cifras del boceto ilustrativas; las reales salen de la API.
 
 ```
-Resumen de la lista de espera                      Corrida 32c9e349, 100.000 entradas
+Resumen de la lista de espera                      Corrida d7a0c251, 100.000 entradas
 ─────────────────────────────────────────────────────────────────────────────
  [La regla de espera]
  0        90       180       270   ▼301 mediana        540       ▼p90 ...   730 días
@@ -138,7 +138,7 @@ Resumen de la lista de espera                      Corrida 32c9e349, 100.000 ent
 
  Por tipo de atención                         Plan vigente
  tabla: consulta / cirugía (entradas,         ★ Plan 1a2b, aprobado por revisor.local
- mediana, p90, GES en riesgo, vencidas)       el 9 oct; 13.616 citas. Ver plan
+ mediana, p90, GES en riesgo, vencidas)       el 9 oct; 13.750 citas. Ver plan
 ```
 
 - Los indicadores son cifras `--t-h2` en 700 con su rótulo `--t-small` debajo, en una fila, separadas por aire y un filete superior de 2 px en el color de su estado cuando lo tienen (riesgo, vencidas). No son tarjetas.

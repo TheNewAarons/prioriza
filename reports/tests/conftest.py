@@ -146,7 +146,18 @@ def _schedule() -> dict[str, Any]:
                     "plan": {"wall_time_s": 1.5, "deterministic_time": 0.5},
                     "discarded_first_pass": {"wall_time_s": 0.5},
                 },
+                "budget": {
+                    "exhausted": True,
+                    "first_pass": {"allotted": 9.0, "spent": 8.0},
+                    "frontier": {"allotted": 4.0, "components_skipped": 2, "spent": 3.0},
+                    "overrun": 0.0,
+                    "phases_ended_by_limit": 7,
+                    "spent": 11.0,
+                    "total": 12.0,
+                    "unit": "deterministic",
+                },
             },
+            "reproducible": True,
             "capacity_by_week": [
                 {"cne_units": 10, "or_minutes": 100, "cne_sessions": 2, "or_blocks": 1},
                 {"cne_units": 12, "or_minutes": 120, "cne_sessions": 3, "or_blocks": 2},
@@ -216,6 +227,45 @@ def _fairness_dim(groups: list[str]) -> dict[str, Any]:
     }
 
 
+def _diagnostic() -> dict[str, Any]:
+    def variant(feature: str, brier: float, diff: float, significant: bool) -> dict[str, Any]:
+        return {
+            "added_features": [feature],
+            "selected_candidate": "logistic_regression",
+            "share_of_oracle_brier_gap_closed": -diff / 0.01,
+            "test_metrics": {"auc": 0.61, "brier": brier, "ece": 0.02},
+            "vs_primary": {
+                "brier_difference": diff,
+                "ci95_low": diff - 0.0002,
+                "ci95_high": diff + 0.0002,
+                "n_boot": 100,
+                "resampling_unit": "patient",
+                "significant_at_95": significant,
+                "variant_better_brier": diff < 0,
+            },
+        }
+
+    return {
+        "method": "Método del diagnóstico.",
+        "never_included": ["sex", "true_noshow_prob"],
+        "oracle_reference": {"auc": 0.7, "brier": 0.11, "ece": 0.004, "log_loss": 0.36},
+        "persisted": False,
+        "purpose": "Solo medición.",
+        "reference": {
+            "model": "logistic_regression_uncalibrated",
+            "test_metrics": {"auc": 0.6, "brier": 0.12, "ece": 0.01},
+        },
+        "used_by_scheduler": False,
+        "variants": {
+            "plus_age_group": variant("age_group", 0.1196, -0.0004, True),
+            "plus_insurance": variant("insurance", 0.12, 0.0, False),
+            "plus_commune_code": variant("commune_code", 0.1204, 0.0004, True),
+            "plus_health_service_code": variant("health_service_code", 0.1199, -0.0001, False),
+            "plus_all_excluded": variant("age_group", 0.1197, -0.0003, True),
+        },
+    }
+
+
 def _noshow() -> dict[str, Any]:
     split = {
         "first": "2024-01-01T12:00:00+00:00",
@@ -232,6 +282,7 @@ def _noshow() -> dict[str, Any]:
             "brier_calibration_set": {"logistic_regression": 0.12},
         },
         "calibration": {"method": "isotonic", "calibration_events": 100, "rule": "regla"},
+        "diagnostic_excluded": _diagnostic(),
         "caveat": "Con datos sintéticos, validan el pipeline.",
         "config": {"seed": 42, "n_boot": 100},
         "data_version": {
@@ -432,6 +483,15 @@ def _simulation() -> dict[str, Any]:
         "cells_with_block": 4,
         "stock": 100,
         "stock_in_cells_with_block": 70,
+        "minutes_target": 1000.0,
+        "minutes_offered": 900,
+        "duration_histogram": {"60": 3, "120": 2},
+    }
+    cov_consultation = {
+        **cov,
+        "seats": 40,
+        "seats_without_overbooking_share": 0.3,
+        "blocks_without_overbooking_share": 0.6,
     }
     return {
         "aggregate": aggregate,
@@ -461,7 +521,7 @@ def _simulation() -> dict[str, Any]:
             "seed": 42,
             "size": 100,
         },
-        "supply_coverage": {"consultation": cov, "surgery": cov},
+        "supply_coverage": {"consultation": cov_consultation, "surgery": cov},
         "timing": {p: {"mean_s": 1.0, "total_s": 2.0} for p in SIM_POLICIES},
         "truth_source": "synthetic.noshow_truth.true_noshow_prob",
     }

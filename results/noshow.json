@@ -18,14 +18,432 @@
   "config_sha256": "1124d9b78f872645af8e9200d83a355be9aa6255368576ec46208d4f031f3481",
   "data_version": {
     "as_of": "2025-09-30",
-    "dataset_sha256": "3ba6e98831381f9988764e9e482cbc45e3c77a51bb3216df5c6a38eadf9f48e0",
-    "generator_version": "0.2.0",
-    "params_sha256": "a8e042e244a54b1b529021346097ccdd385ea587f9d69e62efa4fa6ec17b873a",
-    "run_id": "32c9e349-74f9-5c85-bf4b-990796b47323",
+    "dataset_sha256": "652dd76d8b71124a897674fb8b90efb84aba02031288ec1d556e31b363184103",
+    "generator_version": "0.3.0",
+    "params_sha256": "0bf4b473b5c4429d56fc1aba88b998ce52c931628435ada789fb87d3390255d0",
+    "run_id": "d7a0c251-9a0f-5d0a-9941-5140560fb5b2",
     "scenario": "baseline",
     "seed": 42,
     "size": 100000,
     "targets_sha256": "22f5a7279490ad754b789893fcd9d12c3ab3351cc3d5bab6c23f91f234464616"
+  },
+  "diagnostic_excluded": {
+    "method": "Cada variante agrega variables a las permitidas y repite el pipeline del principal: mismo split temporal, candidatos, hiperparámetros, regla de calibración, selección por Brier en calibración y semilla. Se reporta el candidato elegido de cada variante en el conjunto de prueba. vs_primary = Brier(variante) - Brier(principal) con IC 95 % por bootstrap de pacientes (negativo = la variante es mejor).",
+    "never_included": [
+      "entry_id",
+      "ethnicity",
+      "gender",
+      "id",
+      "nationality",
+      "noshow_frailty",
+      "patient_id",
+      "run_id",
+      "sex",
+      "true_noshow_prob"
+    ],
+    "oracle_reference": {
+      "auc": 0.73702,
+      "brier": 0.110977,
+      "ece": 0.003686,
+      "log_loss": 0.366049
+    },
+    "persisted": false,
+    "purpose": "Solo medición: costo en desempeño de no usar variables excluidas por equidad. Ningún modelo de diagnóstico se persiste ni lo usa el programador o la simulación; las variables siguen prohibidas en el modelo de producción.",
+    "reference": {
+      "age_group_gap_vs_truth": {
+        "0_14": 0.001824,
+        "15_19": -0.03207,
+        "20_44": -0.031296,
+        "45_64": 0.004646,
+        "65_plus": 0.02268
+      },
+      "fairness_max_abs_gap_vs_truth": {
+        "age_group": 0.03207,
+        "commune_code": 0.051143,
+        "health_service_code": 0.049405,
+        "insurance": 0.002319
+      },
+      "model": "logistic_regression_uncalibrated",
+      "test_metrics": {
+        "auc": 0.62479,
+        "brier": 0.120548,
+        "ece": 0.006438,
+        "log_loss": 0.400131,
+        "mean_predicted": 0.145863,
+        "observed_rate": 0.144583
+      }
+    },
+    "used_by_scheduler": false,
+    "variants": {
+      "plus_age_group": {
+        "added_features": [
+          "age_group"
+        ],
+        "age_group_gap_vs_truth": {
+          "0_14": 0.00799,
+          "15_19": -0.004857,
+          "20_44": -0.005086,
+          "45_64": -2e-06,
+          "65_plus": -0.000483
+        },
+        "auc_difference": 0.007834,
+        "brier_calibration_set": {
+          "gradient_boosting": 0.126242,
+          "gradient_boosting_uncalibrated": 0.126331,
+          "logistic_regression": 0.125695,
+          "logistic_regression_uncalibrated": 0.125493
+        },
+        "calibration_method": "isotonic",
+        "ece_difference": 0.000318,
+        "fairness_max_abs_gap_vs_truth": {
+          "age_group": 0.00799,
+          "commune_code": 0.052267,
+          "health_service_code": 0.050315,
+          "insurance": 0.002208
+        },
+        "gradient_boosting_max_categories": null,
+        "selected_candidate": "logistic_regression_uncalibrated",
+        "share_of_oracle_brier_gap_closed": 0.0379,
+        "test_metrics": {
+          "auc": 0.632624,
+          "brier": 0.120185,
+          "ece": 0.006756,
+          "log_loss": 0.398717,
+          "mean_predicted": 0.145221,
+          "observed_rate": 0.144583
+        },
+        "test_metrics_by_candidate": {
+          "gradient_boosting": {
+            "auc": 0.620709,
+            "brier": 0.120999,
+            "ece": 0.009499,
+            "mean_predicted": 0.150418
+          },
+          "gradient_boosting_uncalibrated": {
+            "auc": 0.622578,
+            "brier": 0.121221,
+            "ece": 0.014754,
+            "mean_predicted": 0.143769
+          },
+          "logistic_regression": {
+            "auc": 0.631954,
+            "brier": 0.12023,
+            "ece": 0.006742,
+            "mean_predicted": 0.150893
+          },
+          "logistic_regression_uncalibrated": {
+            "auc": 0.632624,
+            "brier": 0.120185,
+            "ece": 0.006756,
+            "mean_predicted": 0.145221
+          }
+        },
+        "vs_primary": {
+          "brier_difference": -0.000364,
+          "ci95_high": -0.000198,
+          "ci95_low": -0.000535,
+          "n_boot": 1000,
+          "resampling_unit": "patient",
+          "significant_at_95": true,
+          "variant_better_brier": true
+        }
+      },
+      "plus_all_excluded": {
+        "added_features": [
+          "age_group",
+          "insurance",
+          "commune_code",
+          "health_service_code"
+        ],
+        "age_group_gap_vs_truth": {
+          "0_14": 0.009835,
+          "15_19": 8e-05,
+          "20_44": -0.003774,
+          "45_64": 0.005902,
+          "65_plus": 0.009998
+        },
+        "auc_difference": 0.001385,
+        "brier_calibration_set": {
+          "gradient_boosting": 0.126934,
+          "gradient_boosting_uncalibrated": 0.127953,
+          "logistic_regression": 0.125712,
+          "logistic_regression_uncalibrated": 0.12576
+        },
+        "calibration_method": "isotonic",
+        "ece_difference": -3.7e-05,
+        "fairness_max_abs_gap_vs_truth": {
+          "age_group": 0.009998,
+          "commune_code": 0.026616,
+          "health_service_code": 0.022736,
+          "insurance": 0.008689
+        },
+        "gradient_boosting_max_categories": 255,
+        "selected_candidate": "logistic_regression",
+        "share_of_oracle_brier_gap_closed": 0.0027,
+        "test_metrics": {
+          "auc": 0.626175,
+          "brier": 0.120522,
+          "ece": 0.006401,
+          "log_loss": 0.400867,
+          "mean_predicted": 0.150984,
+          "observed_rate": 0.144583
+        },
+        "test_metrics_by_candidate": {
+          "gradient_boosting": {
+            "auc": 0.607636,
+            "brier": 0.121467,
+            "ece": 0.006677,
+            "mean_predicted": 0.150451
+          },
+          "gradient_boosting_uncalibrated": {
+            "auc": 0.608621,
+            "brier": 0.122957,
+            "ece": 0.029571,
+            "mean_predicted": 0.142679
+          },
+          "logistic_regression": {
+            "auc": 0.626175,
+            "brier": 0.120522,
+            "ece": 0.006401,
+            "mean_predicted": 0.150984
+          },
+          "logistic_regression_uncalibrated": {
+            "auc": 0.627984,
+            "brier": 0.120561,
+            "ece": 0.010351,
+            "mean_predicted": 0.145341
+          }
+        },
+        "vs_primary": {
+          "brier_difference": -2.6e-05,
+          "ci95_high": 0.000268,
+          "ci95_low": -0.000302,
+          "n_boot": 1000,
+          "resampling_unit": "patient",
+          "significant_at_95": false,
+          "variant_better_brier": true
+        }
+      },
+      "plus_commune_code": {
+        "added_features": [
+          "commune_code"
+        ],
+        "age_group_gap_vs_truth": {
+          "0_14": 0.004868,
+          "15_19": -0.024943,
+          "20_44": -0.026086,
+          "45_64": 0.010958,
+          "65_plus": 0.029183
+        },
+        "auc_difference": -0.004832,
+        "brier_calibration_set": {
+          "gradient_boosting": 0.127182,
+          "gradient_boosting_uncalibrated": 0.128749,
+          "logistic_regression": 0.126111,
+          "logistic_regression_uncalibrated": 0.126235
+        },
+        "calibration_method": "isotonic",
+        "ece_difference": 0.004447,
+        "fairness_max_abs_gap_vs_truth": {
+          "age_group": 0.029183,
+          "commune_code": 0.02606,
+          "health_service_code": 0.022331,
+          "insurance": 0.008015
+        },
+        "gradient_boosting_max_categories": 255,
+        "selected_candidate": "logistic_regression",
+        "share_of_oracle_brier_gap_closed": -0.0423,
+        "test_metrics": {
+          "auc": 0.619958,
+          "brier": 0.120953,
+          "ece": 0.010885,
+          "log_loss": 0.402494,
+          "mean_predicted": 0.151664,
+          "observed_rate": 0.144583
+        },
+        "test_metrics_by_candidate": {
+          "gradient_boosting": {
+            "auc": 0.594899,
+            "brier": 0.121954,
+            "ece": 0.007513,
+            "mean_predicted": 0.150513
+          },
+          "gradient_boosting_uncalibrated": {
+            "auc": 0.595461,
+            "brier": 0.123817,
+            "ece": 0.034511,
+            "mean_predicted": 0.142198
+          },
+          "logistic_regression": {
+            "auc": 0.619958,
+            "brier": 0.120953,
+            "ece": 0.010885,
+            "mean_predicted": 0.151664
+          },
+          "logistic_regression_uncalibrated": {
+            "auc": 0.620258,
+            "brier": 0.120899,
+            "ece": 0.011962,
+            "mean_predicted": 0.145672
+          }
+        },
+        "vs_primary": {
+          "brier_difference": 0.000405,
+          "ci95_high": 0.000645,
+          "ci95_low": 0.000164,
+          "n_boot": 1000,
+          "resampling_unit": "patient",
+          "significant_at_95": true,
+          "variant_better_brier": false
+        }
+      },
+      "plus_health_service_code": {
+        "added_features": [
+          "health_service_code"
+        ],
+        "age_group_gap_vs_truth": {
+          "0_14": 0.001396,
+          "15_19": -0.031904,
+          "20_44": -0.031879,
+          "45_64": 0.004395,
+          "65_plus": 0.022548
+        },
+        "auc_difference": 0.000927,
+        "brier_calibration_set": {
+          "gradient_boosting": 0.126468,
+          "gradient_boosting_uncalibrated": 0.126741,
+          "logistic_regression": 0.125889,
+          "logistic_regression_uncalibrated": 0.125762
+        },
+        "calibration_method": "isotonic",
+        "ece_difference": 0.001248,
+        "fairness_max_abs_gap_vs_truth": {
+          "age_group": 0.031904,
+          "commune_code": 0.030477,
+          "health_service_code": 0.025469,
+          "insurance": 0.002169
+        },
+        "gradient_boosting_max_categories": null,
+        "selected_candidate": "logistic_regression_uncalibrated",
+        "share_of_oracle_brier_gap_closed": 0.0084,
+        "test_metrics": {
+          "auc": 0.625717,
+          "brier": 0.120468,
+          "ece": 0.007686,
+          "log_loss": 0.399964,
+          "mean_predicted": 0.145571,
+          "observed_rate": 0.144583
+        },
+        "test_metrics_by_candidate": {
+          "gradient_boosting": {
+            "auc": 0.608472,
+            "brier": 0.121461,
+            "ece": 0.008594,
+            "mean_predicted": 0.150439
+          },
+          "gradient_boosting_uncalibrated": {
+            "auc": 0.609732,
+            "brier": 0.121917,
+            "ece": 0.018662,
+            "mean_predicted": 0.143808
+          },
+          "logistic_regression": {
+            "auc": 0.625741,
+            "brier": 0.120512,
+            "ece": 0.00841,
+            "mean_predicted": 0.151392
+          },
+          "logistic_regression_uncalibrated": {
+            "auc": 0.625717,
+            "brier": 0.120468,
+            "ece": 0.007686,
+            "mean_predicted": 0.145571
+          }
+        },
+        "vs_primary": {
+          "brier_difference": -8e-05,
+          "ci95_high": 4.1e-05,
+          "ci95_low": -0.000206,
+          "n_boot": 1000,
+          "resampling_unit": "patient",
+          "significant_at_95": false,
+          "variant_better_brier": true
+        }
+      },
+      "plus_insurance": {
+        "added_features": [
+          "insurance"
+        ],
+        "age_group_gap_vs_truth": {
+          "0_14": 0.007593,
+          "15_19": -0.026941,
+          "20_44": -0.025771,
+          "45_64": 0.010476,
+          "65_plus": 0.028411
+        },
+        "auc_difference": -0.000428,
+        "brier_calibration_set": {
+          "gradient_boosting": 0.126635,
+          "gradient_boosting_uncalibrated": 0.126789,
+          "logistic_regression": 0.125927,
+          "logistic_regression_uncalibrated": 0.125947
+        },
+        "calibration_method": "isotonic",
+        "ece_difference": 0.000535,
+        "fairness_max_abs_gap_vs_truth": {
+          "age_group": 0.028411,
+          "commune_code": 0.045212,
+          "health_service_code": 0.043687,
+          "insurance": 0.009521
+        },
+        "gradient_boosting_max_categories": null,
+        "selected_candidate": "logistic_regression",
+        "share_of_oracle_brier_gap_closed": -0.0067,
+        "test_metrics": {
+          "auc": 0.624362,
+          "brier": 0.120612,
+          "ece": 0.006973,
+          "log_loss": 0.400203,
+          "mean_predicted": 0.151556,
+          "observed_rate": 0.144583
+        },
+        "test_metrics_by_candidate": {
+          "gradient_boosting": {
+            "auc": 0.609948,
+            "brier": 0.121359,
+            "ece": 0.00665,
+            "mean_predicted": 0.150353
+          },
+          "gradient_boosting_uncalibrated": {
+            "auc": 0.610739,
+            "brier": 0.121666,
+            "ece": 0.017224,
+            "mean_predicted": 0.143706
+          },
+          "logistic_regression": {
+            "auc": 0.624362,
+            "brier": 0.120612,
+            "ece": 0.006973,
+            "mean_predicted": 0.151556
+          },
+          "logistic_regression_uncalibrated": {
+            "auc": 0.624618,
+            "brier": 0.120561,
+            "ece": 0.008158,
+            "mean_predicted": 0.145723
+          }
+        },
+        "vs_primary": {
+          "brier_difference": 6.3e-05,
+          "ci95_high": 0.000183,
+          "ci95_low": -5.3e-05,
+          "n_boot": 1000,
+          "resampling_unit": "patient",
+          "significant_at_95": false,
+          "variant_better_brier": false
+        }
+      }
+    }
   },
   "disclaimer": "Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional.",
   "fairness": {
@@ -1269,7 +1687,7 @@
   ],
   "model_format_version": "1",
   "model_spec_sha256": "4f0429cdc5906eac9965ff05e757675d759a13ed36548a7c3a254af43d5d8fbc",
-  "model_version": "noshow-4f0429cd-3ba6e988",
+  "model_version": "noshow-4f0429cd-652dd76d",
   "oracle_reference": {
     "description": "Probabilidad verdadera del generador (verdad sintética, solo evaluación): techo de lo alcanzable.",
     "metrics": {
@@ -1336,17 +1754,17 @@
   "primary_vs_baseline": {
     "beats_baseline_brier": true,
     "brier_difference": -0.000958,
-    "ci95_high": -0.000683,
-    "ci95_low": -0.001227,
+    "ci95_high": -0.000652,
+    "ci95_low": -0.001254,
     "n_boot": 1000,
     "resampling_unit": "patient",
     "significant_at_95": true
   },
   "selection": {
     "brier_calibration_set": {
-      "gradient_boosting": 0.126566,
+      "gradient_boosting": 0.126559,
       "gradient_boosting_uncalibrated": 0.126732,
-      "logistic_regression": 0.125976,
+      "logistic_regression": 0.125987,
       "logistic_regression_uncalibrated": 0.125951
     },
     "criterion": "Menor Brier en el conjunto de calibración entre los modelos sin calibrar (que no lo vieron al entrenar) y calibrados (predicciones fuera de pliegue, KFold contiguo). El conjunto de prueba no participa.",

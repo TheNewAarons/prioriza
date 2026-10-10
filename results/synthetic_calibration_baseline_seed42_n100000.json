@@ -1,6 +1,6 @@
 {
-  "run_id": "32c9e349-74f9-5c85-bf4b-990796b47323",
-  "digest": "3ba6e98831381f9988764e9e482cbc45e3c77a51bb3216df5c6a38eadf9f48e0",
+  "run_id": "d7a0c251-9a0f-5d0a-9941-5140560fb5b2",
+  "digest": "652dd76d8b71124a897674fb8b90efb84aba02031288ec1d556e31b363184103",
   "checks": [
     {
       "name": "C1.tipo",
@@ -400,14 +400,14 @@
       "name": "C8.minutos_programados",
       "group": "C8",
       "metric": "max|min/sem - objetivo|",
-      "observed": 6.364104177078161,
+      "observed": 7.376789735330476,
       "target": 0.0,
       "tolerance": null,
       "n": 58,
       "passed": true,
       "severity": "strict",
       "detail": [
-        "dentro de ±max(5 %, 1 sesión/H)"
+        "meta - max(5 %, 1 sesión/H) <= oferta <= meta + 1 sesión/H"
       ]
     },
     {
@@ -459,7 +459,8 @@
     "skipped": 0
   },
   "notes": [
-    "Celdas (servicio, especialidad) con entradas pero sin sesiones: 613 de 2216",
+    "Celdas (servicio, especialidad) con entradas pero sin sesiones: 319 de 2216",
+    "Minutos por semana de celdas sin oferta posible (menos de media sesión de la menor duración en el periodo de referencia): 182 de 121393 (0.1%); no entran en la meta de C8",
     "Herramienta de investigación con datos sintéticos. No usar para decisiones clínicas ni de gestión real sin validación institucional."
   ]
 }

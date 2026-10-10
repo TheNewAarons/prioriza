@@ -304,7 +304,7 @@ Requiere rol `gestor`. Encola la programación.
 - `horizon_weeks` (opcional, por defecto 4): semanas de horizonte (1–52).
 - `overbooking` (opcional, por defecto `true`): activar sobrecupo (solo afecta `optimized`).
 - `alpha` (opcional, por defecto 0.10): parámetro de sobrecupo (0–1, solo si `overbooking=true`).
-- `time_limit_s` (opcional, por defecto 120): presupuesto de CP-SAT (mayor que 0 y hasta 3600; solo afecta a `policy=optimized`). En el modo determinista por defecto es tiempo determinista de CP-SAT (`max_deterministic_time`), no segundos de reloj.
+- `time_limit_s` (opcional, por defecto 120): presupuesto **global del plan** de CP-SAT (mayor que 0 y hasta 3600; solo afecta a `policy=optimized`): se reparte entre la primera pasada y la expansión de frontera, no se aplica por pasada. En el modo determinista por defecto es tiempo determinista de CP-SAT (`max_deterministic_time`), no segundos de reloj. Si alguna fase termina por el límite, el informe agrega la advertencia `time_budget_exhausted`.
 
 ```bash
 curl -X POST \
@@ -564,7 +564,7 @@ Respuesta:
 ```json
 {
   "disclaimer": "...",
-  "run_id": "32c9e349-...",
+  "run_id": "d7a0c251-...",
   "a": {"plan_id": "660f8400-...", "policy": "fifo", "review_status": "pending", "is_current": false, "created_at": "...", "requested_by": "gestora.test", "solver_status": "NOT_APPLICABLE"},
   "b": {"plan_id": "770f8400-...", "policy": "optimized", "review_status": "approved", "is_current": true, "created_at": "...", "requested_by": "gestora.test", "solver_status": "OPTIMAL"},
   "metrics": [
@@ -953,7 +953,7 @@ Tablas (migración `0006_plan_review`):
 
 2. **Sobrecupo y modelo de inasistencias**: la política `optimized` con `overbooking=true` requiere que el modelo de inasistencias esté entrenado (`models/noshow/<run_id>/noshow_model.joblib`). Sin él, el trabajo falla con un mensaje de error descriptivo. Las políticas `fifo` y `priority` no lo necesitan.
 
-3. **Tiempo de programación**: `optimized` con 100.000 entradas y 4 semanas tarda unos 3 minutos (163,5 s en la corrida canónica medida con el generador 0.2.0; ver `docs/scheduler-formulation.md` §11.3). Más semanas o más entradas lo alargan. Un `time_limit_s` menor no deja el problema infactible: el programador siempre entrega un plan factible (parte de la solución voraz), pero puede quedar más lejos del óptimo (`solver_status` `FEASIBLE` o `UNKNOWN`).
+3. **Tiempo de programación**: `optimized` con 100.000 entradas y 4 semanas tardó 74,3 s de reloj en la corrida canónica (55,5 s del plan final más 18,8 s de una primera pasada descartada) y gastó 103,0 de las 120 unidades de tiempo determinista del presupuesto global `time_limit_s`; en esa corrida el presupuesto se agotó (53 fases terminaron por el límite). Ver `docs/scheduler-formulation.md` §11.3. Más semanas o más entradas lo alargan. Un `time_limit_s` menor no deja el problema infactible: el programador siempre entrega un plan factible (parte de la solución voraz), pero puede quedar más lejos del óptimo (`solver_status` `FEASIBLE` o `UNKNOWN`).
 
 4. **Usuarios sin identidad**: la autenticación es por clave API estática en un archivo JSON. No hay integración con proveedor de identidad (LDAP, OAuth). Cambiar las claves requiere editar el archivo y reiniciar.
 

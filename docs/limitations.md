@@ -8,10 +8,10 @@ Los datos son sintéticos, calibrados a agregados públicos pero no derivados di
 
 ### Población sintética (`synthetic/`)
 
-- **Supuestos sin fuente pública**: 53 de 58 supuestos del generador no se verifican con una fuente pública. La lista está en `docs/results.md` § Limitaciones.
+- **Supuestos sin fuente pública**: 56 de 61 supuestos del generador no se verifican con una fuente pública. La lista está en `docs/results.md` § Limitaciones.
 - **Chequeos por construcción**: la mayoría de los chequeos estrictos de calibración verifica lo que el generador impone por construcción; sirven para detectar errores de implementación, no para validar la población contra la realidad. De los contrastes que no salen por construcción, la mediana GES nacional falla (76 vs 71 días) y la tasa del historial CNE queda 0,76 pp sobre el objetivo.
 - **Sin sexo, etnia ni nacionalidad**: el generador no produce esos atributos protegidos.
-- **Horizonte de la oferta**: el generador produce oferta para 26 semanas; la simulación genera su propia oferta estacionaria para las semanas siguientes.
+- **Horizonte de la oferta**: el generador produce oferta para 26 semanas (con calentamiento desde la semana −26 para que la semana 0 ya esté en régimen); con poblaciones muy chicas y horizontes cortos la oferta puede ser escasa (con 1.000 entradas y 4 semanas hay unos 25 bloques en total).
 
 Fuente: `docs/synthetic-data.md` § Alcance de los chequeos estrictos, `docs/results.md` § Limitaciones.
 
@@ -38,26 +38,27 @@ Fuente: `docs/noshow-model-card.md`, `docs/results.md` § Modelo de inasistencia
 
 ## Programador (`scheduler/`)
 
-- **Candidatos acotados por cola**: el programador considera solo los mejores candidatos de cada cola. En el plan canónico el filtro pudo ser activo en 96 colas; se duplicó el margen y en 14 siguió activo, así que puede haber asignaciones mejores fuera de los candidatos.
-- **Sin presupuesto de tiempo global**: `time_limit_s` (120 s) es por pasada, no por plan. Con la expansión de frontera el total lo supera: la política optimizada tardó 163,5 s reales en el plan canónico (las voraces, 2,2-2,6 s).
-- **Optimalidad no probada en todo**: en la fase 3a, 4 de 159 subproblemas terminan `FEASIBLE`, con brecha agregada de 2,06 %; en la fase 3b, 16 `FEASIBLE` y 21 `UNKNOWN`.
-- **Extrapolación de la probabilidad**: 139 citas del plan canónico tienen un aviso fuera del rango del historial (7-90 días); su probabilidad extrapola el modelo de inasistencias.
+- **Candidatos acotados por cola**: el programador considera solo los mejores candidatos de cada cola. En el plan canónico el filtro pudo ser activo en 43 colas; se duplicó el margen y en 4 siguió activo, así que puede haber asignaciones mejores fuera de los candidatos.
+- **El presupuesto de tiempo se agota**: `time_limit_s` (120 unidades de tiempo determinista) es ahora el presupuesto de todo el plan, y en el plan canónico se gastan 103; pero 53 fases del solver terminan por el límite y el estado global de la optimizada es `UNKNOWN`. El plan es factible y verificado, pero no se prueba que sea óptimo en esas fases. No se corrió todavía el barrido de presupuestos (60, 120 y 240).
+- **Optimalidad no probada en todo**: en la fase 3a, 1 de 268 subproblemas termina `FEASIBLE`, con brecha máxima de 0,039 %; en la fase 3b, 18 `FEASIBLE` y 22 `UNKNOWN`.
+- **Extrapolación de la probabilidad**: 151 citas del plan canónico tienen un aviso fuera del rango del historial (7-90 días); su probabilidad extrapola el modelo de inasistencias.
 - **Solo dentro del mismo servicio de salud** (`match_level = health_service`): no se modelan derivaciones entre servicios.
 
-Fuente: `docs/scheduler-formulation.md` § 11.3, `docs/results.md` § Programador.
+Fuente: `docs/scheduler-formulation.md` § 11.3, `docs/results.md` § Programador ("Presupuesto de tiempo del plan").
 
 ### Artefacto: concentración de la oferta (ya corregido)
 
-El generador concentraba las sesiones CNE de los recursos con una sola sesión en la semana 13 de 26, y los pabellones en lunes. Se corrigió en el generador 0.2.0 con una fase de Weyl por recurso; los resultados actuales usan la oferta corregida.
+El generador concentraba las sesiones CNE de los recursos con una sola sesión en la semana 13 de 26, y los pabellones en lunes. Se corrigió en el generador 0.2.0 con una fase de Weyl por recurso. El generador 0.3.0 reemplaza ese reparto por sesiones de duración variable (240, 180, 120 o 60 minutos) repartidas por déficit acumulado y simuladas desde la semana −26: la primera versión de ese algoritmo arrancaba en frío (3 bloques en la semana 0 frente a unos 60 en régimen con 10.000 entradas) y se corrigió con ese calentamiento. Los resultados actuales usan la oferta 0.3.0. Las sesiones de 60 minutos son un supuesto sin fuente pública (`docs/decisions.md` § 13b).
 
 Fuente: `docs/scheduler-formulation.md` § 11.2, `docs/decisions.md` § 13.
 
 ## Simulación (`simulation/`)
 
 - **Granularidad de la oferta (limitación principal)**: cada sesión atiende una sola celda (servicio × especialidad). A 10.000 entradas:
-  - Consultas: solo 466 de 1.246 celdas (37 %) reciben algún bloque en 26 semanas; cubren el 76 % del stock.
-  - Pabellón: 219 de 304 celdas (72 %); cubren el 90 % del stock.
-  - El resto del stock **no puede atenderse con ninguna política** porque no hay cupos en su celda. Esto pesa más cuanto menor es el tamaño de la corrida.
+  - Consultas: 726 de 1.246 celdas (58,3 %) reciben algún bloque en 26 semanas; cubren el 91,8 % del stock.
+  - Pabellón: 198 de 304 celdas (65,1 %); cubren el 88,8 % del stock.
+  - El resto del stock **no puede atenderse con ninguna política** porque no hay cupos en su celda. Esto pesa más cuanto menor es el tamaño de la corrida. Con el generador 0.3.0 el stock de pabellón cubierto bajó levemente respecto de la 0.2.0 (de 89,7 % a 88,8 %) mientras el de consultas subió (de 76,4 % a 91,8 %).
+  - **Sobrecupo en sesiones cortas**: el 16,7 % de los cupos de consulta (40,2 % de los bloques) está en sesiones que no admiten sobrecupo, por lo que el sobreagendamiento se concentra en las sesiones largas (`docs/results.md`, "Cobertura de la oferta").
   
   Fuente: `docs/results.md` § Cobertura de la oferta, `docs/simulation-design.md` § 3.
 
@@ -136,10 +137,10 @@ Fuente: `docs/security.md` § Qué falta, modelo de amenazas.
 ## Resumen ejecutivo
 
 - **Datos sintéticos**: no son extrapolables sin validación.
-- **Supuestos sin verificación**: 53 parámetros del generador.
-- **Granularidad de oferta**: a 10.000 entradas, el 24 % del stock CNE está en celdas sin ningún cupo.
+- **Supuestos sin verificación**: 56 de 61 supuestos del generador.
+- **Granularidad de oferta**: a 10.000 entradas, el 8 % del stock de consultas y el 11 % del de pabellón están en celdas sin ningún cupo.
 - **Modelo de inasistencias**: AUC 0,625 (techo del generador 0,737).
-- **Programador**: sin garantía de tiempo global, frontera no siempre alcanzada.
+- **Programador**: el presupuesto de tiempo se agota (53 fases terminan por el límite) y la frontera de candidatos no siempre se resuelve.
 - **Simulación**: sin estacionalidad, sin abandono, sin derivación.
 - **Equidad**: sin validación clínica, control solo por grupo (no individual).
 - **Seguridad**: sin TLS, sin identidad institucional, sin cifrado en reposo.

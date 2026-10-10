@@ -177,9 +177,9 @@ tiene cifras escritas a mano. Son resultados sobre datos sintéticos.
 
 | Política | Agendadas | Máxima prioridad agendadas | GES cumplidas | GES sin cumplir |
 |---|---:|---:|---:|---:|
-| Orden de llegada | 13.169 | 844 | 342 | 3.524 |
-| Solo prioridad | 13.168 | 4.146 | 1.070 | 2.796 |
-| Optimizada | 13.616 | 4.150 | 1.594 | 2.272 |
+| Orden de llegada | 13.312 | 871 | 337 | 3.529 |
+| Solo prioridad | 13.304 | 4.760 | 1.110 | 2.756 |
+| Optimizada | 13.750 | 4.778 | 1.645 | 2.221 |
 
 De 3.866 garantías GES con obligación en el horizonte, ninguna política las cumple todas; el informe detalla las
 causas (sin bloque en el horizonte, plazo antes del primer bloque, cupos tomados).
@@ -193,15 +193,24 @@ pacientes reales.
 
 | Métrica | Orden de llegada | Solo prioridad | Optimizada | Optimizada con sobrecupo |
 |---|---:|---:|---:|---:|
-| Pacientes atendidos | 6.428,4 | 6.482,8 | 6.515,2 | 6.616,0 |
-| Mediana de espera de los atendidos (días) | 356,8 | 300,7 | 295,4 | 294,9 |
-| Mediana de espera de la lista final (días) | 138,6 | 154,4 | 154,4 | 153,8 |
-| GES incumplidas | 1.358,8 | 1.201,4 | 1.034,6 | 1.034,2 |
+| Pacientes atendidos | 7.081,6 | 7.153,8 | 7.174,6 | 7.271,6 |
+| Mediana de espera de los atendidos (días) | 362,4 | 302,7 | 299,8 | 299,0 |
+| Mediana de espera de la lista final (días) | 129,0 | 144,6 | 143,8 | 143,0 |
+| GES incumplidas | 1.350,4 | 1.192,6 | 1.028,8 | 1.027,8 |
 
-**Resultado desfavorable que se informa tal cual:** la mediana de espera de quienes siguen en la lista al final es
-mayor con solo prioridad y con las optimizadas (154,4 y 153,8 días) que con orden de llegada (138,6). El informe
-también muestra, entre otros, los desbordes de las sesiones con sobrecupo y la mayor exposición al sobrecupo del
-grupo 0-14 (sección "Equidad").
+**Resultados desfavorables que se informan tal cual:**
+
+- La mediana de espera de quienes siguen en la lista al final es mayor con solo prioridad y con las optimizadas
+  (144,6, 143,8 y 143,0 días) que con orden de llegada (129,0).
+- El presupuesto de tiempo del plan canónico se agota: 53 fases del solver terminan por el límite y el plan queda
+  con estado global `UNKNOWN` (sección "Programador", "Presupuesto de tiempo del plan").
+- En el plan canónico, algunos grupos pequeños quedan muy expuestos al sobrecupo (la comuna 05703 llega a 100 % con
+  63 entradas); también se muestran los grupos que no alcanzan el mínimo de entradas en todas las réplicas de la
+  simulación (sección "Equidad").
+- Con sesiones cortas, parte de los cupos de consulta no admite sobrecupo (sección "Cobertura de la oferta").
+
+El informe incluye además los desbordes de las sesiones con sobrecupo y el costo en desempeño de las variables que se
+excluyen del modelo por equidad (sección "Modelo de inasistencias").
 
 ## Principios
 

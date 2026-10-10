@@ -922,7 +922,7 @@ Proxy Tier 2/3 caído: Tier 2 → `implementer`/`optimizer`, Tier 3 → `test-wr
 
 **Ola 1 (en paralelo, archivos distintos):**
 - [ ] P18-A (Tier 1 - `architect`) -> Diseño: oferta realista (sesiones multicelda), presupuesto de tiempo global, y arreglo conjunto de M-03/M-04. Solo plan.
-- [ ] P18-B (Tier 2 - `ml-engineer`) -> Diagnóstico: costo en desempeño de las variables excluidas por equidad (solo medición, nunca usado por el programador). `noshow/`, `results/noshow.json`.
+- [x] P18-B (Tier 2 - `ml-engineer`) -> Diagnóstico: costo en desempeño de las variables excluidas por equidad (solo medición, nunca usado por el programador). `noshow/`, `results/noshow.json`. -> Hecho (2026-10-10, sin commit): `noshow/diagnostic.py`, `assert_production_bundle` en `save`, `--diagnostic` por defecto (~20 s extra), clave `diagnostic_excluded`, model card y decisions §9; `test_metrics` sin cambios. Pendiente: informe (sesión principal).
 - [ ] P18-C (Tier 2 - `data-researcher`) -> Fuentes públicas para los supuestos del generador sin fuente (solo hallazgos; no edita).
 - [ ] P18-D (Tier 2 - `implementer`) -> Panel/API: exportar plan (CSV), comparar dos planes, "por qué este cupo"; `test-writer` sube cobertura de `programacion.py` y `cli.py`.
 

@@ -207,3 +207,51 @@ def test_informe_imprime_la_brecha_con_signo_y_las_entradas_cuadran(
     assert "entradas ingresan en la fase 3b" in text
     assert "citas agregadas por sobrecupo" not in text
     assert "210 entradas en espera, 210 tienen algún bloque compatible y 0 no tienen" in text
+
+
+def test_diagnostico_de_variables_excluidas_y_variante_que_empeora(
+    minimal_results: Path, tmp_path: Path
+) -> None:
+    facts = load_facts(minimal_results, tmp_path)
+    dg = facts["noshow"]["diagnostic"]
+    assert dg["used_by_scheduler"] is False
+    assert dg["worse"] == ["+ comuna"]
+    assert "+ grupo etario" in dg["better"]
+    md = render_markdown(facts)
+    assert "### Costo de las variables excluidas" in md
+    assert "`used_by_scheduler`: no" in md
+    assert "Variantes que lo empeoran de forma significativa: + comuna." in md
+    commune = next(line for line in md.splitlines() if line.startswith("| + comuna |"))
+    assert commune.count("| empeora |") == 1
+    assert "| sin diferencia clara |" in md
+    assert "Oráculo" in md
+
+
+def test_presupuesto_agotado_y_cobertura_de_la_oferta_aparecen(
+    minimal_results: Path, tmp_path: Path
+) -> None:
+    md = render_markdown(load_facts(minimal_results, tmp_path))
+    assert "### Presupuesto de tiempo del plan" in md
+    assert "**El presupuesto se agotó.**" in md
+    assert "| Presupuesto agotado | sí |" in md
+    assert "| Fases terminadas por el límite de tiempo | 7 |" in md
+    assert "| Componentes omitidos en la expansión | 2 |" in md
+    assert "Histograma de duraciones" in md
+    assert "| Consulta nueva de especialidad | 120 | 2 | 40,0 % |" in md
+    assert "30,0 % de los 40 cupos están en sesiones que no admiten sobrecupo" in md
+    assert "Cambio de equidad" in md
+    assert "| Consulta nueva de especialidad | 1.000 | 900 | 90,0 % |" in md
+
+
+def test_presupuesto_no_agotado_se_dice(minimal_results: Path, tmp_path: Path) -> None:
+    import json
+
+    path = next(minimal_results.glob("schedule_*_4w.json"))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    budget = data["policies"]["optimized"]["solver"]["budget"]
+    budget.update({"exhausted": False, "phases_ended_by_limit": 0})
+    budget["frontier"]["components_skipped"] = 0
+    path.write_text(json.dumps(data), encoding="utf-8")
+    md = render_markdown(load_facts(minimal_results, tmp_path))
+    assert "El presupuesto no se agotó" in md
+    assert "**El presupuesto se agotó.**" not in md

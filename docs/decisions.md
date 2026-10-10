@@ -205,6 +205,8 @@ Diseño en [design/priority-plan.md](design/priority-plan.md); fórmula, reglas 
 - **Persistencia**: `models/noshow/<run_id>/noshow_model.joblib` + `metadata.json` (versión del modelo = huella de configuración, columnas e hiperparámetros de los pipelines + `dataset_sha256`; versión de datos, límites del split y versiones de librerías). `models/` no se versiona; `results/noshow.json` sí.
 - **Selección de corrida**: `prioriza-noshow train` usa la única corrida de `data/synthetic/` con esa semilla, tamaño y escenario y con las huellas vigentes del generador (`targets_sha256`, `params_sha256`). Si no hay ninguna o hay varias, falla (`--run-dir` la fija); nunca elige por fecha de archivo.
 
+- **Diagnóstico del costo de las variables excluidas** (P18-B, 2026-10-10): `noshow.diagnostic` reentrena con el mismo split, candidatos, regla de calibración, selección y semilla variantes que agregan `age_group`, `insurance`, `commune_code` y `health_service_code` (cada una y todas juntas), y publica sus métricas en `results/noshow.json` (`diagnostic_excluded`). Es solo medición: devuelve números, no modelos; `save` rechaza cualquier bundle con modelos o columnas ajenos a producción (`assert_production_bundle`), y `scheduler`/`simulation` no importan el módulo (la CLI lo importa de forma diferida porque `scheduler.cli` importa `noshow.cli`). Sexo, etnia, nacionalidad y la verdad sintética nunca entran, ni en diagnóstico. **Activado por defecto** en `prioriza-noshow train` (y por tanto en `make train-noshow`) porque cuesta ~20 s extra con n = 100.000 (de ~4 s a ~24 s); se apaga con `--no-diagnostic`. `scheduler.bench` llama a `train` directamente y no lo ejecuta. Para el boosting, la comuna (338 niveles) excede el máximo de 255 categorías de `HistGradientBoostingClassifier`: en esas variantes el codificador agrupa las comunas infrecuentes (`max_categories = 255`). Las variables siguen prohibidas en producción; resultados y motivos en la model card, sección "Costo de las variables excluidas".
+
 **Limitaciones aceptadas** (ver `docs/noshow-model-card.md`): techo de AUC ~0,63-0,65 por la poca historia por paciente (A3, λ = 1,5 sin cambios); el modelo no ve servicio ni edad, por lo que subestima Arica (−4,9 pp) e Iquique (−4,3 pp) y sobreestima 65+ (+2,3 pp) frente a la verdad sintética.
 
 ---
@@ -224,7 +226,7 @@ Formulación completa en [scheduler-formulation.md](scheduler-formulation.md); e
 - **Modo determinista con un solo hilo.** Con `solver.deterministic = true` (por defecto) se usa `num_workers = 1` y `max_deterministic_time`. La formulación proponía `interleave_search` con 8 hilos, que también es determinista, pero en el subproblema mayor de la corrida canónica llegó a la brecha de 0,1 % después que la búsqueda secuencial (2,4 s frente a 0,35 s) y excedió su límite determinista (2,3 frente a 0,5), porque solo lo revisa entre lotes. Con `deterministic = false` se usan 8 hilos con límite de tiempo real.
 - **`linearization_level = 2`** (configurable). En los dos subproblemas mayores de la corrida canónica, la fase 3a pasó de `FEASIBLE` a los 9-11 s reales a `OPTIMAL` en 1,3-2,2 s, y la fase 3b obtuvo mejor cota con menos tiempo real. La relajación LP más fuerte ayuda a las restricciones de capacidad tipo mochila y a las de sobrecupo con indicador.
 - **En modo determinista, el tiempo límite está en unidades deterministas**, no en segundos de reloj; el tiempo real puede excederlo. El informe registra ambos por fase y subproblema.
-- **`S0` queda fijo también en la fase 4** cuando no hay fase 3b: el equilibrio solo cambia bloques, no quién tiene cupo. Antes de esta corrección la fase 4 podía cambiar entradas con igual puntaje total, y la verificación §9.3 lo detectó en la corrida canónica.
+- **`S0` queda fijo también en la fase 4** cuando no hay fase 3b: el equilibrio solo cambia bloques, no quién tiene cupo. Antes de esta corrección la fase 4 podía cambiar entradas con igual puntaje total, y la verificación §9.3 lo detectó en la corrida canónica. En P18 (§11b) pasó a fijarse el conjunto exacto de agendados al cerrar la 3b (`S3`), porque fijar solo `S0` dejaba agregar pacientes en la fase 4 (M-04).
 - **Pistas completas y canónicas.** Cada fase recibe una pista para todas las variables (también `w`, `util` y máximo/mínimo), llevada a la forma que exigen las restricciones de simetría; sin eso, CP-SAT terminaba en `UNKNOWN` en la segunda pasada de 3b y en la fase 4.
 - **Clases de simetría sin `p`** en las fases sin sobrecupo, para que las fases 1-3a no dependan de la probabilidad de inasistencia.
 - **Filtro de candidatos**: `O_b` nominal en `K_q` aunque el sobrecupo esté apagado, y una segunda señal de frontera (capacidad libre usable por una entrada descartada) que detecta colas donde varias entradas de un mismo paciente agotan los candidatos. Ambas las encontraron los tests de propiedad.
@@ -250,6 +252,29 @@ Técnicas en [scheduler-formulation.md §8.6](scheduler-formulation.md#86-técni
 - **`canonicalize` no hace nada si `symmetry_breaking` está apagado**: con simetrías apagadas, permutar entradas idénticas podía sacar de la pista a una entrada de `S0` (hallazgo de la revisión).
 - **Comparación con la voraz sin sobrecupo.** El orden lexicográfico de §9.5 (p1 agendados, GES cumplidas, suma de `c_ib`) se evalúa con `optimized` sin sobrecupo, igual que la voraz; las diferencias del plan con sobrecupo se informan una a una, sin agregarlas.
 - **Tiempo determinista como medida principal.** El tiempo real de un mismo plan determinista varió entre 63 y 98 s en la celda mayor durante el desarrollo (M1 con otros procesos activos). El benchmark registra el tiempo real de todo `solve` (mediana de 3 repeticiones de la variante completa; las ablaciones corren una vez) y el tiempo determinista de CP-SAT, del plan y total con las pasadas descartadas por la frontera.
+
+## 11b. Presupuesto global del programador, fase 4 con agendados fijos y citas previas (P18)
+
+**Fecha**: 2026-10-10
+
+Formulación en [scheduler-formulation.md](scheduler-formulation.md) §4 (punto 6), §7, §8.1, §8.5 y §9; hallazgos M-03 y M-04 de [review.md](review.md).
+
+**Presupuesto global.** `time_limit_s` (sin cambiar de nombre, por compatibilidad con la API, la CLI y la simulación) pasa a ser el presupuesto `B` de CP-SAT de todo el plan, en tiempo determinista y con un hilo; nunca hay tope de reloj en modo determinista.
+- **Problema.** El plan canónico tardaba 163,5 s frente a 120. La causa no era la expansión de frontera sino el mínimo de 1 unidad por componente (`max(1.0, …)`): 131 de 159 subproblemas recibían el mínimo, lo asignado sumaba 277,8 unidades y la primera pasada descartada gastó 77,3 más, porque cada pasada recibía `B` completo.
+- **Decisión.** Primera pasada con `first_pass_share = 0,75` de `B` y expansión de frontera con lo que quede. Componentes por pares ascendentes; cada uno recibe un mínimo `min(0,05; 0,2·B_pasada/n)` y el saldo se reparte en proporción a los pares de los que faltan, así que lo no gastado pasa a los siguientes. Si en la expansión no alcanza el mínimo, los componentes que faltan conservan la primera pasada (advertencia `frontier_expansion_skipped_budget`). Bloque `solver.budget` en el informe y advertencia `time_budget_exhausted` si alguna fase terminó por tiempo o se omitió un componente. `B` sigue en 120 (razón reloj/determinista medida: 0,60).
+- **Desviaciones del diseño de arquitectura** (P18-A, secciones 2 y 3):
+  - **Dos libros** (fases 1-3a y fases 3b-4) con el mismo reparto cada uno. Con un solo saldo, lo que gasta la fase 3b de un componente (que depende de `p`) cambiaba el presupuesto de la fase 3a de los siguientes y la decisión de omitir componentes: con límites activos, `S0` y la frontera habrían dependido de `p` y del interruptor de sobrecupo, contra §8.5 y el test de §15.4. Lo que la 3a no gasta vuelve al libro base de la pasada (ya no pasa a la 3b del mismo subproblema). Lo cubre `test_phase_3a_budget_does_not_depend_on_overbooking`.
+  - **Sin expansión de frontera** (`expand_on_frontier = false`), la primera pasada recibe todo `B`: reservar 25 % para una pasada que no existe solo lo desperdicia.
+  - **`overrun = max(0, gastado − B)`** en vez de `gastado − B`, para que no sea negativo.
+  - **`frontier.expanded`** sigue siendo verdadero cuando se intentó la expansión, aunque se hayan omitido componentes (se listan en `frontier.skipped_components`).
+- **Tiempo determinista redondeado a 9 decimales.** Al probar se midió que CP-SAT, con un hilo, informa tiempos deterministas que difieren en el último bit entre dos corridas idénticas en el mismo proceso (0,02359910999999869 frente a 0,023599109999998695 en una fase que terminó por límite). Con arrastre del presupuesto ese ruido llega a los límites siguientes y al informe; redondearlo al leerlo lo elimina (el riesgo residual es un valor justo en el borde de redondeo).
+- **Con `deterministic = false`** el mismo esquema usa segundos de reloj (de CP-SAT) y el informe marca `reproducible: false`.
+
+**Fase 4 con agendados fijos (M-04).** La fase 4 fija `a_i = 1` en `S3` (agendados al cerrar la 3b, o `S0` si no hubo 3b) y `a_i = 0` fuera (`Fixings.assigned_exact`). Antes solo fijaba `S0`: con la 3a terminada por tiempo o por brecha, el equilibrio podía agregar pacientes etiquetados `phase_added = "3b"` sin que la 3b corriera y desactivar la comprobación de §9.4. El ensamblador verifica ahora agendados finales = `S3`, que sin 3b no hay agendados fuera de `S0`, y `phase_added = "3b"` solo si la 3b corrió. La regresión (`relative_gap_limit = 1,0` y dos pabellones reordenables) reproducía el error con el código anterior. Cambia el plan canónico: se regenera en P18-G.
+
+**Citas previas en R4 (M-03).** `SchedulingInstance.busy_patient_days` (tabla opcional `busy`: `patient_id`, `local_date`) con los días en que el paciente ya tiene cita confirmada, de cualquier bloque. `prepare` descarta esos pares después del filtro de aviso (equivale a R4 con lado derecho `1 − busy(p, t)`), con la causa nueva **`patient_day_busy`**: para la entrada sin días libres y, si una GES obligada pierde así todos los bloques que cumplen su plazo, como causa previa de la GES. `first_date` se calcula después del filtro. El ensamblador falla si una cita cae en un día ocupado y el informe cuenta los pares descartados (`summary.pairs_dropped_patient_day_busy`). `adapters.busy_frame` arma la tabla desde las citas `scheduled` que no son historial; la simulación, desde las citas congeladas del horizonte. No cambia nada publicado: con `commit_weeks = 1` no hay citas congeladas en el horizonte y la corrida sintética solo tiene citas de historial.
+
+**Sin dependencias nuevas.**
 
 ## 12. Simulación de políticas
 
@@ -279,6 +304,27 @@ Diseño en [simulation-design.md](simulation-design.md); resultados en `results/
 - `GENERATOR_VERSION` pasa a 0.2.0 y cambia el digest de toda corrida (y con él `model_version` de `noshow`, que lo incluye). El `run_id` no incluye la versión del generador, así que no cambia: una corrida guardada con la versión anterior se reemplaza regenerándola (`prioriza-synth generate`, o `--load --replace` en la base).
 - El historial de citas, la población y el modelo de inasistencias no cambian (mismas métricas en `results/noshow.json`).
 - Se regeneraron la corrida canónica del programador, el benchmark y la simulación.
+
+## 13b. Oferta de duración variable (P18-A)
+
+**Fecha**: 2026-10-10
+
+**Problema**: con sesiones CNE de 240 min fijos, a N = 10.000 solo el 37 % de las celdas CNE (servicio, especialidad) recibía una sesión en 26 semanas y esas celdas cubrían el 76 % del stock CNE; el resto de la lista no podía atenderse con ninguna política (limitación principal de `docs/simulation-design.md` §3).
+
+**Decisión**: sesiones CNE de duración variable por celda (240, 180, 120 o 60 min; pabellón solo 360), repartidas por déficit acumulado dentro de cada grupo (servicio, tipo) mediante una función pura `session_schedule` (`synthetic/capacity.py`) que usan el generador y `simulation/supply.py`. Descartado: redondeo entre semanas solo (no cubre celdas con menos de media sesión) y agendas compartidas entre especialidades (obliga a rehacer compatibilidad y simetría).
+
+**Calentamiento (arranque en frío).** La primera versión repartía por déficit acumulado partiendo de cero en la semana 0, y las primeras semanas casi no tenían sesiones (N=10.000: 3, 20, 35, 44, 52, 59 y luego ~60 por semana; N=100.000: 95 y 381 y luego ~450; N=1.000 con horizonte de 4 semanas: ningún bloque), lo que distorsionaba el plan de 4 semanas y las primeras semanas de la simulación. `session_schedule` simula ahora desde la semana `−W` (`W = cne_session_reference_weeks`, también en pabellón) y descarta las sesiones con semana negativa. La oferta de la ventana queda a menos de una sesión larga de la meta de la ventana (por ambos lados) y el C8 se define así. Resultado: sin rampa (semana 0 y 1 a 1,07 y 0,87 de la mediana de las semanas 5-20 a N=10.000; 1,01 y 0,99 a N=100.000) y N=1.000 con horizonte 4 tiene 25 bloques (el fixture de `api/tests` vuelve a 4 semanas). Costo: la cobertura medida en régimen es menor que la inicial (CNE 91,8 % del stock y 58,3 % de las celdas; pabellón 88,8 %), por debajo de las metas de P18 (93 %, 70 %, sin retroceso de 89,7 %): se reporta tal cual. La rampa inflaba la cobertura al adelantar la primera sesión de las celdas pequeñas.
+
+**Supuestos nuevos** (`assumptions.json`, todos `verified: false`): `cne_session_lengths_min` = [240, 180, 120, 60] (la de 60 min es un supuesto **sin fuente**), `iq_block_lengths_min` = [360], `cne_session_reference_weeks` = 26.
+
+**`iq_utilization` = 0,85 no cambia**: es un estándar de política (informe 2020 de la CNEP: 83 %; 70-87 % en Australia, Canadá y EE. UU.) y la fuente IPSUSS 2022 (Aguilar y Velasco) indica que en Chile se usa cerca de 60 % de las horas habilitadas. Cambiarlo alteraría la capacidad calibrada; queda documentado en `assumptions.json` y `docs/data-sources.md` y es una decisión pendiente.
+
+**Consecuencias**:
+- `GENERATOR_VERSION` 0.3.0. Cambian el digest, el `model_version` de `noshow` y, porque cambian los supuestos (`params_sha256`), también el `run_id` (el diseño inicial decía que no cambiaba). Una corrida guardada con la versión anterior se regenera.
+- C8 pasa a la banda de la ventana: oferta ≤ meta + 1 sesión larga/H y ≥ meta − max(5 %, 1 sesión larga/H); la meta cuenta solo las celdas que pueden recibir oferta y los minutos de las demás se reportan aparte (`unserved_min_per_week`).
+- Las sesiones de 60 min no admiten sobrecupo (`O_b = floor(0,25·C_b) = 0`): cambio de equidad que `supply_coverage` reporta (`seats_without_overbooking_share`).
+- Invalida y se regeneran en P18-G: calibración canónica, `schedule_*.json`, `scheduler-benchmark.json`, `simulation.json`, `results.md`/`.html`, formulación del programador §11, cifras del README y `docs/scheduler-performance.md`.
+- Sin dependencias nuevas.
 
 ## 14. API
 
