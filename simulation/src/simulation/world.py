@@ -7,7 +7,7 @@ gestión real sin validación institucional.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, time
 from pathlib import Path
 from typing import Any
@@ -18,7 +18,13 @@ from noshow.train import load_verified_bundle  # type: ignore[import-untyped]
 from priority.rules import RuleSet, load_default_rules
 from shared.db.enums import NoShowScenario
 from shared.schemas import CareType
-from synthetic.capacity import Cell, capacity_cells, horizon_start, session_minutes
+from synthetic.capacity import (
+    Cell,
+    capacity_cells,
+    horizon_start,
+    session_lengths,
+    session_minutes,
+)
 from synthetic.config import RunConfig
 from synthetic.targets import load_assumptions, load_targets
 
@@ -54,6 +60,10 @@ class World:
     timezone: ZoneInfo
     cne_starts: list[time]
     iq_start: time
+    # Duraciones posibles de una sesión por tipo y semanas de referencia (P18). Vacío: se usa
+    # solo ``session_min`` (mundos armados a mano en los tests).
+    session_lengths: dict[str, tuple[int, ...]] = field(default_factory=dict)
+    session_reference_weeks: int = 26
 
 
 def world_from_run(run_dir: Path, model_path: Path) -> World:
@@ -145,4 +155,9 @@ def world_from_run(run_dir: Path, model_path: Path) -> World:
         timezone=timezone,
         cne_starts=[time.fromisoformat(x) for x in assumptions.value("cne_session_starts")],
         iq_start=time.fromisoformat(assumptions.value("iq_block_start")),
+        session_lengths={
+            CareType.CONSULTATION.value: session_lengths(assumptions, CareType.CONSULTATION.value),
+            CareType.SURGERY.value: session_lengths(assumptions, CareType.SURGERY.value),
+        },
+        session_reference_weeks=int(assumptions.value("cne_session_reference_weeks")),
     )

@@ -1,23 +1,26 @@
 """Oferta sintética: recursos (agendas de especialista, pabellones) y sesiones (slots).
 
 Throughput por ley de Little, theta = 7·L/m entradas por semana (sección 3 del plan).
-Las sesiones se reparten sin aleatoriedad: Hamilton jerárquico (grupo, especialidad,
-hospital) y rotación determinista de semana, día y jornada.
+Las sesiones se reparten sin aleatoriedad: ``session_schedule`` (duración variable por
+celda y reparto en el tiempo por déficit acumulado dentro de cada grupo servicio-tipo), un
+reparto ponderado determinista entre hospitales y rotación determinista de día y jornada.
 """
 
 from __future__ import annotations
 
 import math
 import uuid
+from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from typing import Protocol
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import polars as pl
 from shared.schemas import CareType
 
-from synthetic.allocation import hamilton
 from synthetic.catalog import SpecialtyInfo, procedure_durations, specialty_index
 from synthetic.config import RunConfig
 from synthetic.noshow_truth import noshow_rates
@@ -136,68 +139,198 @@ _cells = capacity_cells  # alias privado histórico
 
 
 def session_minutes(a: Assumptions, care_type: str) -> int:
-    """Duración de una sesión: 240 min en consulta CNE, 360 min en bloque de pabellón."""
+    """Duración máxima de una sesión: 240 min en consulta CNE, 360 min en bloque de pabellón."""
     key = "cne_session_min" if care_type == CareType.CONSULTATION.value else "iq_block_min"
     return int(a.value(key))
+
+
+def session_lengths(a: Assumptions, care_type: str) -> tuple[int, ...]:
+    """Duraciones posibles de una sesión (supuestos ``cne_session_lengths_min`` y similar)."""
+    key = (
+        "cne_session_lengths_min"
+        if care_type == CareType.CONSULTATION.value
+        else "iq_block_lengths_min"
+    )
+    return tuple(sorted((int(x) for x in a.value(key)), reverse=True))
 
 
 def capacity_targets(
     t: CalibrationTargets, a: Assumptions, cfg: RunConfig, entries: pl.DataFrame
 ) -> pl.DataFrame:
-    """Minutos programables por semana objetivo, por (servicio, tipo), solo grupos con entradas."""
+    """Minutos programables por semana objetivo, por (servicio, tipo), solo grupos con entradas.
+
+    ``target_min_per_week`` suma solo las celdas que pueden recibir sesiones (ver
+    ``session_length``): la oferta de la ventana de ``H`` semanas queda a menos de ``session_min``
+    minutos de ``H`` veces esta meta, por ambos lados. ``unserved_min_per_week`` suma las celdas
+    sin oferta posible (menos de media sesión de la menor duración en el periodo de referencia).
+    """
+    ref_weeks = int(a.value("cne_session_reference_weeks"))
     agg: dict[tuple[int, str], float] = {}
+    unserved: dict[tuple[int, str], float] = {}
     for c in capacity_cells(t, a, cfg, entries):
-        agg[(c.service, c.care_type)] = agg.get((c.service, c.care_type), 0.0) + c.minutes_per_week
+        key = (c.service, c.care_type)
+        agg.setdefault(key, 0.0)
+        unserved.setdefault(key, 0.0)
+        if session_length(c.minutes_per_week, session_lengths(a, c.care_type), ref_weeks):
+            agg[key] += c.minutes_per_week
+        else:
+            unserved[key] += c.minutes_per_week
     keys = sorted(agg)
     return pl.DataFrame(
         {
             "health_service_code": [k[0] for k in keys],
             "care_type": [k[1] for k in keys],
             "target_min_per_week": [agg[k] for k in keys],
+            "unserved_min_per_week": [unserved[k] for k in keys],
             "session_min": [session_minutes(a, k[1]) for k in keys],
         },
         schema={
             "health_service_code": pl.Int64,
             "care_type": pl.String,
             "target_min_per_week": pl.Float64,
+            "unserved_min_per_week": pl.Float64,
             "session_min": pl.Int64,
         },
     )
 
 
-GOLDEN = (math.sqrt(5.0) - 1.0) / 2.0
+class SessionCell(Protocol):
+    """Lo que ``session_schedule`` necesita de una celda (la satisface ``Cell``)."""
+
+    @property
+    def service(self) -> int: ...
+
+    @property
+    def care_type(self) -> str: ...
+
+    @property
+    def specialty(self) -> str: ...
+
+    @property
+    def minutes_per_week(self) -> float: ...
 
 
-def resource_phase(n: int) -> float:
-    """Fase en [0, 1) del recurso ``n`` (secuencia de Weyl con la razón áurea)."""
-    return ((n + 1) * GOLDEN) % 1.0
+REFERENCE_WEEKS = 26
+_EPS = 1e-9
 
 
-def _week_slots(count: int, horizon: int, phase: float) -> list[tuple[int, int]]:
-    """Para ``count`` sesiones, devuelve (semana, índice dentro de la semana) por sesión.
+def session_length(
+    minutes_per_week: float, lengths: Sequence[int], reference_weeks: int
+) -> int | None:
+    """Duración fija de las sesiones de una celda, o ``None`` si no recibe oferta.
 
-    Las sesiones quedan a intervalos regulares de ``horizon / count`` semanas, desplazadas por
-    ``phase``. Con la misma fase (antes, 0,5 para todos) cada recurso con una sola sesión caía
-    en la semana ``horizon // 2`` y la oferta se concentraba ahí (formulación §11.2); con una
-    fase distinta por recurso el total por semana queda parejo.
+    Es la mayor duración ``d`` de ``lengths`` con ``minutes_per_week * reference_weeks >= d``
+    (la celda llena al menos una sesión completa en el periodo de referencia). Si ni la menor
+    cabe entera, usa la menor mientras la celda acumule al menos media sesión de esa duración;
+    con menos que eso la celda queda sin oferta (limitación declarada).
     """
-    out: list[tuple[int, int]] = []
-    seen: dict[int, int] = {}
-    for k in range(count):
-        week = min(horizon - 1, int((k + phase) * horizon / count))
-        out.append((week, seen.get(week, 0)))
-        seen[week] = seen.get(week, 0) + 1
+    total = minutes_per_week * reference_weeks
+    ordered = sorted(lengths, reverse=True)
+    for d in ordered:
+        if total >= d - _EPS:
+            return d
+    smallest = ordered[-1]
+    return smallest if total >= smallest / 2.0 - _EPS else None
+
+
+def session_schedule[C: SessionCell](
+    cells: Sequence[C],
+    lengths: Sequence[int],
+    weeks: int,
+    multiplier: float,
+    reference_weeks: int = REFERENCE_WEEKS,
+    warmup_weeks: int | None = None,
+) -> list[tuple[int, C, int]]:
+    """Reparte sesiones de duración variable en ``weeks`` semanas (pura y determinista).
+
+    **Calentamiento.** El reparto se simula desde la semana ``-W`` hasta ``weeks - 1`` y se
+    descartan las sesiones con semana negativa, con ``W = warmup_weeks`` (por defecto
+    ``reference_weeks``). Sin él, el déficit acumulado parte de cero y las primeras semanas casi
+    no tienen sesiones (rampa de arranque en frío de unas 5 semanas). Con él, la semana 0 ya
+    está en régimen. Dentro de la ventana ``[0, weeks)`` la oferta de un grupo queda a no más de
+    ``max(lengths)`` minutos de ``rate * (w + 1)`` en cada semana ``w`` (``rate`` = minutos por
+    semana del grupo): la oferta acumulada total está en ``[T - L, T]`` y se le resta la del
+    calentamiento, que también está en ``[T0 - L, T0]``; la diferencia queda en ``(-L, L)``
+    (``L = max(lengths)``).
+
+    Devuelve ``(semana, celda, duración en minutos)``. Cada celda usa una sola duración
+    (``session_length``). El reparto es por grupo ``(servicio, tipo)``: la semana ``w`` el grupo
+    puede haber ofrecido a lo más ``T(w) = sum_c m_c * (w + 1)`` minutos, con ``m_c`` los
+    minutos por semana de la celda por ``multiplier`` (solo celdas con oferta). Mientras quepa
+    (``ofrecido + d <= T(w)``) se emite una sesión a la celda con mayor ``déficit / d``
+    (``déficit = m_c * (w + 1 + W) - ofrecido_c``; desempate por especialidad y posición) si su
+    déficit llega a ``d / 2``; si ninguna llega y todavía sobran ``max(lengths)`` minutos, a la
+    de mayor déficit positivo. Por construcción la oferta acumulada de cada grupo nunca supera
+    ``T`` y queda a menos de ``max(lengths)`` minutos de ella. Sin azar: no hay semilla.
+    """
+    if weeks <= 0 or multiplier <= 0 or not lengths:
+        return []
+    longest = max(lengths)
+    warm = reference_weeks if warmup_weeks is None else max(0, warmup_weeks)
+    groups: dict[tuple[int, str], list[int]] = {}
+    for i, c in enumerate(cells):
+        groups.setdefault((c.service, c.care_type), []).append(i)
+    out: list[tuple[int, C, int]] = []
+    for key in sorted(groups):
+        idx = sorted(groups[key], key=lambda i: (cells[i].specialty, i))
+        rate: list[float] = []
+        dur: list[int] = []
+        members: list[int] = []
+        for i in idx:
+            m = cells[i].minutes_per_week * multiplier
+            d = session_length(m, lengths, reference_weeks)
+            if d is None or m <= 0:
+                continue
+            members.append(i)
+            rate.append(m)
+            dur.append(d)
+        if not members:
+            continue
+        given = [0] * len(members)
+        total_rate = sum(rate)
+        offered = 0
+        for w in range(-warm, weeks):
+            steps = w + warm + 1
+            target = total_rate * steps
+            while True:
+                best = -1
+                best_score = -1.0
+                for k in range(len(members)):
+                    d = dur[k]
+                    deficit = rate[k] * steps - given[k] * d
+                    if deficit < d / 2.0 - _EPS or offered + d > target + _EPS:
+                        continue
+                    score = deficit / d
+                    if score > best_score + _EPS:
+                        best, best_score = k, score
+                if best < 0 and target - offered >= longest - _EPS:
+                    for k in range(len(members)):
+                        deficit = rate[k] * steps - given[k] * dur[k]
+                        if deficit > _EPS and offered + dur[k] <= target + _EPS:
+                            score = deficit / dur[k]
+                            if score > best_score + _EPS:
+                                best, best_score = k, score
+                if best < 0:
+                    break
+                given[best] += 1
+                offered += dur[best]
+                if w >= 0:
+                    out.append((w, cells[members[best]], dur[best]))
     return out
 
 
-def _interleave(counts: dict[str, int]) -> list[str]:
-    """Orden determinista que reparte cada especialidad de forma pareja a lo largo de la lista."""
-    items: list[tuple[float, str]] = []
-    for sp in sorted(counts):
-        c = counts[sp]
-        items += [((i + 0.5) / c, sp) for i in range(c)]
-    items.sort()
-    return [sp for _, sp in items]
+def _weighted_sequence(items: Sequence[tuple[str, float]], n: int) -> list[str]:
+    """``n`` códigos repartidos de forma ponderada y pareja (reparto suave por crédito)."""
+    total = sum(w for _, w in items)
+    credit = dict.fromkeys((c for c, _ in items), 0.0)
+    seq: list[str] = []
+    for _ in range(n):
+        for code, w in items:
+            credit[code] += w
+        pick = max(items, key=lambda x: credit[x[0]])[0]
+        credit[pick] -= total
+        seq.append(pick)
+    return seq
 
 
 def generate_capacity(
@@ -223,16 +356,17 @@ def generate_capacity(
         )
 
     cells = capacity_cells(t, a, cfg, entries)
-    groups: dict[tuple[int, str], list[Cell]] = {}
-    for c in cells:
-        groups.setdefault((c.service, c.care_type), []).append(c)
-    group_keys = sorted(groups)
-    weights = {
-        k: h * sum(c.minutes_per_week for c in groups[k]) / session_minutes(a, k[1])
-        for k in group_keys
-    }
-    total_sessions = round(sum(weights.values()))
-    group_sessions = hamilton(weights, total_sessions)
+    cne = CareType.CONSULTATION.value
+    ref_weeks = int(a.value("cne_session_reference_weeks"))
+    schedule: dict[str, list[tuple[int, Cell, int]]] = {}
+    for care in (cne, CareType.SURGERY.value):
+        schedule[care] = session_schedule(
+            [c for c in cells if c.care_type == care],
+            session_lengths(a, care),
+            h,
+            1.0,  # capacity_multiplier ya está en minutes_per_week
+            ref_weeks,
+        )
 
     res_rows: list[dict[str, object]] = []
     slot_rows: list[dict[str, object]] = []
@@ -252,14 +386,14 @@ def generate_capacity(
         )
         return rid
 
-    def add_slot(rid: str, spec: str, week: int, pos: int, care: str, unit: int | None) -> None:
-        if care == CareType.CONSULTATION.value:
+    def add_slot(
+        rid: str, spec: str, week: int, pos: int, care: str, unit: int | None, minutes: int
+    ) -> None:
+        if care == cne:
             day, half = pos // 2, pos % 2
             begin = cne_starts[half % len(cne_starts)]
-            minutes = session_minutes(a, care)
         else:
             day, begin = pos, iq_start
-            minutes = session_minutes(a, care)
         local = datetime.combine(start + timedelta(weeks=week, days=day), begin, tzinfo=tz)
         slot_rows.append(
             {
@@ -273,61 +407,81 @@ def generate_capacity(
             }
         )
 
-    for key in group_keys:
-        svc, care = key
-        sessions = group_sessions[key]
-        if sessions == 0:
-            continue
-        cell_list = sorted(groups[key], key=lambda c: c.specialty)
-        by_spec = hamilton({c.specialty: c.minutes_per_week for c in cell_list}, sessions)
-        unit_of = {c.specialty: c.unit_min for c in cell_list}
-        hosp = hospitals[svc]
-        # sesiones por (hospital, especialidad)
-        per_hosp: dict[str, dict[str, int]] = {code: {} for code, _ in hosp}
-        for sp in sorted(by_spec):
-            if by_spec[sp] == 0:
-                continue
-            counts = hamilton(dict(hosp), by_spec[sp])
-            for code, cnt in counts.items():
-                if cnt:
-                    per_hosp[code][sp] = cnt
-        if care == CareType.CONSULTATION.value:
+    for care in (cne, CareType.SURGERY.value):
+        by_service: dict[int, list[tuple[int, Cell, int]]] = {}
+        for item in schedule[care]:
+            by_service.setdefault(item[1].service, []).append(item)
+        for svc in sorted(by_service):
+            ordered = sorted(
+                by_service[svc], key=lambda x: (x[1].specialty, x[0])
+            )  # reparto de hospitales por especialidad y semana
+            hosp = hospitals[svc]
+            codes = _weighted_sequence(hosp, len(ordered))
+            per_hosp: dict[str, list[tuple[int, Cell, int]]] = {code: [] for code, _ in hosp}
+            for code, item in zip(codes, ordered, strict=True):
+                per_hosp[code].append(item)
             for code, _ in hosp:
-                for sp in sorted(per_hosp[code]):
-                    cnt = per_hosp[code][sp]
-                    n_ag = max(1, math.ceil(cnt / (2 * WORKDAYS * h)))
-                    rids = [
-                        new_resource(
-                            "specialist_agenda", code, svc, sp, f"{specs[sp].name[:44]} #{i + 1}"
-                        )
-                        for i in range(n_ag)
-                    ]
-                    offset = len(res_rows) % (2 * WORKDAYS)
-                    first = len(res_rows) - n_ag
-                    for ai in range(n_ag):
-                        mine = len(range(ai, cnt, n_ag))
-                        for week, idx in _week_slots(mine, h, resource_phase(first + ai)):
-                            pos = (idx + offset) % (2 * WORKDAYS)
-                            add_slot(rids[ai], sp, week, pos, care, unit_of[sp])
-        else:
-            for code, _ in hosp:
-                blocks = _interleave(per_hosp[code])
-                if not blocks:
+                mine = per_hosp[code]
+                if not mine:
                     continue
-                n_or = max(1, math.ceil(len(blocks) / (WORKDAYS * h)))
-                rids = [
-                    new_resource("operating_room", code, svc, None, f"Pabellón {i + 1}")
-                    for i in range(n_or)
-                ]
-                first = len(res_rows) - n_or
-                for oi in range(n_or):
-                    mine = blocks[oi::n_or]
-                    # El día rota por pabellón: sin la rotación, todo pabellón con a lo más un
-                    # bloque por semana operaba solo los lunes (formulación §11.2).
-                    n = first + oi
-                    slots = _week_slots(len(mine), h, resource_phase(n))
-                    for sp, (week, idx) in zip(mine, slots, strict=True):
-                        add_slot(rids[oi], sp, week, (idx + n) % WORKDAYS, care, None)
+                if care == cne:
+                    by_spec: dict[str, list[tuple[int, Cell, int]]] = {}
+                    for item in mine:
+                        by_spec.setdefault(item[1].specialty, []).append(item)
+                    for sp in sorted(by_spec):
+                        sess = sorted(by_spec[sp], key=lambda x: x[0])
+                        peak = max(Counter(w for w, _, _ in sess).values())
+                        n_ag = math.ceil(peak / (2 * WORKDAYS))
+                        rids = [
+                            new_resource(
+                                "specialist_agenda",
+                                code,
+                                svc,
+                                sp,
+                                f"{specs[sp].name[:44]} #{i + 1}",
+                            )
+                            for i in range(n_ag)
+                        ]
+                        offset = len(res_rows) % (2 * WORKDAYS)
+                        seen: dict[int, int] = {}
+                        for week, cell, minutes in sess:
+                            j = seen.get(week, 0)
+                            seen[week] = j + 1
+                            ag, pos = divmod(j, 2 * WORKDAYS)
+                            add_slot(
+                                rids[ag],
+                                sp,
+                                week,
+                                (pos + offset) % (2 * WORKDAYS),
+                                care,
+                                cell.unit_min,
+                                minutes,
+                            )
+                else:
+                    blocks = sorted(mine, key=lambda x: (x[0], x[1].specialty))
+                    peak = max(Counter(w for w, _, _ in blocks).values())
+                    n_or = math.ceil(peak / WORKDAYS)
+                    rids = [
+                        new_resource("operating_room", code, svc, None, f"Pabellón {i + 1}")
+                        for i in range(n_or)
+                    ]
+                    first = len(res_rows) - n_or
+                    seen = {}
+                    for week, cell, minutes in blocks:
+                        j = seen.get(week, 0)
+                        seen[week] = j + 1
+                        room, pos = divmod(j, WORKDAYS)
+                        # El día rota por pabellón: sin la rotación, todo pabellón con a lo más
+                        # un bloque por semana operaba solo los lunes (formulación §11.2).
+                        add_slot(
+                            rids[room],
+                            cell.specialty,
+                            week,
+                            (pos + first + room) % WORKDAYS,
+                            care,
+                            None,
+                            minutes,
+                        )
 
     resource = pl.DataFrame(
         res_rows,

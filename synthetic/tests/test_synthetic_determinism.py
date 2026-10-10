@@ -42,7 +42,7 @@ def test_digest_es_sha256_hex(ds1k):
 
 # Digest de referencia (N=3.000, semilla 42, baseline). Si cambia a propósito el generador,
 # se actualiza aquí; si cambia sin querer (p. ej. por PYTHONHASHSEED) este test lo detecta.
-DIGEST_N3000_SEED42_BASELINE = "34ce2e9aa27b9aaebb3496fe2768de6f83c5988ff11b8d341fa2ef9ff0983770"
+DIGEST_N3000_SEED42_BASELINE = "aa783cbf5ed51904c9da7d215aa8bf048fc2c14df06a5bc6d88ea1ce22e71995"
 
 _SCRIPT = (
     "from shared.db.enums import NoShowScenario\n"

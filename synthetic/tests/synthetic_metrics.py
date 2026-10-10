@@ -367,7 +367,11 @@ def capacity_errors(ds, t, a, size: int, horizon: int) -> tuple[list[str], int]:
     e = entry.with_columns(
         pl.col("procedure_code").replace_strict(dur, return_dtype=pl.Int64).alias("dur")
     )
-    sessions = {CNE: int(a.value("cne_session_min")), IQ: int(a.value("iq_block_min"))}
+    lengths = {
+        CNE: sorted((int(x) for x in a.value("cne_session_lengths_min")), reverse=True),
+        IQ: sorted((int(x) for x in a.value("iq_block_lengths_min")), reverse=True),
+    }
+    ref_weeks = int(a.value("cne_session_reference_weeks"))
     slot = ds.tables["slot"].join(
         ds.tables["resource"].select(
             pl.col("id").alias("resource_id"), "health_service_code", "kind"
@@ -380,17 +384,26 @@ def capacity_errors(ds, t, a, size: int, horizon: int) -> tuple[list[str], int]:
         if sub.height == 0 or (s, c) not in rates:
             continue
         no_show = rates[(s, c)]
-        if c == CNE:
-            # un solo procedimiento "consulta nueva" por especialidad
-            target = th * scale / (1 - no_show) * float(sub["dur"].mean())
-        else:
-            target = (
-                th
-                * scale
-                / (1 - no_show)
-                * (float(sub["dur"].mean()) + float(a.value("iq_turnover_min")))
-                / float(a.value("iq_utilization"))
-            )
+        # Meta por celda (servicio, especialidad): solo cuentan las celdas que pueden recibir
+        # sesiones, es decir, con al menos media sesión de la menor duración en el periodo de
+        # referencia (regla de P18, recalculada aquí sin el generador).
+        target = 0.0
+        for spec_df in sub.partition_by("specialty_code"):
+            w = spec_df.height / sub.height
+            mean_dur = float(spec_df["dur"].mean())
+            if c == CNE:
+                m = th * scale * w / (1 - no_show) * mean_dur
+            else:
+                m = (
+                    th
+                    * scale
+                    * w
+                    / (1 - no_show)
+                    * (mean_dur + float(a.value("iq_turnover_min")))
+                    / float(a.value("iq_utilization"))
+                )
+            if m * ref_weeks >= min(lengths[c]) / 2.0 - 1e-9:
+                target += m
         kind = "operating_room" if c == IQ else "specialist_agenda"
         got = (
             slot.filter((pl.col("health_service_code") == s) & (pl.col("kind") == kind))[
@@ -399,6 +412,11 @@ def capacity_errors(ds, t, a, size: int, horizon: int) -> tuple[list[str], int]:
             / horizon
         )
         groups += 1
-        if abs(got - target) > max(0.05 * target, sessions[c] / horizon) + 1e-9:
+        # Banda de la ventana (con calentamiento): sobre la meta, a lo más una sesión larga/H;
+        # bajo ella, a lo más 5 % o una sesión larga/H.
+        if (
+            got > target + max(lengths[c]) / horizon + 1e-9
+            or target - got > max(0.05 * target, max(lengths[c]) / horizon) + 1e-9
+        ):
             fails.append(f"{s}/{c}: {got:.1f} vs {target:.1f} min/sem")
     return fails, groups

@@ -716,9 +716,12 @@ def calibration_report(
         key = (int(r["health_service_code"]), str(r["care_type"]))
         target = float(r["target_min_per_week"])
         obs = sched.get(key, 0.0)
-        tol = max(0.05 * target, r["session_min"] / h)
+        # Banda de la ventana (con calentamiento): por encima de la meta, a lo más una sesión
+        # larga en el horizonte; por debajo, a lo más 5 % o una sesión larga.
+        one = r["session_min"] / h
+        tol = max(0.05 * target, one)
         worst8 = max(worst8, abs(obs - target))
-        if abs(obs - target) > tol + 1e-9:
+        if obs - target > one + 1e-9 or target - obs > tol + 1e-9:
             fail8.append(f"{key}: {obs:.1f} vs {target:.1f} min/semana (tol {tol:.1f})")
     col.add(
         name="C8.minutos_programados",
@@ -730,7 +733,7 @@ def calibration_report(
         n=cap_t.height,
         passed=not fail8,
         severity="strict",
-        detail=fail8 or ["dentro de ±max(5 %, 1 sesión/H)"],
+        detail=fail8 or ["meta - max(5 %, 1 sesión/H) <= oferta <= meta + 1 sesión/H"],
     )
     have = set(
         zip(slot["health_service_code"].to_list(), slot["specialty_code"].to_list(), strict=True)
@@ -741,6 +744,14 @@ def calibration_report(
     notes.append(
         "Celdas (servicio, especialidad) con entradas pero sin sesiones: "
         f"{len(want - have)} de {len(want)}"
+    )
+    served_min = float(cap_t["target_min_per_week"].sum())
+    unserved_min = float(cap_t["unserved_min_per_week"].sum())
+    all_min = served_min + unserved_min
+    notes.append(
+        "Minutos por semana de celdas sin oferta posible (menos de media sesión de la menor "
+        f"duración en el periodo de referencia): {unserved_min:.0f} de {all_min:.0f} "
+        f"({unserved_min / max(all_min, 1e-9):.1%}); no entran en la meta de C8"
     )
 
     # ---------------------------------------------------------------- C9 (blandos / informe)

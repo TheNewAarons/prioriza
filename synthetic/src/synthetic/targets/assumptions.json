@@ -13,10 +13,22 @@
       "justification": "Multiplicador de oferta respecto de la ley de Little; palanca de sensibilidad.",
       "verified": false
     },
+    "cne_session_lengths_min": {
+      "value": [240, 180, 120, 60],
+      "source": "SUPUESTO",
+      "justification": "Duraciones posibles de una sesión de consulta CNE (P18). La de 60 min es un supuesto sin fuente: permite que las celdas pequeñas reciban oferta sin inflar la capacidad total; las agendas reales no están tabuladas públicamente. Cada celda usa una sola duración, la mayor con la que recibe al menos una sesión en `cne_session_reference_weeks`.",
+      "verified": false
+    },
     "cne_session_min": {
       "value": 240,
       "source": "SUPUESTO",
       "justification": "Sesión de consulta de 4 h (08:30-12:30 o 14:00-18:00).",
+      "verified": false
+    },
+    "cne_session_reference_weeks": {
+      "value": 26,
+      "source": "SUPUESTO",
+      "justification": "Periodo de referencia (semanas) para elegir la duración de sesión de cada celda: la mayor duración con la que la celda recibe al menos una sesión en ese periodo. Coincide con el horizonte por defecto del generador.",
       "verified": false
     },
     "cne_session_starts": {
@@ -147,6 +159,12 @@
       "justification": "Bloque de pabellón de 6 h (08:00-14:00), lunes a viernes.",
       "verified": false
     },
+    "iq_block_lengths_min": {
+      "value": [360],
+      "source": "SUPUESTO",
+      "justification": "Duraciones posibles de un bloque de pabellón (P18): solo 360 min, porque hay procedimientos de 240 min más 30 de recambio y un bloque de 180 no los admitiría. Se usa el mismo algoritmo de reparto que en CNE.",
+      "verified": false
+    },
     "iq_block_start": {
       "value": "08:00",
       "source": "SUPUESTO",
@@ -168,7 +186,7 @@
     "iq_utilization": {
       "value": 0.85,
       "source": "SUPUESTO",
-      "justification": "Utilización objetivo del pabellón.",
+      "justification": "Utilización objetivo del pabellón. Es un estándar de política (83 % en el informe 2020 de la CNEP; 70-87 % en Australia, Canadá y EE. UU.), no la realidad chilena observada: IPSUSS 2022 (Aguilar y Velasco) informa ~60 % de uso de las horas habilitadas de pabellón en 2017-2019 (ver docs/data-sources.md). El valor 0,85 no se cambia por ahora porque cambiaría la capacidad calibrada.",
       "verified": false
     },
     "lognormal_sigma_floor": {
