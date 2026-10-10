@@ -49,6 +49,27 @@ Investigación realizada por data-researcher el 2026-10-02. Verificación: sesi�
 - Inconsistencia de conteo de personas en IQ III-2025: 365.781 en una tabla, 365.118 en otra; no son sumables ni validables entre tablas.
 - XLSX de Superintendencia utilizado: https://www.superdesalud.gob.cl/app/uploads/2026/07/estadistica-trimestral-de-casos-ges-auge-de-fonasa-y-sistema-isapre-marzo-2026-1.xlsx (casos acumulados desde jul-2005 e ingresos anuales por problema de salud y asegurador).
 
+## Fuentes para calibrar la oferta y las suspensiones (P18, 2026-10-10)
+
+Documentos públicos agregados, descargados y leídos completos (texto extraído con `pdfplumber`); las cifras de abajo se verificaron en el texto, no en resúmenes de prensa. Ninguna contiene datos de pacientes. Todavía no se usan para recalibrar el generador (ver `TASK_PLAN.md`, P18-F).
+
+### IPSUSS, "Uso de pabellones en Chile 2022" (Aguilar y Velasco)
+
+URL: <https://www.ipsuss.cl/ipsuss/site/docs/20221125/20221125010103/uso_pabellones_en_chile__2022__aguilar__velasco__ipsuss_.pdf>. Estudio académico sobre datos del Minsal (2017-2021); sin licencia explícita, se cita como fuente.
+
+- Cerca de 15 % de los pabellones no están habilitados y, del 85 % restante, se usa cerca de 60 % del tiempo disponible (2017-2019). Sobre el total de horas (habilitadas o no), el uso fue de media capacidad, con un mínimo de 49 % en 2018, y de 40 % y 45 % en 2020 y 2021.
+- Referencia de uso: 83 % (informe 2020 de la Comisión Nacional de Evaluación y Productividad), 75-87 % en Australia, 75 % en Estados Unidos y 70 % en Canadá. **El 0,85 de `iq_utilization` del generador es, por tanto, un estándar de política y no la realidad chilena observada**, que ronda 60 % de las horas habilitadas.
+- Tasa de suspensión de cirugías en Chile: 6 % (2017), 8 % (2018), 8,5 % (2019) y 6,3 % (2020), con un máximo de 10 % en Arauco y un mínimo de 2,7 % en Metropolitano Occidente. Solo hay datos globales, no por tipo de pabellón.
+- Causas de suspensión atribuidas a pacientes: 43,2 % (2017), 51,5 % (2018), 50,1 % (2019) y 48,1 % (2020); equipo quirúrgico, 31,3 % a 17,5 %; administrativas, 15,5 % a 17,1 %. Las suspensiones por causas del paciente incluyen la no presentación y también los cambios clínicos, así que **la inasistencia pura a cirugía queda acotada por arriba por ~3 a 4 % de las cirugías programadas** (≈ la mitad de 6 a 8,5 %); el 5 % del generador (`noshow_rate_iq`) está algo por encima de esa cota.
+
+### Minsal, RPE N°21 "Criterios técnicos para la programación de la atención ambulatoria de especialidades"
+
+URL: <https://www.minsal.cl/wp-content/uploads/2026/09/RPE-N°21-Criterios-tecnicos-programacion-atencion-ambulatoria-especialidades_Nuevas.pdf>. Documento oficial del Minsal; sin licencia explícita.
+
+- Rendimientos por hora de consulta médica por especialidad: entre 1 y 4 consultas por hora según la especialidad (por ejemplo, traumatología y ortopedia 4, oftalmología 3 a 4, medicina interna 3 a 4, neurología adulto 2 a 3, oncología médica 1,5 a 3, psiquiatría adulto 1,33 a 2). El `consult_min = 20` del generador (3 por hora) cae dentro del rango, pero la norma distingue por especialidad: hay un supuesto único donde el documento ofrece una tabla.
+- Porcentaje de horas del médico destinadas a atención ambulatoria, por especialidad: de 10 % (anestesiología) a 95 % (inmunología, genética clínica, medicina del adolescente, medicina paliativa), con cirugía general en 25 %, medicina interna en 30 % y cardiología en 65 %.
+- Pendiente: transcribir la tabla completa de rendimientos y de porcentajes a un archivo de objetivos versionado con su fuente.
+
 ## Fuentes solo de contexto
 
 | Fuente | Organismo / medio | URL | Motivo de no usarla como entrada |
