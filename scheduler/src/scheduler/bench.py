@@ -146,11 +146,13 @@ def solver_metrics(plan: SchedulePlan, wall: float, time_limit: float) -> dict[s
         # informe), mediana de las repeticiones; depende de la máquina y de su carga.
         "solve_wall_s": wall,
         "solve_wall_within_time_limit": wall <= time_limit,
-        # Tiempo determinista de CP-SAT (reproducible). El presupuesto es ``time_limit`` por
-        # pasada, con mínimo de 1 por componente; la expansión de frontera agrega otra pasada.
+        # Tiempo determinista de CP-SAT (reproducible). ``time_limit`` es el presupuesto de todo
+        # el plan, primera pasada y expansión de frontera juntas (§8.5); el total puede
+        # excederlo poco porque CP-SAT revisa el límite por lotes (``budget.overrun``).
         "deterministic_time_plan": det_plan,
         "deterministic_time_total": det_total,
         "deterministic_plan_within_time_limit": det_plan <= time_limit,
+        "budget": s["budget"],
         "solver_time": s["time"],
         "status": s["status"],
         "status_by_phase": s["status_by_phase"],

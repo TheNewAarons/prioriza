@@ -43,6 +43,7 @@ KNOWN_CAUSES = {
     "duration_exceeds_blocks",
     "deadline_before_first_block",
     "lead_time",
+    "patient_day_busy",
     "capacity_taken",
     "patient_conflict",
     "solver_limit",

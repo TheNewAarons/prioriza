@@ -19,11 +19,11 @@ import polars as pl
 from shared.disclaimer import DISCLAIMER
 
 from scheduler.config import SchedulerConfig
-from scheduler.cpsat import block_counts, block_loads, unmet_ges
+from scheduler.cpsat import assigned_entries, block_counts, block_loads, unmet_ges
 from scheduler.greedy import Order, greedy_assign
 from scheduler.instance import LOCAL_TZ, SchedulingInstance
 from scheduler.phases import STATUS_RANK, SolveOutput, SubResult, run_optimized
-from scheduler.prepare import Prepared, place_key, prepare
+from scheduler.prepare import PATIENT_DAY_BUSY, Prepared, place_key, prepare
 from scheduler.risk import overflow_risk
 
 # Rango de avisos del historial sintético con que se entrenó el modelo de inasistencias (§4.4).
@@ -42,6 +42,9 @@ CAUSE_TEXT = {
     "duration_exceeds_blocks": "la duración del procedimiento no cabe en ningún bloque",
     "deadline_before_first_block": "todos los bloques compatibles caen después del plazo",
     "lead_time": "ningún bloque antes del plazo cumple el aviso mínimo",
+    PATIENT_DAY_BUSY: (
+        "el paciente ya tiene una cita confirmada en todos los días con bloque que cumple el plazo"
+    ),
     CAPACITY_TAKEN: "todos los bloques que la cumplirían están llenos",
     PATIENT_CONFLICT: "el paciente tiene otra cita en todos los días con cupo libre",
     SOLVER_LIMIT: "hay cupo libre sin conflicto, pero la fase 2 terminó por tiempo",
@@ -109,12 +112,16 @@ class _Assembler:
                 self.sub_of[i] = r
             self.s0 |= r.s0
         self.patient_days: dict[str, dict[date, int]] = defaultdict(dict)
+        busy = self.inst.busy_patient_days
         for i, p in self.entry_pair.items():
             day = prep.block(prep.pair_block[p]).local_date
-            pd = self.patient_days[prep.entry(i).patient_id]
+            patient = prep.entry(i).patient_id
+            pd = self.patient_days[patient]
             if day in pd:
+                raise RuntimeError(f"verificación R4: paciente {patient} con dos citas el {day}")
+            if (patient, day) in busy:
                 raise RuntimeError(
-                    f"verificación R4: paciente {prep.entry(i).patient_id} con dos citas el {day}"
+                    f"verificación R4: paciente {patient} ya tenía una cita confirmada el {day}"
                 )
             pd[day] = i
         self.flags: set[int] = set()
@@ -167,6 +174,16 @@ class _Assembler:
         if not self.s0 <= assigned:
             raise RuntimeError("verificación §9.3: una entrada de S0 quedó sin agendar")
         for r in self.subs:
+            final = assigned_entries(prep, r.final)
+            if final != r.s3:
+                raise RuntimeError(
+                    f"verificación §9.3: {r.sub.label} cambió el conjunto de agendados después "
+                    "de la fase 3b (la fase 4 solo puede mover bloques)"
+                )
+            if not r.ran_3b() and not final <= r.s0:
+                raise RuntimeError(
+                    f"verificación §9.3: {r.sub.label} agenda entradas fuera de S0 sin fase 3b"
+                )
             if r.f2 is not None:
                 true_unmet = len(unmet_ges(prep, r.sub, r.final))
                 if true_unmet > r.f2:
@@ -267,7 +284,12 @@ class _Assembler:
     def _phase_added(self, i: int) -> str:
         if self.policy != "optimized":
             return self.policy
-        return "3a" if i in self.s0 else "3b"
+        return "3b" if self._added_by_3b(i) else "3a"
+
+    def _added_by_3b(self, i: int) -> bool:
+        """Agendada fuera de ``S0`` por una fase 3b que sí corrió (§6.4)."""
+        r = self.sub_of.get(i)
+        return r is not None and r.ran_3b() and i not in self.s0
 
     def standby(self) -> pl.DataFrame:
         prep = self.prep
@@ -458,6 +480,9 @@ class _Assembler:
             "no_block_in_horizon": "no hay bloques de su especialidad y lugar en el horizonte",
             "duration_exceeds_blocks": "su procedimiento no cabe en ningún bloque",
             "lead_time": "ningún bloque del horizonte cumple el aviso mínimo",
+            PATIENT_DAY_BUSY: (
+                "el paciente ya tiene una cita confirmada en todos los días con bloque posible"
+            ),
         }
         rows: list[tuple[str, str, str | None, str]] = []
         for i, e in enumerate(self.inst.entries):
@@ -474,7 +499,7 @@ class _Assembler:
                     f"- anticipación {prep.pair_early[p]} - atraso GES "
                     f"{prep.pair_coef_delay(p)}."
                 )
-                if self.policy == "optimized" and i not in self.s0:
+                if self.policy == "optimized" and self._added_by_3b(i):
                     detail = "added_by_overbooking"
                     text += " Entra gracias al sobreagendamiento (no tenía cupo sin sobrecupo)."
                 if i in self.flags:
@@ -684,6 +709,7 @@ def _build(
     warnings: list[str],
     frontier: dict[str, Any] | None,
     discarded: list[SubResult] | None = None,
+    budget: dict[str, Any] | None = None,
 ) -> SchedulePlan:
     asm = _Assembler(prep, solution, policy, subs)
     assignments = asm.flag_and_sequence()
@@ -726,6 +752,9 @@ def _build(
         "rules_digest": inst.rules_digest,
         "rules_version": inst.rules_version,
         "noshow_model_version": inst.noshow_model_version,
+        # Con ``solver.deterministic = false`` CP-SAT usa varios hilos y tiempo de reloj: el plan
+        # puede cambiar entre corridas (§8.5).
+        "reproducible": subs is None or cfg.solver.deterministic,
         "solver": {
             "status": status,
             "objective": objective,
@@ -733,6 +762,8 @@ def _build(
             "gap_by_phase": _gap_by_phase(subs or []),
             "status_by_phase": _status_by_phase(subs or []),
             "time": _solver_time(subs or [], discarded or []),
+            # Presupuesto global (§8.5); None en las políticas voraces.
+            "budget": budget,
             "subproblems": [_sub_report(r) for r in subs or []],
         },
         "summary": {
@@ -740,6 +771,8 @@ def _build(
             "with_compatible_block": len(prep.pairs_of_entry),
             "candidates": len(prep.candidates),
             "not_candidate": len(prep.filtered_out) if policy == "optimized" else 0,
+            # Pares descartados porque el paciente ya tiene cita ese día (R4 con citas previas).
+            "pairs_dropped_patient_day_busy": prep.pairs_dropped_busy,
             "scheduled": assignments.height,
             "q1_scheduled": sum(1 for i in asm.entry_pair if i in prep.q1),
             "scheduled_cne": int((assignments["resource_kind"] == "specialist_agenda").sum()),
@@ -885,7 +918,14 @@ def solve(instance: SchedulingInstance, config: SchedulerConfig | None = None) -
     cfg = config or SchedulerConfig()
     out: SolveOutput = run_optimized(instance, cfg)
     return _build(
-        out.prep, out.solution, "optimized", out.subs, out.warnings, out.frontier, out.discarded
+        out.prep,
+        out.solution,
+        "optimized",
+        out.subs,
+        out.warnings,
+        out.frontier,
+        out.discarded,
+        out.budget,
     )
 
 

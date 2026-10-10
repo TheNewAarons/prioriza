@@ -389,6 +389,21 @@ def simulate(world: World, policy: str, config: SimulationConfig, seed: int) -> 
             .otherwise(0)
             .alias("prebooked_min"),
         )
+        # Días con una cita congelada dentro del horizonte (solo con commit_weeks > 1): R4 debe
+        # verlos aunque la cita sea de otra especialidad (M-03).
+        busy_df = pl.DataFrame(
+            sorted(
+                {
+                    (e.patient_id, e.appointment.local_date)
+                    for e in entries.values()
+                    if e.state == "booked"
+                    and e.appointment is not None
+                    and horizon_start <= e.appointment.local_date < horizon_end
+                }
+            ),
+            schema={"patient_id": pl.String, "local_date": pl.Date},
+            orient="row",
+        )
         noshow_df: pl.DataFrame | None = None
         model_version: str | None = None
         if scfg.overbooking.enabled:
@@ -413,6 +428,7 @@ def simulate(world: World, policy: str, config: SimulationConfig, seed: int) -> 
             yield_priorities=[str(p) for p in world.rules.ges_strict.yield_to_priorities],
             noshow_model_version=model_version,
             seed=world.seed,
+            busy=busy_df,
         )
         plan = apply(instance, scfg, policy)
         scheduler_weekly.append(_scheduler_summary(plan))

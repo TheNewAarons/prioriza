@@ -28,6 +28,11 @@ from scheduler.risk import chernoff_theta, coef_one, coef_theta, rhs_one, rhs_th
 GroupKey = tuple[str, str]  # (dimensión, valor)
 Objective = Literal["q1", "ges", "score", "balance"]
 UTIL_SCALE = 1000
+# Decimales con que se lee el tiempo determinista de CP-SAT. Con un hilo, dos corridas idénticas
+# pueden diferir en el último bit (medido: 0,02359910999999869 frente a 0,023599109999998695 en
+# una fase que terminó por límite); como el presupuesto no gastado pasa a las fases y componentes
+# siguientes (§8.5), ese ruido cambiaría sus límites y el informe. Redondear lo elimina.
+DET_TIME_DECIMALS = 9
 
 
 def cap_units(share: float) -> int:
@@ -76,6 +81,8 @@ class Fixings:
     s0: frozenset[int] | None = None
     coef_min: int | None = None
     overbook_levels: Mapping[int, int] | None = None
+    # Conjunto exacto de agendados (fase 4, §8.1): a_i = 1 en el conjunto y a_i = 0 fuera.
+    assigned_exact: frozenset[int] | None = None
 
 
 @dataclass(frozen=True)
@@ -371,6 +378,8 @@ def satisfies(ctx: SubContext, spec: PhaseSpec, solution: frozenset[int]) -> boo
         return False
     if fix.coef_min is not None and coef_sum(prep, solution) < fix.coef_min:
         return False
+    if fix.assigned_exact is not None and assigned != fix.assigned_exact:
+        return False
     return not fix.overbook_levels
 
 
@@ -606,6 +615,10 @@ class SubModel:
             m.add(sum(self.v.values()) <= fix.v_max)
         for i in sorted(s0):
             m.add(self.a[i] == 1)
+        if fix.assigned_exact is not None:
+            # Fase 4: el equilibrio solo cambia bloques, no quién tiene cupo (§8.1, M-04).
+            for i in sub.entries:
+                m.add(self.a[i] == int(i in fix.assigned_exact))
         self.coef_expr = sum(prep.pair_coef[p] * x[p] for p in sub.pairs)
         if fix.coef_min is not None:
             m.add(self.coef_expr >= fix.coef_min)
@@ -789,7 +802,7 @@ def solve_phase(
         bound=bound,
         gap=gap,
         wall_time_s=solver.wall_time,
-        deterministic_time=solver.deterministic_time,
+        deterministic_time=round(solver.deterministic_time, DET_TIME_DECIMALS),
         budget=budget,
         num_variables=len(proto.variables),
         num_constraints=len(proto.constraints),

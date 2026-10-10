@@ -51,6 +51,7 @@ BLOCK_COLUMNS = (
 )
 NOSHOW_COLUMNS = ("entry_id", "slot_id", "p")
 GROUP_COLUMNS = ("patient_id", "age_group", "insurance", "commune_code")
+BUSY_COLUMNS = ("patient_id", "local_date")
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,6 +115,9 @@ class SchedulingInstance:
     yield_priorities: tuple[str, ...] = ("p1",)
     noshow_model_version: str | None = None
     seed: int = 42
+    # (paciente, fecha local) con una cita ya confirmada en el horizonte (citas congeladas de una
+    # planificación anterior o ``scheduled`` previas): R4 con lado derecho 1 - busy (§4).
+    busy_patient_days: frozenset[tuple[str, date]] = frozenset()
     _entry_index: dict[str, int] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -140,6 +144,14 @@ class SchedulingInstance:
         for key, p in self.noshow.items():
             if not 0.0 <= p <= 1.0:
                 raise ValueError(f"p fuera de [0, 1] en {key}: {p}")
+        for item in self.busy_patient_days:
+            if (
+                not isinstance(item, tuple)
+                or len(item) != 2
+                or not isinstance(item[0], str)
+                or not _is_date(item[1])
+            ):
+                raise ValueError(f"busy_patient_days espera (patient_id, fecha local): {item!r}")
         object.__setattr__(self, "_entry_index", index)
 
     def entry(self, entry_id: str) -> Entry:
@@ -161,8 +173,13 @@ class SchedulingInstance:
         yield_priorities: Sequence[str] = ("p1",),
         noshow_model_version: str | None = None,
         seed: int = 42,
+        busy: pl.DataFrame | None = None,
     ) -> SchedulingInstance:
-        """Construye y valida la instancia desde las tablas de la formulación §2.2."""
+        """Construye y valida la instancia desde las tablas de la formulación §2.2.
+
+        ``busy`` (opcional) trae ``patient_id`` y ``local_date`` (fecha local, no ``datetime``) de
+        las citas ya confirmadas dentro del horizonte.
+        """
         _require(entries, ENTRY_COLUMNS, "entries")
         _require(blocks, BLOCK_COLUMNS, "blocks")
         entry_rows = [
@@ -212,6 +229,15 @@ class SchedulingInstance:
             dims = [c for c in GROUP_COLUMNS[1:] if c in groups.columns]
             for r in groups.iter_rows(named=True):
                 g_map[str(r["patient_id"])] = {d: str(r[d]) for d in dims}
+        busy_set: set[tuple[str, date]] = set()
+        if busy is not None:
+            _require(busy, BUSY_COLUMNS, "busy")
+            for pid, day in busy.select(BUSY_COLUMNS).iter_rows():
+                if not _is_date(day):
+                    raise ValueError(
+                        f"busy.local_date debe ser una fecha (date), no {type(day).__name__}"
+                    )
+                busy_set.add((str(pid), day))
         return cls(
             as_of=as_of,
             horizon_start=horizon_start,
@@ -224,6 +250,7 @@ class SchedulingInstance:
             yield_priorities=tuple(yield_priorities),
             noshow_model_version=noshow_model_version,
             seed=seed,
+            busy_patient_days=frozenset(busy_set),
         )
 
 
@@ -231,6 +258,11 @@ def _require(df: pl.DataFrame, cols: Sequence[str], name: str) -> None:
     missing = [c for c in cols if c not in df.columns]
     if missing:
         raise ValueError(f"faltan columnas en {name}: {missing}")
+
+
+def _is_date(value: Any) -> bool:
+    """Fecha sin hora (``datetime`` es subclase de ``date`` y se rechaza)."""
+    return isinstance(value, date) and not isinstance(value, datetime)
 
 
 def _utc(value: Any) -> datetime:

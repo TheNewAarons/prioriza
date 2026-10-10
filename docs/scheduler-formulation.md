@@ -58,6 +58,8 @@ Fechas de bloque: `local_date_b` es la fecha local en `America/Santiago` de `sta
 
 **`groups`** (una fila por paciente): `patient_id`, `age_group`, `insurance`, `commune_code`. Solo para límites de equidad e informe.
 
+**`busy`** (opcional; una fila por paciente y día): `patient_id`, `local_date` (fecha local en `America/Santiago`, de tipo fecha y no fecha-hora). Días del horizonte en que el paciente ya tiene una cita confirmada, de cualquier bloque, especialidad o lugar: en `make schedule`, las citas `appointment.status = scheduled` con `origin ≠ history` (`adapters.busy_frame`); en la simulación, las citas congeladas de planificaciones anteriores que caen en el horizonte (solo existen con `commit_weeks ≥ 2`). Las `prebooked_*` de `blocks` descuentan la capacidad del bloque; `busy` descuenta el día del paciente (R4, [sección 4](#4-compatibilidad)).
+
 ## 3. Conjuntos y parámetros
 
 | Símbolo | Definición |
@@ -77,6 +79,7 @@ Fechas de bloque: `local_date_b` es la fecha local en `America/Santiago` de `sta
 | `D_g` | `ges_deadline`. |
 | `first_g` | `min{local_date_b : b ∈ B(g)}`: primera fecha en que `g` puede atenderse. |
 | `Q1` | Entradas con prioridad en `rules.ges_strict.yield_to_priorities` (por defecto, p1). Vacío si la lista está vacía. |
+| `busy(p, t)` | 1 si el paciente `p` ya tiene una cita confirmada el día local `t` (tabla `busy`), 0 si no. |
 
 ## 4. Compatibilidad
 
@@ -89,8 +92,9 @@ Fechas de bloque: `local_date_b` es la fecha local en `America/Santiago` de `sta
 3. Duración: CNE `u_i ≤ C_b`; pabellón `d_i + τ ≤ L_b`.
 4. Aviso mínimo: `local_date_b ≥ as_of + lead_i`, con `lead_i = config.ges_min_lead_days` (2) si `i ∈ G` y `config.min_lead_days` (7) si no. El historial sintético tiene avisos de 7 a 90 días; avisos de 2 a 6 días extrapolan el modelo de inasistencias, lo que se declara en el informe.
 5. `local_date_b ∈ [horizon_start, horizon_end)`.
+6. Día libre: `busy(p_i, local_date_b) = 0`. Equivale a R4 con lado derecho `1 − busy(p, t)`: en un día ocupado el paciente no admite ninguna cita nueva, y en los demás R4 no cambia. Filtrarlo aquí evita variables y hace que la política optimizada y las voraces lo respeten igual. El informe cuenta los pares descartados por esta regla (`summary.pairs_dropped_patient_day_busy`). `first_g` se calcula después de este filtro.
 
-Las entradas con `B(i) = ∅` no entran al modelo; se cuentan por cola en el informe y, si son GES obligadas, se reportan con causa ([sección 7](#7-informe-de-ges-no-cumplidas)).
+Las entradas con `B(i) = ∅` no entran al modelo; se cuentan por cola en el informe (si la causa es el punto 6, con `patient_day_busy`) y, si son GES obligadas, se reportan con causa ([sección 7](#7-informe-de-ges-no-cumplidas)).
 
 ## 5. Variables
 
@@ -115,7 +119,7 @@ Las entradas con `B(i) = ∅` no entran al modelo; se cuentan por cola en el inf
 
 R3 cuenta el recambio después de cada caso, también del último, porque el pabellón debe quedar listo dentro del bloque. `config.or_max_fill = 0,85` replica el supuesto `iq_utilization` del generador: la capacidad se dimensionó suponiendo que en promedio solo el 85 % del bloque se usa; planificar al 100 % daría un rendimiento mayor que el que calibra la ley de Little.
 
-R4 se genera solo para pacientes con más de una entrada (13.657 de 85.083 en la corrida canónica) y solo para fechas en que dos o más de sus entradas tienen bloques. `config.max_per_patient_per_day = 1`.
+R4 se genera solo para pacientes con más de una entrada (13.657 de 85.083 en la corrida canónica) y solo para fechas en que dos o más de sus entradas tienen bloques. `config.max_per_patient_per_day = 1`. Las citas ya confirmadas (`busy`) entran por la compatibilidad ([sección 4](#4-compatibilidad), punto 6): con ellas el lado derecho de R4 es `1 − busy(p, t)`.
 
 ### 6.2 GES (dura si es factible)
 
@@ -240,6 +244,7 @@ Cada `g ∈ G` con `v_g = 1` en la solución final sale en `ges_unmet` con un c�
 | `duration_exceeds_blocks` | Hay bloques, pero `d_g + τ > L_b` en todos. | Antes de resolver |
 | `deadline_before_first_block` | `G^dl`: ningún bloque de su especialidad y lugar que quepa cae en o antes de `D_g` (sin mirar el aviso); o `G^od` con `D_g ≥ as_of`: vence antes de que empiece el horizonte. | Antes de resolver |
 | `lead_time` | Hay bloques antes del plazo, pero ninguno cumple `ges_min_lead_days`. | Antes de resolver |
+| `patient_day_busy` | Hay bloques que cumplirían la obligación con el aviso mínimo (en `G^dl`, hasta `D_g`; en `G^od`, en todo el horizonte), pero el paciente ya tiene una cita confirmada (`busy`) en todos esos días ([sección 4](#4-compatibilidad), punto 6). Puede quedar agendada fuera de plazo en otro día. | Antes de resolver |
 | `capacity_taken` | Todos los bloques que la cumplirían están llenos. Se detalla quién los ocupa: p1 cedidos (fase 1), otras GES (y cuántas con plazo anterior o igual) y el resto. | Después de resolver |
 | `patient_conflict` | Algún bloque que la cumpliría tiene capacidad libre, pero el paciente tiene otra cita ese día (R4) en todos esos días. | Después de resolver |
 | `solver_limit` | Hay capacidad libre sin conflicto y la fase 2 no terminó en `OPTIMAL`: el incumplimiento puede deberse al tiempo límite. Se informa como advertencia. | Después de resolver |
@@ -262,10 +267,10 @@ Cada fase es un `CpModel` sobre las mismas variables; al terminar se agrega su o
 | 1 | `max Σ_{i∈Q1} a_i` (cesión a p1, igual que `yield_to_priorities` de P4). Se omite si `Q1 = ∅` | No | `Σ_{Q1} a_i ≥ F1*` |
 | 2 | `min Σ_{g∈G} v_g` | No | `Σ v_g ≤ F2*` |
 | 3a | `max Σ c_ib·x_ib` | No | Conjunto `S0` y valor `Z0` |
-| 3b | `max Σ c_ib·x_ib` con R7-R15 | Sí | `Σ c_ib·x_ib ≥ (1 − tol)·Z3` |
+| 3b | `max Σ c_ib·x_ib` con R7-R15 | Sí | `Σ c_ib·x_ib ≥ (1 − tol)·Z3` y el conjunto de agendados `S3` |
 | 4 | `min BAL` | Según 3b (se fijan los `k_bo`) | — |
 
-`S0` (R12) queda fijo en las fases 3b y 4 aunque no haya fase 3b: el equilibrio de la fase 4 no puede cambiar quién tiene cupo, solo en qué bloque.
+La fase 4 fija el conjunto exacto de agendados al cerrar la fase 3b, `S3` (igual a `S0` si no hubo 3b): `a_i = 1` para `i ∈ S3` y `a_i = 0` para el resto. El equilibrio solo cambia en qué bloque va cada uno, nunca quién tiene cupo. Antes solo se fijaba `S0`, y con la 3a terminada por tiempo o por `relative_gap_limit` la fase 4 podía agregar pacientes, que quedaban etiquetados `phase_added = "3b"` sin que la 3b hubiera corrido (hallazgo M-04 de la revisión P17). La pista de la fase 4 es la solución de la 3b (o de la 3a), que cumple las simetrías de la fase, así que fijar `S3` nunca la vuelve infactible.
 
 - Las fases 1 y 2 se resuelven sin sobrecupo: las obligaciones clínicas y legales no dependen de una predicción incierta.
 - Si `config.overbooking.enabled = false`, la fase 3b no existe y `Z3 = Z0`.
@@ -308,9 +313,15 @@ Comprobación de frontera: el filtro pudo haber sido activo en una cola si (a) s
 
 ### 8.5 Parámetros de CP-SAT y tiempo límite
 
-- Presupuesto total `config.time_limit_s` (120 s) para todo el plan; cada subproblema recibe una fracción proporcional a sus pares, con mínimo 1 s. Dentro del subproblema: fase 1 10 %, fase 2 10 %, fase 3a 32,5 %, fase 3b 32,5 % (si no hay 3b, su parte pasa a la fase 4, no a la 3a, para que el presupuesto de 3a, y con él `S0` cuando 3a termina por tiempo, no dependa de `p` ni del interruptor de sobrecupo; en el modo relativo de equidad, cada pasada de 3b recibe la mitad), fase 4 15 %. El tiempo que una fase no usa pasa a la siguiente. Los presupuestos de los componentes chicos son límites, no consumo: casi todos terminan en `OPTIMAL` mucho antes.
+- **Presupuesto global (P18).** `config.time_limit_s = B` (120) es el presupuesto de CP-SAT de todo el plan, primera pasada y expansión de frontera juntas, en unidades de tiempo determinista (en segundos de reloj con `deterministic = false`). En modo determinista no hay ningún tope de reloj. Antes cada componente recibía al menos 1 unidad y cada pasada `B` completo: en la corrida canónica 131 de 159 subproblemas recibían el mínimo, lo asignado sumaba 277,8 unidades y la primera pasada descartada gastó 77,3 más.
+  - **Dos libros.** `B` se divide entre las fases 1-3a (52,5 %) y las fases 3b-4 (47,5 %), según las partes por fase de más abajo. Cada libro reparte y arrastra solo su propio tiempo, así que el presupuesto de la 3a (y con él `S0` y la frontera cuando la 3a termina por tiempo) no depende de `p` ni del interruptor de sobrecupo, aunque la 3b de un componente anterior gaste más o menos.
+  - **Primera pasada**, con `B1 = config.solver.first_pass_share · B` (0,75; todo `B` si `expand_on_frontier = false`, porque no habrá segunda pasada). Los componentes se resuelven por número de pares ascendente (desempate: el orden de la [sección 8.3](#83-descomposición)). En cada libro, cada componente recibe un mínimo `m = min(config.solver.min_component_budget · parte del libro, 0,2 · saldo inicial del libro / n)` (en la primera pasada, `min(0,05; 0,2·B1/n)` repartido entre los libros) más la parte proporcional a sus pares del saldo del libro que excede los mínimos de los componentes que faltan. Lo que un componente no gasta queda en el saldo y lo usan los siguientes; el último recibe todo lo que queda. Es reproducible porque solo depende del tiempo determinista que informa CP-SAT. El reparto por especialidad o por semana dentro de un componente ([sección 8.3](#83-descomposición)) sigue siendo proporcional a los pares.
+  - **Expansión de frontera** ([sección 8.2](#82-filtro-de-candidatos)), con lo que queda de cada libro (`B − gastado`, sin negativos) y el mismo reparto entre los componentes que cambiaron. Si el saldo del libro base no alcanza el mínimo, los componentes que faltan conservan la solución de la primera pasada: sus entradas que solo entraban con el margen duplicado vuelven a `not_candidate`, se listan en `frontier.skipped_components` y el informe agrega la advertencia `frontier_expansion_skipped_budget`. La decisión solo mira el libro base, así que tampoco depende de `p`.
+  - **Dentro de un subproblema:** fase 1 10 %, fase 2 10 %, fase 3a 32,5 % (libro base), fase 3b 32,5 % y fase 4 15 % (libro 3b-4). El tiempo que una fase no usa pasa a la siguiente fase de su libro; lo que la 3a no usa vuelve al saldo del libro base de la pasada. Si no hay 3b, su parte pasa a la fase 4; en el modo relativo de equidad, cada pasada de 3b recibe la mitad. Toda fase recibe al menos 0,01.
+  - **Informe** (`solver.budget`): `unit` (`deterministic` o `seconds`), `total`, `first_pass` y `frontier` (`allotted` y `spent`, también por libro en `phases_1_3a` y `phases_3b_4`; la frontera además trae `components_skipped`), `spent`, `exhausted`, `phases_ended_by_limit` y `overrun = max(0, spent − B)`. El gasto puede superar `B` porque CP-SAT revisa el límite por lotes y por el mínimo de 0,01 por fase. `exhausted` es verdadero si alguna fase terminó por tiempo (`FEASIBLE` o `UNKNOWN`) o si se omitió algún componente de la expansión; en ese caso el informe agrega la advertencia `time_budget_exhausted`, visible en el panel y en el informe de resultados. El tiempo de reloj se informa aparte (`solver.time`) y no entra en este bloque, que es idéntico entre corridas en modo determinista.
+  - Las cifras de la corrida canónica con el presupuesto global (tiempo, estados por fase, componentes omitidos y efecto en el plan con `B` = 60, 120 y 240) se actualizan en P18-G.
 - `random_seed = seed`, `relative_gap_limit = 0,001` en las fases 3a y 3b.
-- **Reproducibilidad (decisión de implementación, ver `docs/decisions.md` §10).** Con `config.solver.deterministic = true` (por defecto) se usa búsqueda secuencial: `num_workers = 1` y `max_deterministic_time` = presupuesto, en unidades de tiempo determinista. Se probó `interleave_search = true` con 8 hilos, que también es determinista según la documentación de OR-Tools 9.15, pero en el subproblema mayor de la corrida canónica llegó a la brecha de 0,1 % después que la búsqueda secuencial (2,4 s frente a 0,35 s) y excedió su límite determinista (2,3 frente a 0,5) porque solo lo revisa entre lotes. Con `deterministic = false` se usan `config.solver.num_workers` (8) hilos y `max_time_in_seconds`: respeta el tiempo real, pero el plan puede cambiar entre corridas. El test de reproducibilidad corre dos veces la misma instancia y compara planes.
+- **Reproducibilidad (decisión de implementación, ver `docs/decisions.md` §10 y §11b).** Con `config.solver.deterministic = true` (por defecto) se usa búsqueda secuencial: `num_workers = 1` y `max_deterministic_time` = presupuesto, en unidades de tiempo determinista. El tiempo determinista que informa CP-SAT puede diferir en el último bit entre dos corridas idénticas (medido en una fase que terminó por límite), así que se redondea a 9 decimales antes de usarlo: si no, el arrastre del presupuesto llevaría ese ruido a los límites de las fases y componentes siguientes. Se probó `interleave_search = true` con 8 hilos, que también es determinista según la documentación de OR-Tools 9.15, pero en el subproblema mayor de la corrida canónica llegó a la brecha de 0,1 % después que la búsqueda secuencial (2,4 s frente a 0,35 s) y excedió su límite determinista (2,3 frente a 0,5) porque solo lo revisa entre lotes. Con `deterministic = false` se usan `config.solver.num_workers` (8) hilos y `max_time_in_seconds`, con el mismo reparto en segundos de reloj: respeta el tiempo real, pero el plan puede cambiar entre corridas y el informe lo marca `reproducible: false`. El test de reproducibilidad corre dos veces la misma instancia y compara planes e informe (salvo tiempos de reloj).
 - En modo determinista el tiempo real puede exceder `time_limit_s`, porque el tiempo determinista no es tiempo de reloj (en la corrida canónica, la fase 3b gasta de 2 a 4 s reales por segundo determinista). El informe registra ambos.
 - Se registran por fase y subproblema: estado, objetivo, mejor cota, brecha, tiempo real y determinista, y número de variables y restricciones.
 
@@ -344,9 +355,9 @@ El tiempo de solver de los componentes de la primera pasada que la expansión re
 
 **Verificación (siempre, antes de devolver el plan).** Se recalculan desde las asignaciones, sin usar el modelo:
 
-1. R1-R4 y las fechas del horizonte y aviso mínimo.
+1. R1-R4 y las fechas del horizonte y aviso mínimo. R4 incluye los días de `busy`: ninguna cita nueva cae en un día en que el paciente ya tenía una.
 2. Para cada bloque con sobrecupo, el riesgo exacto `P(asisten > C_b)` con la distribución binomial de Poisson (programación dinámica, `O(n²)`). Debe ser `≤ α`; si no, es un error de implementación (el redondeo es conservador) y se lanza excepción.
-3. Que `S0 ⊆` agendados finales y que las banderas recaen fuera de `S0`.
+3. Que `S0 ⊆` agendados finales; que en cada subproblema los agendados finales son exactamente `S3` (la fase 4 no cambia quién tiene cupo); que sin fase 3b no hay agendados fuera de `S0`, y que las banderas recaen fuera de `S0`. `phase_added = "3b"` solo se asigna si la fase 3b corrió en el subproblema de la entrada.
 4. Que las GES realmente incumplidas (`v_g` recalculado desde las asignaciones) no superan `F2*`, que son exactamente `F2*` si la fase 2 terminó en `OPTIMAL` y la fase 3b no agregó a nadie (con sobrecupo puede haber menos), y que cada GES no cumplida tiene causa.
 5. Que el plan no es peor que la política voraz `priority` en orden lexicográfico: `(Σ_{Q1} a_i, −Σ v_g, Σ c_ib·x_ib)` del plan `≥` el de la voraz, comparando el tercer término sin sobrecupo (`Z0`). No se compara solo el puntaje: las fases 1 y 2 pueden sacrificar puntaje para ceder a p1 o cumplir GES. Si falla con todas las fases en `OPTIMAL`, es un error y se lanza excepción, salvo que la pérdida esté solo en el tercer término y la fase 3a haya terminado en `OPTIMAL` por `relative_gap_limit` (brecha mayor que 0): eso es posible sin pistas (P9) y se informa como advertencia. Si alguna fase terminó por tiempo, también se informa la advertencia `worse_than_baseline`.
 
@@ -377,7 +388,7 @@ Corrida canónica (N = 100.000, semilla 42, escenario baseline, `as_of` 2025-09-
 | GES obligadas (vencidas antes del horizonte) | 3.866 (2.105) | 6.555 (2.105) |
 | GES obligadas con algún bloque compatible | 1.857 | 6.517 |
 
-Con 4 semanas, el problema es pequeño para CP-SAT: el subproblema mayor tiene unos 15.000 booleanos `x`. Con 26 semanas el filtro no reduce casi nada (la oferta del horizonte se acerca a la demanda) y el subproblema mayor tiene unos 200.000 pares; sigue bajo el umbral de 400.000, pero el tiempo de la fase 3 puede ser el cuello de botella. Objetivo de rendimiento para la implementación: plan de 4 semanas para N = 100.000 en menos de 120 s. Medido en la [sección 11.3](#113-medición-de-la-implementación-p8-actualizada-en-p9-tras-la-revisión-de-p8-y-con-la-oferta-corregida): 143 s reales en P8, 166 s en P9 y 117,8 s tras la revisión de P8, con la oferta concentrada del generador 0.1.0; con la oferta corregida (más bloques en 4 semanas), 163,5 s. No se cumple.
+Con 4 semanas, el problema es pequeño para CP-SAT: el subproblema mayor tiene unos 15.000 booleanos `x`. Con 26 semanas el filtro no reduce casi nada (la oferta del horizonte se acerca a la demanda) y el subproblema mayor tiene unos 200.000 pares; sigue bajo el umbral de 400.000, pero el tiempo de la fase 3 puede ser el cuello de botella. Objetivo de rendimiento para la implementación: plan de 4 semanas para N = 100.000 en menos de 120 s. Medido en la [sección 11.3](#113-medición-de-la-implementación-p8-actualizada-en-p9-tras-la-revisión-de-p8-y-con-la-oferta-corregida): 143 s reales en P8, 166 s en P9 y 117,8 s tras la revisión de P8, con la oferta concentrada del generador 0.1.0; con la oferta corregida (más bloques en 4 semanas), 163,5 s. No se cumple. Desde P18, `time_limit_s` es un presupuesto global del plan ([sección 8.5](#85-parámetros-de-cp-sat-y-tiempo-límite)); la medición con ese presupuesto se actualiza en P18-G.
 
 ### 11.2 Artefactos de la oferta sintética (corregidos en el generador 0.2.0)
 
@@ -403,7 +414,7 @@ Corrida canónica, 4 semanas, configuración por defecto (`deterministic = true`
 
 Con la oferta concentrada del generador 0.1.0 (antes de la corrección) la optimizada agendaba 5.949 y cumplía 1.211 GES; las cifras no son comparables porque cambió la oferta, no el programador.
 
-- **Tiempo (no se cumple el objetivo de 120 s).** La política optimizada tarda 163,5 s reales; las voraces, 2,2-2,6 s. CP-SAT gasta 155,7 unidades deterministas en los 159 subproblemas del plan y 77,3 más en 41 componentes de la primera pasada que la expansión de frontera (96 colas) reemplazó: 233,0 en total. El presupuesto es por pasada, así que con expansión el total supera `time_limit_s` (pendiente: presupuesto global). Con la oferta repartida, el problema de 4 semanas es mayor que antes (más bloques en el horizonte y más candidatos).
+- **Tiempo (no se cumple el objetivo de 120 s).** La política optimizada tarda 163,5 s reales; las voraces, 2,2-2,6 s. CP-SAT gasta 155,7 unidades deterministas en los 159 subproblemas del plan y 77,3 más en 41 componentes de la primera pasada que la expansión de frontera (96 colas) reemplazó: 233,0 en total. Esta medición es anterior a P18: el presupuesto era por pasada, así que con expansión el total superaba `time_limit_s`. Con el presupuesto global de la [sección 8.5](#85-parámetros-de-cp-sat-y-tiempo-límite) se actualiza en P18-G. Con la oferta repartida, el problema de 4 semanas es mayor que antes (más bloques en el horizonte y más candidatos).
 - **Estados.** Fases 1 (136) y 2 (89) en `OPTIMAL`; 3a 155 `OPTIMAL` y 4 `FEASIBLE` (brecha agregada 2,06 %); 3b 42 `OPTIMAL`, 16 `FEASIBLE` y 21 `UNKNOWN`; fase 4 76 `OPTIMAL`, 6 `FEASIBLE` y 14 `UNKNOWN`. Una fase en `UNKNOWN` conserva su pista (en 3b, la de la voraz con sobrecupo), así que el plan es factible y verificado, pero la brecha agregada de 3b queda sin definir.
 - **GES.** De las 2.272 garantías incumplidas, 1.018 no tienen ningún bloque de su especialidad en el horizonte, 602 vencen antes del primer bloque posible y 652 encuentran los cupos tomados. Con la oferta concentrada eran 2.655 incumplidas, 2.009 de ellas sin bloque en el horizonte.
 - **Equidad (resultados que se informan tal cual).** Las tasas de agendamiento quedan entre 12,6 % y 13,9 % por grupo etario y previsión en las tres políticas (con la oferta concentrada, el grupo 0-14 quedaba en ~3 % frente a 5-6,6 % del resto). La exposición al sobrecupo (agendados CNE en sesiones con sobrecupo) es 36,5 % en total, 35,2-41,4 % por grupo etario y 35,0-37,4 % por previsión. Todos los grupos quedan dentro de 5 pp del total, pero el 0-14 está en el borde (41,4 %, +4,9 pp): más de 4 de cada 10 niños agendados en CNE comparten sesión con un sobrecupo.
@@ -433,7 +444,9 @@ Con la oferta concentrada del generador 0.1.0 (antes de la corrección) la optim
 | `max_pairs_per_subproblem` | 400.000 | Umbral del respaldo por especialidad. |
 | `commit_weeks` | 1 | Horizonte deslizante en la simulación. |
 | `or_standby_size` | 3 | Lista de reemplazo por bloque. |
-| `time_limit_s` | 120 | Presupuesto total del plan. |
+| `time_limit_s` | 120 | Presupuesto global de CP-SAT del plan, primera pasada y expansión de frontera juntas ([sección 8.5](#85-parámetros-de-cp-sat-y-tiempo-límite)); unidades deterministas por defecto. |
+| `solver.first_pass_share` | 0,75 | Fracción de `time_limit_s` para la primera pasada; el resto queda para la expansión de frontera (todo va a la primera pasada si `expand_on_frontier = false`). |
+| `solver.min_component_budget` | 0,05 | Mínimo por componente y pasada, repartido entre los dos libros (se usa `min(0,05; 0,2·presupuesto de la pasada / componentes)` en cada libro). |
 | `decomposition` | `auto` | `specialty` fuerza el respaldo por especialidad ([sección 8.3](#83-descomposición)). |
 | `solver.num_workers` / `solver.deterministic` | 8 / true | `deterministic = true` usa un hilo (sección 8.5); los 8 hilos solo se usan con `deterministic = false`. |
 | `solver.relative_gap_limit` | 0,001 | Fases 3a y 3b. |
@@ -521,8 +534,9 @@ instance = SchedulingInstance.from_frames(
     rules_version=...,
     noshow_model_version=...,
     seed=42,
+    busy=...,  # opcional: patient_id, local_date de las citas ya confirmadas en el horizonte
 )
-plan = solve(instance, SchedulerConfig())  # política optimized
+plan = solve(instance, SchedulerConfig())  # política optimized; time_limit_s = presupuesto global
 base = greedy_schedule(instance, SchedulerConfig(), order="priority")  # o "fifo"
 plan.assignments  # DataFrame: entry_id, patient_id, slot_id, specialty_code, resource_kind,
 #   scheduled_start, duration_min, lead_days, is_overbooked,
@@ -531,11 +545,12 @@ plan.assignments  # DataFrame: entry_id, patient_id, slot_id, specialty_code, re
 plan.explanations  # una fila por entrada: entry_id, status, detail, text (sección 9)
 plan.ges  # una fila por GES obligada: cumplimiento, atraso, causa y texto (sección 7)
 plan.standby  # lista de reemplazo por bloque de pabellón
-plan.report  # fases, estado, brecha, GES, riesgo por bloque, equidad, advertencias
+plan.report  # fases, estado, brecha, presupuesto (solver.budget), reproducible, GES, riesgo por
+#   bloque, equidad, advertencias (time_budget_exhausted, frontier_expansion_skipped_budget, ...)
 plan.solver_status, plan.objective_value, plan.gap
 ```
 
-CLI: `prioriza-schedule --weeks 4 [--policy all|optimized|priority|fifo] [--no-overbooking] [--alpha] [--time-limit] [--workers] [--no-deterministic] [--decomposition auto|specialty] [--persist]`. Escribe los planes en `data/schedules/<run_id>/<weeks>w/` (no versionado) y el informe en `results/`. Con `--persist` guarda cada política en `schedule_run` y `appointment` (`review_status = pending`, `origin = scheduler`); no cambia el estado de las entradas en espera, porque el plan aún no está aprobado.
+CLI: `prioriza-schedule --weeks 4 [--policy all|optimized|priority|fifo] [--no-overbooking] [--alpha] [--time-limit] [--workers] [--no-deterministic] [--decomposition auto|specialty] [--persist]`. `--time-limit` es el presupuesto global (`time_limit_s`). `instance_from_run` arma `busy` con `adapters.busy_frame` (citas `scheduled` que no son historial, en el horizonte). Escribe los planes en `data/schedules/<run_id>/<weeks>w/` (no versionado) y el informe en `results/`. Con `--persist` guarda cada política en `schedule_run` y `appointment` (`review_status = pending`, `origin = scheduler`); no cambia el estado de las entradas en espera, porque el plan aún no está aprobado.
 
 `make schedule` corre la política optimizada y las dos de referencia sobre la corrida canónica y escribe `results/schedule_<run_id>_<horizon_weeks>w.json` con el informe completo, incluidas las métricas en que la política optimizada no mejora.
 
@@ -548,3 +563,6 @@ CLI: `prioriza-schedule --weeks 4 [--policy all|optimized|priority|fifo] [--no-o
 5. GES: cada causa de la [sección 7](#7-informe-de-ges-no-cumplidas) tiene un caso que la produce.
 6. Reproducibilidad: misma instancia y semilla en modo determinista dan el mismo plan.
 7. Límites por grupo: en `absolute`, `share_q ≤ max_share` en cada grupo limitado.
+8. Citas previas y agendados fijos (propiedad, hypothesis derandomizado, 40 ejemplos de 1-4 pacientes, hasta 6 entradas y 5 bloques en 3 días, con días ocupados al azar): en `fifo`, `priority` y `optimized` ningún (paciente, día) se repite ni cae en un día de `busy`; en cada subproblema los agendados finales son `S3`; dos corridas dan el mismo plan y el mismo informe salvo tiempos de reloj (incluido `solver.budget`).
+9. Causa `patient_day_busy` (entrada sin días libres y GES que pierde sus bloques a tiempo); el ensamblador rechaza una solución con una cita en un día ocupado, con agendados distintos de `S3` o fuera de `S0` sin fase 3b; regresión M-04: con `relative_gap_limit = 1,0` y cupo reordenable, el plan final es `S0` y no hay etiquetas "3b".
+10. Presupuesto global: bloque `solver.budget` coherente; lo no gastado pasa a los componentes mayores; el presupuesto de las fases 1-3a no cambia con el sobrecupo; sin saldo, la expansión de frontera conserva la primera pasada y avisa; con presupuesto ínfimo, `exhausted` y la advertencia `time_budget_exhausted`.

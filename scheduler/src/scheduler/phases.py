@@ -46,6 +46,34 @@ from scheduler.prepare import (
 
 PHASE_SHARES = {"1": 0.10, "2": 0.10, "3a": 0.325, "3b": 0.325, "4": 0.15}
 STATUS_RANK = {"OPTIMAL": 0, "FEASIBLE": 1, "UNKNOWN": 2}
+# Libros del presupuesto (§8.5): las fases 1-3a ("base") no dependen de p ni del interruptor de
+# sobrecupo; las 3b y 4 ("rest") sí. Cada libro reparte y arrastra solo su propio tiempo, así que
+# el presupuesto de la fase 3a (y con él S0 si termina por tiempo) nunca depende de p.
+LEDGER = {"1": "base", "2": "base", "3a": "base", "3b": "rest", "4": "rest"}
+BASE_SHARE = PHASE_SHARES["1"] + PHASE_SHARES["2"] + PHASE_SHARES["3a"]
+REST_SHARE = PHASE_SHARES["3b"] + PHASE_SHARES["4"]
+
+
+@dataclass(frozen=True)
+class Budget:
+    """Presupuesto de un subproblema en sus dos libros (fases 1-3a y fases 3b-4)."""
+
+    base: float
+    rest: float
+
+    @property
+    def total(self) -> float:
+        """Suma de los dos libros."""
+        return self.base + self.rest
+
+    def scaled(self, factor: float) -> Budget:
+        """Mismo reparto por libro, multiplicado por ``factor``."""
+        return Budget(self.base * factor, self.rest * factor)
+
+    @staticmethod
+    def split(total: float) -> Budget:
+        """Reparte ``total`` entre los libros según ``PHASE_SHARES``."""
+        return Budget(total * BASE_SHARE, total * REST_SHARE)
 
 
 @dataclass
@@ -54,12 +82,14 @@ class SubResult:
 
     sub: Sub
     ctx: SubContext
-    budget: float
+    budget: float  # total de los dos libros
     greedy: frozenset[int]
     phases: list[PhaseOutcome] = field(default_factory=list)
     fairness_passes: list[dict[str, Any]] = field(default_factory=list)
     final: frozenset[int] = frozenset()
     s0: frozenset[int] = frozenset()
+    # Agendados al cerrar la fase 3b (``S0`` si no hubo 3b): la fase 4 los fija exactos (§8.1).
+    s3: frozenset[int] = frozenset()
     f1: int | None = None
     f2: int | None = None
     z0: int = 0
@@ -80,6 +110,18 @@ class SubResult:
         """Todas las fases terminaron en ``OPTIMAL``."""
         return all(p.status == "OPTIMAL" for p in self.phases)
 
+    def ran_3b(self) -> bool:
+        """La fase 3b (sobrecupo) corrió en este subproblema."""
+        return self.phase("3b") is not None
+
+    def spent(self, deterministic: bool, ledger: str | None = None) -> float:
+        """Tiempo gastado (determinista o de reloj), total o de un libro."""
+        return sum(
+            (p.deterministic_time if deterministic else p.wall_time_s)
+            for p in self.phases
+            if ledger is None or LEDGER[p.name] == ledger
+        )
+
 
 @dataclass
 class SolveOutput:
@@ -92,6 +134,8 @@ class SolveOutput:
     # Subproblemas de la primera pasada que la expansión de frontera reemplazó: no aportan al
     # plan, pero su tiempo de solver cuenta en el informe.
     discarded: list[SubResult] = field(default_factory=list)
+    # Bloque ``solver.budget`` del informe (presupuesto global, §8.5).
+    budget: dict[str, Any] = field(default_factory=dict)
 
     @property
     def solution(self) -> frozenset[int]:
@@ -110,15 +154,26 @@ def _better(objective: str, a: float, b: float) -> bool:
 
 
 class _PhaseRunner:
-    """Ejecuta las fases de un subproblema con reparto y arrastre del presupuesto (§8.5)."""
+    """Ejecuta las fases de un subproblema con reparto y arrastre del presupuesto (§8.5).
+
+    Cada fase recibe su parte de ``PHASE_SHARES`` dentro de su libro más lo que las fases
+    anteriores del mismo libro no gastaron. Lo que la fase 3a no gasta no pasa a la 3b: vuelve
+    al libro base de la pasada y lo usan las fases 1-3a de los componentes siguientes.
+    """
 
     def __init__(
-        self, ctx: SubContext, result: SubResult, seed: int, warm: frozenset[int] | None = None
+        self,
+        ctx: SubContext,
+        result: SubResult,
+        budget: Budget,
+        seed: int,
+        warm: frozenset[int] | None = None,
     ) -> None:
         self.ctx = ctx
         self.result = result
+        self.budget = budget
         self.seed = seed
-        self.carry = 0.0
+        self.carry = {"base": 0.0, "rest": 0.0}
         self.current = result.greedy
         self.source = "voraz"
         # Pistas alternativas sin sobrecupo: se usan si cumplen lo fijado y son mejores.
@@ -126,8 +181,15 @@ class _PhaseRunner:
         if warm is not None:
             self.alternatives.append((warm, "primera pasada"))
 
+    def _part(self, name: str, share: float) -> float:
+        """``share`` (fracción de ``PHASE_SHARES``) en unidades del libro de la fase."""
+        if LEDGER[name] == "base":
+            return share / BASE_SHARE * self.budget.base
+        return share / REST_SHARE * self.budget.rest
+
     def run(self, spec: PhaseSpec, share: float) -> PhaseOutcome:
-        budget = share * self.result.budget + self.carry
+        ledger = LEDGER[spec.name]
+        budget = self._part(spec.name, share) + self.carry[ledger]
         budget = max(budget, 0.01)
         hint, source = self.current, self.source
         h_val = objective_value(self.ctx, spec.objective, hint)
@@ -160,7 +222,7 @@ class _PhaseRunner:
             out = solve_phase(self.ctx, spec, hint, source, budget, self.seed)
         cfg = self.ctx.prep.config
         used = out.deterministic_time if cfg.solver.deterministic else out.wall_time_s
-        self.carry = max(0.0, budget - used)
+        self.carry[ledger] = max(0.0, budget - used)
         self.result.phases.append(out)
         self.current = out.solution
         self.source = "fase anterior"
@@ -171,8 +233,9 @@ class _PhaseRunner:
         self.current = solution
         self.source = source
 
-    def skip(self, share: float) -> None:
-        self.carry += share * self.result.budget
+    def skip(self, name: str, share: float) -> None:
+        """La parte de una fase que no corre pasa a la siguiente fase de su libro."""
+        self.carry[LEDGER[name]] += self._part(name, share)
 
 
 def _trivial_bound(ctx: SubContext, spec: PhaseSpec) -> int | None:
@@ -224,23 +287,26 @@ def exposure_shares(
 
 
 def solve_sub(
-    prep: Prepared, sub: Sub, budget: float, warm: frozenset[int] | None = None
+    prep: Prepared, sub: Sub, budget: Budget | float, warm: frozenset[int] | None = None
 ) -> SubResult:
     """Fases 0 a 4 de un subproblema (§8.1).
 
+    ``budget`` es el presupuesto por libro; un número se reparte según ``PHASE_SHARES``.
     ``warm`` es una solución sin sobrecupo de una pasada anterior (expansión de frontera); se
     ofrece como pista en cada fase en la que cumple lo fijado y mejora a la pista vigente.
     """
+    if not isinstance(budget, Budget):
+        budget = Budget.split(budget)
     cfg = prep.config
     ctx = SubContext.build(prep, sub)
     pairs = set(sub.pairs)
     greedy = canonicalize(
         ctx, greedy_assign(prep, sub.entries, "priority", pairs), overbooking=False
     )
-    result = SubResult(sub=sub, ctx=ctx, budget=budget, greedy=greedy)
+    result = SubResult(sub=sub, ctx=ctx, budget=budget.total, greedy=greedy)
     if warm is not None:
         warm = canonicalize(ctx, frozenset(p for p in warm if p in pairs), overbooking=False)
-    runner = _PhaseRunner(ctx, result, prep.instance.seed, warm)
+    runner = _PhaseRunner(ctx, result, budget, prep.instance.seed, warm)
     fill = cfg.solver.overbooking_hint
     fix = Fixings()
 
@@ -250,7 +316,7 @@ def solve_sub(
         result.f1 = int(out.objective)
         fix = Fixings(q1_min=result.f1)
     else:
-        runner.skip(PHASE_SHARES["1"])
+        runner.skip("1", PHASE_SHARES["1"])
 
     # Fase 2: GES.
     if any(sub.is_obligated(prep, i) for i in sub.entries):
@@ -258,14 +324,14 @@ def solve_sub(
         result.f2 = int(out.objective)
         fix = Fixings(q1_min=fix.q1_min, v_max=result.f2)
     else:
-        runner.skip(PHASE_SHARES["2"])
+        runner.skip("2", PHASE_SHARES["2"])
 
     # Fase 3a: puntaje sin sobrecupo. Su presupuesto no depende de p ni del interruptor de
-    # sobrecupo (§8.5): si no hay fase 3b, su parte pasa a la fase 4.
+    # sobrecupo (§8.5): si no hay fase 3b, su parte pasa a la fase 4 (libro "rest").
     do_3b = cfg.overbooking.enabled and bool(ctx.eligible)
     out = runner.run(PhaseSpec("3a", "score", False, fix), PHASE_SHARES["3a"])
     if not do_3b:
-        runner.skip(PHASE_SHARES["3b"])
+        runner.skip("3b", PHASE_SHARES["3b"])
     result.z0 = result.z3 = int(out.objective)
     result.s0 = frozenset(assigned_entries(prep, out.solution))
     fix = Fixings(q1_min=fix.q1_min, v_max=fix.v_max, s0=result.s0)
@@ -303,8 +369,11 @@ def solve_sub(
                     _pass_info(2, caps, share, shares, totals, limited, out.objective)
                 )
             else:
-                runner.skip(half)
+                runner.skip("3b", half)
         result.z3 = int(out.objective)
+
+    # Agendados al cerrar la 3b (o S0 sin 3b): la fase 4 solo puede moverlos de bloque.
+    result.s3 = frozenset(assigned_entries(prep, runner.current))
 
     # Fase 4: equilibrio como desempate.
     if ctx.balance_groups:
@@ -315,6 +384,7 @@ def solve_sub(
             s0=fix.s0,
             coef_min=math.ceil((1.0 - tol) * result.z3),
             overbook_levels=overbook_levels(prep, runner.current) if do_3b else None,
+            assigned_exact=result.s3,
         )
         runner.run(PhaseSpec("4", "balance", do_3b, fix4, caps), PHASE_SHARES["4"])
     result.final = runner.current
@@ -397,7 +467,7 @@ def _solve_component(
     prep: Prepared,
     comp: list[int],
     label: str,
-    budget: float,
+    budget: Budget,
     warm: frozenset[int] | None = None,
 ) -> list[SubResult]:
     """Resuelve un componente; respaldo por especialidad y luego por semana (§8.3).
@@ -428,7 +498,7 @@ def _solve_component(
     for spec_code in sorted(by_spec):
         ents = by_spec[spec_code]
         pairs = [p for i in ents for p in prep.pairs_of_entry.get(i, []) if free(p)]
-        part_budget = budget * len(pairs) / max(1, n_pairs)
+        part_budget = budget.scaled(len(pairs) / max(1, n_pairs))
         if len(pairs) <= cfg.max_pairs_per_subproblem:
             sub = Sub.build(prep, f"{label}/{spec_code}", ents, pairs, "by_specialty")
             if sub.pairs:
@@ -455,7 +525,7 @@ def _solve_component(
             )
             if not sub.pairs:
                 continue
-            r = solve_sub(prep, sub, budget * len(wp) / max(1, n_pairs))
+            r = solve_sub(prep, sub, budget.scaled(len(wp) / max(1, n_pairs)))
             record(r)
             remaining -= assigned_entries(prep, r.final)
     return results
@@ -501,16 +571,143 @@ def _frontier_queues(prep: Prepared, solution: frozenset[int]) -> set[QueueKey]:
     return hit
 
 
+# ------------------------------------------------------------------ presupuesto global (§8.5)
+
+LIMIT_STATUSES = ("FEASIBLE", "UNKNOWN")
+
+
+def _n_pairs(prep: Prepared, comp: Iterable[int]) -> int:
+    return sum(len(prep.pairs_of_entry.get(i, [])) for i in comp)
+
+
+@dataclass
+class _Task:
+    """Componente por resolver en una pasada, con su etiqueta y su pista de primera pasada."""
+
+    key: tuple[int, ...]
+    label: str
+    warm: frozenset[int] | None = None
+
+
+@dataclass
+class _PassResult:
+    """Resultado de una pasada: soluciones por componente, gasto por libro y omitidos."""
+
+    allotted: Budget
+    solved: dict[tuple[int, ...], list[SubResult]] = field(default_factory=dict)
+    spent_base: float = 0.0
+    spent_rest: float = 0.0
+    skipped: list[_Task] = field(default_factory=list)
+
+    @property
+    def spent(self) -> float:
+        """Gasto total de la pasada."""
+        return self.spent_base + self.spent_rest
+
+
+def _share_of(left: float, n_left: int, minimum: float, pairs: int, pairs_left: int) -> float:
+    """Mínimo más la parte proporcional a ``pairs`` del saldo sobre los mínimos que faltan."""
+    extra = max(0.0, left - n_left * minimum)
+    return minimum + extra * pairs / max(1, pairs_left)
+
+
+def _run_pass(prep: Prepared, tasks: list[_Task], pool: Budget, can_skip: bool) -> _PassResult:
+    """Resuelve los componentes de una pasada repartiendo ``pool`` (§8.5).
+
+    Orden: pares ascendentes (desempate: orden de ``tasks``), para que lo que los componentes
+    chicos no gastan pase a los grandes. En cada libro, cada componente recibe un mínimo
+    (``min(min_component_budget·parte del libro, 0,2·saldo inicial del libro/n)``) y el resto del
+    saldo del libro se reparte en proporción a sus pares entre los componentes que faltan: lo no
+    gastado se redistribuye. En la primera pasada (``can_skip = False``) el mínimo se da siempre;
+    en la expansión de frontera, si el saldo del libro base no alcanza su mínimo, los
+    componentes que faltan se omiten (conservan la primera pasada). La decisión usa solo el libro
+    base, así que no depende de p. Todo depende solo del tiempo que reporta CP-SAT: en modo
+    determinista es reproducible.
+    """
+    out = _PassResult(allotted=pool)
+    if not tasks:
+        return out
+    cfg = prep.config
+    det = cfg.solver.deterministic
+    pairs = {t.key: _n_pairs(prep, t.key) for t in tasks}
+    order = sorted(range(len(tasks)), key=lambda k: (pairs[tasks[k].key], k))
+    # Mínimo por libro con el saldo de cada libro: el del libro base no ve el gasto de 3b-4.
+    floor = Budget.split(cfg.solver.min_component_budget)
+    minimum = Budget(
+        min(floor.base, 0.2 * pool.base / len(tasks)),
+        min(floor.rest, 0.2 * pool.rest / len(tasks)),
+    )
+    pairs_left = sum(pairs.values())
+    for pos, k in enumerate(order):
+        task = tasks[k]
+        n_left = len(order) - pos
+        left_base = pool.base - out.spent_base
+        left_rest = pool.rest - out.spent_rest
+        if can_skip and (left_base <= 0.0 or left_base < minimum.base):
+            out.skipped.extend(tasks[j] for j in order[pos:])
+            break
+        n = pairs[task.key]
+        budget = Budget(
+            _share_of(left_base, n_left, minimum.base, n, pairs_left),
+            _share_of(left_rest, n_left, minimum.rest, n, pairs_left),
+        )
+        results = _solve_component(prep, list(task.key), task.label, budget, task.warm)
+        out.solved[task.key] = results
+        out.spent_base += sum(r.spent(det, "base") for r in results)
+        out.spent_rest += sum(r.spent(det, "rest") for r in results)
+        pairs_left -= n
+    return out
+
+
+def _restore_filter(
+    prep: Prepared,
+    skipped: Iterable[tuple[int, ...]],
+    old_candidates: frozenset[int],
+    old_filtered: dict[int, tuple[QueueKey, int]],
+    old_tail: dict[QueueKey, frozenset[int]],
+    old_cutoff: dict[QueueKey, int],
+) -> None:
+    """Devuelve al filtro de la primera pasada las entradas de componentes omitidos.
+
+    Las entradas que solo entraron con el margen duplicado y cuyo componente no se resolvió de
+    nuevo nunca estuvieron en un modelo: vuelven a ``filtered_out`` (``not_candidate``). En las
+    colas sin otras entradas nuevas resueltas, la cola de frontera y el corte vuelven a los de la
+    primera pasada, así que la comprobación de frontera las sigue viendo alcanzadas.
+    """
+    back = {i for key in skipped for i in key if i not in old_candidates}
+    if not back:
+        return
+    prep.candidates = frozenset(prep.candidates - back)
+    filtered = dict(prep.filtered_out)
+    for i in sorted(back):
+        filtered[i] = old_filtered[i]
+    prep.filtered_out = filtered
+    still_new = {prep.queue[i] for i in prep.candidates - old_candidates}
+    tail = dict(prep.frontier_tail)
+    cutoff = dict(prep.queue_cutoff)
+    for q in sorted({prep.queue[i] for i in back} - still_new):
+        cutoff[q] = old_cutoff[q]
+        if q in old_tail:
+            tail[q] = old_tail[q]
+        else:
+            tail.pop(q, None)
+    prep.frontier_tail = tail
+    prep.queue_cutoff = cutoff
+
+
 def run_optimized(instance: SchedulingInstance, config: SchedulerConfig) -> SolveOutput:
-    """Política ``optimized``: filtro, componentes, fases y comprobación de frontera."""
+    """Política ``optimized``: filtro, componentes, fases y comprobación de frontera.
+
+    ``config.time_limit_s`` es el presupuesto ``B`` de todo el plan (§8.5): la primera pasada
+    recibe ``first_pass_share·B`` (todo ``B`` si no hay expansión de frontera) y la expansión,
+    lo que quede en cada libro.
+    """
     prep = prepare(instance, config)
     select_candidates(prep, config.candidate_margin)
     comps = components(prep, prep.candidates)
-    total_pairs = sum(len(prep.pairs_of_entry.get(i, [])) for c in comps for i in c)
-
-    def budget_of(comp: list[int]) -> float:
-        n = sum(len(prep.pairs_of_entry.get(i, [])) for i in comp)
-        return max(1.0, config.time_limit_s * n / max(1, total_pairs))
+    total = Budget.split(config.time_limit_s)
+    expand = config.expand_on_frontier
+    first_pool = total.scaled(config.solver.first_pass_share) if expand else total
 
     def label_of(comp: list[int]) -> str:
         services = sorted({prep.entry(i).health_service_code for i in comp})
@@ -518,11 +715,14 @@ def run_optimized(instance: SchedulingInstance, config: SchedulerConfig) -> Solv
         head = "+".join(str(s) for s in services)
         return f"{head}:{specs[0]}" if len(specs) == 1 else f"{head}"
 
-    solved: dict[tuple[int, ...], list[SubResult]] = {}
-    for n, comp in enumerate(comps):
-        solved[tuple(comp)] = _solve_component(
-            prep, comp, f"c{n}[{label_of(comp)}]", budget_of(comp)
-        )
+    first = _run_pass(
+        prep,
+        [_Task(tuple(c), f"c{n}[{label_of(c)}]") for n, c in enumerate(comps)],
+        first_pool,
+        can_skip=False,
+    )
+    # Orden del informe: el de los componentes, no el de resolución.
+    solved = {tuple(c): first.solved[tuple(c)] for c in comps}
     warnings: list[str] = []
     discarded: list[SubResult] = []
     hit = _frontier_queues(prep, _base_solution(r for rs in solved.values() for r in rs))
@@ -531,46 +731,120 @@ def run_optimized(instance: SchedulingInstance, config: SchedulerConfig) -> Solv
         "expanded": False,
         "still_reached": [],
     }
+    second = _PassResult(allotted=Budget(0.0, 0.0))
     if hit:
         warnings.append(f"candidate_frontier_reached en {len(hit)} colas")
-    if hit and config.expand_on_frontier:
+    if hit and expand:
+        saved = (prep.candidates, prep.filtered_out, prep.frontier_tail, prep.queue_cutoff)
         margins = {q: 2.0 * config.candidate_margin for q in hit}
         select_candidates(prep, config.candidate_margin, margins)
         new_comps = components(prep, prep.candidates)
         # Cada componente anterior queda dentro de uno nuevo (los candidatos solo crecen).
         first_pass = {i: key for key in solved for i in key}
-        resolved: dict[tuple[int, ...], list[SubResult]] = {}
+        olds: dict[tuple[int, ...], list[tuple[int, ...]]] = {}
+        tasks: list[_Task] = []
         for n, comp in enumerate(new_comps):
             key = tuple(comp)
             if key in solved:
-                resolved[key] = solved[key]
                 continue
-            old = {first_pass[i] for i in comp if i in first_pass}
+            old = sorted({first_pass[i] for i in comp if i in first_pass})
+            olds[key] = old
             warm: frozenset[int] | None = None
             if config.solver.warm_start_frontier:
                 warm = frozenset(
                     p
-                    for k in sorted(old)
+                    for k in old
                     for r in solved[k]
                     if (ph := r.phase("3a")) is not None
                     for p in ph.solution
                 )
-            discarded.extend(r for k in sorted(old) for r in solved[k])
-            resolved[key] = _solve_component(
-                prep, comp, f"c{n}x[{label_of(comp)}]", budget_of(comp), warm
+            tasks.append(_Task(key, f"c{n}x[{label_of(comp)}]", warm))
+        pool = Budget(
+            max(0.0, total.base - first.spent_base), max(0.0, total.rest - first.spent_rest)
+        )
+        second = _run_pass(prep, tasks, pool, can_skip=True)
+        resolved: dict[tuple[int, ...], list[SubResult]] = {}
+        for comp in new_comps:
+            key = tuple(comp)
+            if key in solved:
+                resolved[key] = solved[key]
+            elif key in second.solved:
+                discarded.extend(r for k in olds[key] for r in solved[k])
+                resolved[key] = second.solved[key]
+            else:
+                # Sin presupuesto para resolverlo de nuevo: queda la primera pasada.
+                for k in olds[key]:
+                    resolved[k] = solved[k]
+        if second.skipped:
+            _restore_filter(prep, (t.key for t in second.skipped), *saved)
+            warnings.append(
+                f"frontier_expansion_skipped_budget: {len(second.skipped)} componentes conservan "
+                "la primera pasada por falta de presupuesto"
             )
         solved = resolved
         base = _base_solution(r for rs in solved.values() for r in rs)
         still = _frontier_queues(prep, base) & hit
         frontier["expanded"] = True
         frontier["still_reached"] = sorted(f"{q[0]}|{q[1]}" for q in still)
+        frontier["skipped_components"] = [t.label for t in second.skipped]
         if still:
             warnings.append(
                 f"candidate_frontier_reached persiste tras duplicar el margen en {len(still)} colas"
             )
     subs = [r for rs in solved.values() for r in rs]
+    budget = _budget_report(prep, first, second, subs, discarded)
+    if budget["exhausted"]:
+        warnings.append(
+            f"time_budget_exhausted: {budget['phases_ended_by_limit']} fases terminaron por el "
+            f"límite de tiempo y {budget['frontier']['components_skipped']} componentes no se "
+            f"resolvieron de nuevo (presupuesto {config.time_limit_s:g}, unidad "
+            f"{budget['unit']})"
+        )
     for r in subs:
         warnings.extend(f"{r.sub.label}: {w}" for w in r.warnings)
     return SolveOutput(
-        prep=prep, subs=subs, warnings=warnings, frontier=frontier, discarded=discarded
+        prep=prep,
+        subs=subs,
+        warnings=warnings,
+        frontier=frontier,
+        discarded=discarded,
+        budget=budget,
     )
+
+
+def _pass_report(p: _PassResult) -> dict[str, Any]:
+    return {
+        "allotted": p.allotted.total,
+        "spent": p.spent,
+        "phases_1_3a": {"allotted": p.allotted.base, "spent": p.spent_base},
+        "phases_3b_4": {"allotted": p.allotted.rest, "spent": p.spent_rest},
+    }
+
+
+def _budget_report(
+    prep: Prepared,
+    first: _PassResult,
+    second: _PassResult,
+    subs: list[SubResult],
+    discarded: list[SubResult],
+) -> dict[str, Any]:
+    """Bloque ``solver.budget`` del informe (§8.5); sin tiempo de reloj en modo determinista.
+
+    ``exhausted``: el presupuesto limitó el resultado (alguna fase terminó por tiempo, en
+    ``FEASIBLE`` o ``UNKNOWN``, o la expansión de frontera omitió componentes).
+    """
+    cfg = prep.config
+    total = cfg.time_limit_s
+    spent = first.spent + second.spent
+    by_limit = sum(1 for r in [*subs, *discarded] for p in r.phases if p.status in LIMIT_STATUSES)
+    return {
+        "unit": "deterministic" if cfg.solver.deterministic else "seconds",
+        "total": total,
+        "first_pass": _pass_report(first),
+        "frontier": {**_pass_report(second), "components_skipped": len(second.skipped)},
+        "spent": spent,
+        "exhausted": by_limit > 0 or bool(second.skipped),
+        "phases_ended_by_limit": by_limit,
+        # CP-SAT revisa el límite por lotes: el gasto puede superar el presupuesto.
+        "overrun": max(0.0, spent - total),
+    }

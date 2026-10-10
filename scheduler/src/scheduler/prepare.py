@@ -28,6 +28,9 @@ NO_BLOCK_IN_HORIZON = "no_block_in_horizon"
 DURATION_EXCEEDS_BLOCKS = "duration_exceeds_blocks"
 DEADLINE_BEFORE_FIRST_BLOCK = "deadline_before_first_block"
 LEAD_TIME = "lead_time"
+# El paciente ya tiene una cita confirmada en todos los días con bloque posible (R4 con citas
+# congeladas, §4 y §7).
+PATIENT_DAY_BUSY = "patient_day_busy"
 
 
 def round_half_up(x: float) -> int:
@@ -69,6 +72,8 @@ class Prepared:
     ges_satisfying: dict[int, list[int]]  # g -> pares que cumplen su obligación (R5/R6)
     queue_blocks: dict[QueueKey, list[int]]
     queue_min_duration: dict[QueueKey, int]
+    # Pares que cumplían §4.1-4.5 pero caen en un día en que el paciente ya tiene cita.
+    pairs_dropped_busy: int = 0
     candidates: frozenset[int] = frozenset()
     filtered_out: dict[int, tuple[QueueKey, int]] = field(default_factory=dict)
     frontier_tail: dict[QueueKey, frozenset[int]] = field(default_factory=dict)
@@ -167,6 +172,7 @@ def prepare(instance: SchedulingInstance, config: SchedulerConfig) -> Prepared:
     ges_presolve: dict[int, str] = {}
     ges_satisfying: dict[int, list[int]] = {}
     queue_min_duration: dict[QueueKey, int] = {}
+    pairs_dropped_busy = 0
     for i, e in enumerate(entries):
         q = queue[i]
         queue_min_duration[q] = min(queue_min_duration.get(q, e.duration_min), e.duration_min)
@@ -212,9 +218,25 @@ def prepare(instance: SchedulingInstance, config: SchedulerConfig) -> Prepared:
         if not b2:
             no_pair_reason[i] = LEAD_TIME
             continue
-        first_date[i] = blocks[b2[0]].local_date
+        # R4 con citas congeladas: los días en que el paciente ya tiene cita quedan fuera.
+        busy = instance.busy_patient_days
+        b3 = [bi for bi in b2 if (e.patient_id, blocks[bi].local_date) not in busy]
+        pairs_dropped_busy += len(b2) - len(b3)
+        if i in obligation and i not in ges_presolve:
+            deadline = e.ges_deadline
+            assert deadline is not None
+            if obligation[i] == "overdue":
+                lost = not b3
+            else:
+                lost = not any(blocks[bi].local_date <= deadline for bi in b3)
+            if lost:
+                ges_presolve[i] = PATIENT_DAY_BUSY
+        if not b3:
+            no_pair_reason[i] = PATIENT_DAY_BUSY
+            continue
+        first_date[i] = blocks[b3[0]].local_date
         pids: list[int] = []
-        for bi in b2:
+        for bi in b3:
             pids.append(len(pair_entry))
             pair_entry.append(i)
             pair_block.append(bi)
@@ -281,6 +303,7 @@ def prepare(instance: SchedulingInstance, config: SchedulerConfig) -> Prepared:
         ges_satisfying=ges_satisfying,
         queue_blocks=dict(queue_blocks),
         queue_min_duration=queue_min_duration,
+        pairs_dropped_busy=pairs_dropped_busy,
     )
 
 

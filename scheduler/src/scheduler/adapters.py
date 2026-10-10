@@ -180,6 +180,35 @@ def blocks_frame(run_dir: Path, config: SchedulerConfig, horizon_start: date) ->
     ).sort("slot_id")
 
 
+def busy_from_appointments(
+    appointments: pl.DataFrame, horizon_start: date, horizon_end: date
+) -> pl.DataFrame:
+    """Tabla ``busy`` (§2.2): (paciente, fecha local) con una cita vigente en el horizonte.
+
+    ``appointments`` trae ``patient_id``, ``scheduled_start`` (UTC), ``status`` y ``origin``. Se
+    usan las citas ``scheduled`` que no son del historial, de cualquier bloque (también de
+    especialidades o lugares que este plan no toca), con fecha local en
+    ``[horizon_start, horizon_end)``. No lee archivos.
+    """
+    local = pl.col("scheduled_start").dt.convert_time_zone(LOCAL_TZ_NAME).dt.date()
+    return (
+        appointments.filter(
+            (pl.col("status").cast(pl.String) == "scheduled")
+            & (pl.col("origin").cast(pl.String) != "history")
+        )
+        .select(pl.col("patient_id").cast(pl.String), local.alias("local_date"))
+        .filter((pl.col("local_date") >= horizon_start) & (pl.col("local_date") < horizon_end))
+        .unique()
+        .sort("patient_id", "local_date")
+    )
+
+
+def busy_frame(run_dir: Path, horizon_start: date, horizon_end: date) -> pl.DataFrame:
+    """Tabla ``busy`` (§2.2) desde ``appointment.parquet`` de la corrida."""
+    appt = _read(run_dir, "appointment").select("patient_id", "scheduled_start", "status", "origin")
+    return busy_from_appointments(appt, horizon_start, horizon_end)
+
+
 def noshow_from_frames(
     entries: pl.DataFrame,
     blocks: pl.DataFrame,
@@ -282,6 +311,8 @@ def instance_from_run(
             run_dir, entries, blocks, config, info.as_of, model_path
         )
     groups = load_fairness_attributes(run_dir).with_columns(pl.col("patient_id").cast(pl.String))
+    horizon_end = info.horizon_start + timedelta(days=7 * config.horizon_weeks)
+    busy = busy_frame(run_dir, info.horizon_start, horizon_end)
     instance = SchedulingInstance.from_frames(
         as_of=info.as_of,
         horizon_start=info.horizon_start,
@@ -294,5 +325,6 @@ def instance_from_run(
         yield_priorities=[str(p) for p in rules.ges_strict.yield_to_priorities],
         noshow_model_version=model_version,
         seed=seed,
+        busy=busy,
     )
     return instance, info

@@ -62,10 +62,15 @@ class WeightsConfig(_Frozen):
 
 
 class SolverConfig(_Frozen):
-    """Parámetros de CP-SAT (§8.5)."""
+    """Parámetros de CP-SAT y reparto del presupuesto global (§8.5)."""
 
     num_workers: int = Field(default=8, ge=1)
     deterministic: bool = True
+    # Presupuesto global (``SchedulerConfig.time_limit_s``): fracción para la primera pasada (el
+    # resto queda para la expansión de frontera) y mínimo por componente, en las unidades del
+    # presupuesto (tiempo determinista o segundos de reloj).
+    first_pass_share: float = Field(default=0.75, gt=0.0, le=1.0)
+    min_component_budget: float = Field(default=0.05, gt=0.0)
     relative_gap_limit: float = Field(default=0.001, ge=0.0)
     linearization_level: int = Field(default=2, ge=0, le=2)
     log_search_progress: bool = False
@@ -97,6 +102,9 @@ class SchedulerConfig(_Frozen):
     max_pairs_per_subproblem: int = Field(default=400_000, ge=1)
     commit_weeks: int = Field(default=1, ge=1)
     or_standby_size: int = Field(default=3, ge=0)
+    # Presupuesto de CP-SAT de todo el plan (§8.5): unidades de tiempo determinista con
+    # ``solver.deterministic`` (por defecto) o segundos de reloj si no. Mantiene el nombre por
+    # compatibilidad con la API, la CLI y la simulación.
     time_limit_s: float = Field(default=120.0, gt=0.0)
     solver: SolverConfig = SolverConfig()
 

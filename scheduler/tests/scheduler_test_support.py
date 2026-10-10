@@ -65,8 +65,12 @@ def build_instance(
     as_of: date = AS_OF,
     horizon_start: date = HORIZON_START,
     seed: int = 42,
+    busy: Sequence[tuple[str, date]] | None = None,
 ) -> SchedulingInstance:
-    """Instancia con puntaje y puesto P4 reales (reglas por defecto)."""
+    """Instancia con puntaje y puesto P4 reales (reglas por defecto).
+
+    ``busy``: pares (paciente, fecha local) con una cita ya confirmada en el horizonte.
+    """
     rules = load_default_rules()
     ranking = rank(
         [
@@ -141,6 +145,11 @@ def build_instance(
         rules_version=rules.rules_version,
         yield_priorities=[str(p) for p in rules.ges_strict.yield_to_priorities],
         seed=seed,
+        busy=None
+        if busy is None
+        else pl.DataFrame(
+            list(busy), schema={"patient_id": pl.String, "local_date": pl.Date}, orient="row"
+        ),
     )
 
 
