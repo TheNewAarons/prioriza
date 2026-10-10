@@ -15,6 +15,7 @@ from noshow.train import (
     TrainConfig,
     TrainOutput,
     load_bundle,
+    load_verified_bundle,
     predict_noshow,
     save,
     train,
@@ -141,3 +142,37 @@ def test_other_toy_run_changes_results(output: TrainOutput, tmp_path: Path) -> N
     res = train(load_run(other), CONFIG).results
     assert _dumps(res) != _dumps(output.results)
     shutil.rmtree(other)
+
+
+def test_load_verified_bundle_ok_y_hash_en_metadata(output: TrainOutput, tmp_path: Path) -> None:
+    artifact = save(output, tmp_path / "models", tmp_path / "noshow.json")
+    meta = json.loads((artifact.parent / "metadata.json").read_text(encoding="utf-8"))
+    assert len(meta["joblib_sha256"]) == 64
+    assert load_verified_bundle(artifact)["model_format_version"] == MODEL_FORMAT_VERSION
+
+
+def test_load_verified_bundle_rechaza_archivo_alterado(output: TrainOutput, tmp_path: Path) -> None:
+    artifact = save(output, tmp_path / "models", tmp_path / "noshow.json")
+    with artifact.open("ab") as handle:
+        handle.write(b"x")
+    with pytest.raises(ValueError, match="no coincide"):
+        load_verified_bundle(artifact)
+
+
+def test_load_verified_bundle_rechaza_sin_metadata(output: TrainOutput, tmp_path: Path) -> None:
+    artifact = save(output, tmp_path / "models", tmp_path / "noshow.json")
+    (artifact.parent / "metadata.json").unlink()
+    with pytest.raises(ValueError, match=r"falta metadata\.json"):
+        load_verified_bundle(artifact)
+
+
+def test_load_verified_bundle_rechaza_metadata_sin_hash(
+    output: TrainOutput, tmp_path: Path
+) -> None:
+    artifact = save(output, tmp_path / "models", tmp_path / "noshow.json")
+    meta_path = artifact.parent / "metadata.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    del meta["joblib_sha256"]
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+    with pytest.raises(ValueError, match="joblib_sha256"):
+        load_verified_bundle(artifact)

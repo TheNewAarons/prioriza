@@ -303,6 +303,7 @@ def save(output: TrainOutput, models_dir: Path, results_path: Path) -> Path:
     joblib.dump(output.bundle, artifact)
     metadata = {k: v for k, v in output.bundle.items() if k != "models"}
     metadata["disclaimer"] = DISCLAIMER
+    metadata["joblib_sha256"] = _sha256_file(artifact)
     (target / "metadata.json").write_text(
         json.dumps(metadata, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"
     )
@@ -314,8 +315,53 @@ def save(output: TrainOutput, models_dir: Path, results_path: Path) -> Path:
     return artifact
 
 
+def _sha256_file(path: Path) -> str:
+    """SHA-256 hexadecimal del contenido de un archivo, leído por bloques."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_verified_bundle(path: Path) -> dict[str, Any]:
+    """Carga el artefacto tras verificar su SHA-256 contra el ``metadata.json`` vecino.
+
+    La verificación ocurre ANTES de ``joblib.load`` (que deserializa pickle). Detecta corrupción o
+    reemplazo parcial del ``.joblib``; NO protege si un atacante puede escribir ambos archivos,
+    por lo que el directorio de modelos debe ser de confianza. Lanza ``ValueError`` si falta el
+    ``metadata.json``, si no trae ``joblib_sha256`` o si el hash no coincide.
+    """
+    if not path.is_file():
+        raise ValueError(f"no existe el artefacto del modelo: {path}")
+    meta_path = path.parent / "metadata.json"
+    if not meta_path.is_file():
+        raise ValueError(
+            f"falta metadata.json junto a {path.name}: no se puede verificar la integridad del "
+            "modelo; reentrena con `prioriza-noshow train`"
+        )
+    try:
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"metadata.json ilegible junto a {path.name}: {error}") from error
+    expected = metadata.get("joblib_sha256") if isinstance(metadata, dict) else None
+    if not isinstance(expected, str) or not expected:
+        raise ValueError(
+            "metadata.json no trae `joblib_sha256`; reentrena con `prioriza-noshow train`"
+        )
+    if _sha256_file(path) != expected:
+        raise ValueError(
+            f"el hash SHA-256 de {path.name} no coincide con metadata.json: el modelo está "
+            "corrupto o fue reemplazado; no se carga"
+        )
+    return load_bundle(path)
+
+
 def load_bundle(path: Path) -> dict[str, Any]:
-    """Carga un artefacto propio (``joblib`` usa pickle: no cargar archivos de origen ajeno)."""
+    """Carga un artefacto SIN verificar integridad (``joblib`` usa pickle).
+
+    En código de producción usa ``load_verified_bundle``.
+    """
     bundle: dict[str, Any] = joblib.load(path)
     if bundle.get("model_format_version") != MODEL_FORMAT_VERSION:
         raise ValueError(

@@ -11,6 +11,7 @@ _VARS = [
     "POSTGRES_HOST",
     "POSTGRES_PORT",
     "SEED",
+    "ENVIRONMENT",
 ]
 
 
@@ -39,3 +40,25 @@ def test_database_url_takes_precedence(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_default_seed_and_cache() -> None:
     assert Settings(_env_file=None).seed == 42  # type: ignore[call-arg]
     assert get_settings() is get_settings()
+
+
+def test_production_rechaza_password_por_defecto() -> None:
+    with pytest.raises(ValueError, match="POSTGRES_PASSWORD") as info:
+        Settings(environment="production", _env_file=None)  # type: ignore[call-arg]
+    assert "change-me" not in str(info.value)
+
+
+def test_production_rechaza_password_vacia() -> None:
+    with pytest.raises(ValueError, match="POSTGRES_PASSWORD"):
+        Settings(environment="production", postgres_password="", _env_file=None)  # type: ignore[call-arg,arg-type]
+
+
+def test_production_acepta_password_propia_o_database_url() -> None:
+    own = Settings(environment="production", postgres_password="s3cr3to", _env_file=None)  # type: ignore[call-arg,arg-type]
+    assert "s3cr3to" in own.sqlalchemy_url
+    url = Settings(environment="production", database_url="postgresql://u:p@h/d", _env_file=None)  # type: ignore[call-arg]
+    assert url.sqlalchemy_url == "postgresql+psycopg://u:p@h/d"
+
+
+def test_development_permite_password_por_defecto() -> None:
+    assert Settings(_env_file=None).environment == "development"  # type: ignore[call-arg]

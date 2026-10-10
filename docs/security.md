@@ -64,6 +64,16 @@ Tests: `shared/tests/test_logging.py` (patrones, `caplog`, excepciones, idempote
 
 Límites: es una red de seguridad basada en patrones, no una garantía. Un identificador con otro formato o un dato personal en texto libre puede no detectarse; el código no debe registrar datos personales en primer lugar. Los trazados de excepción también se limpian al crear el registro (la fábrica deja `exc_text` ya redactado), así que los manejadores propios de uvicorn o werkzeug, sin `RedactingFilter`, reciben el trazado limpio (test `test_traceback_redacted_in_handlers_without_filter`). El detalle de los errores no incluye rutas ni trazas (ver `api/jobs.py`).
 
+### Contraseña de PostgreSQL (`shared/src/shared/config.py`)
+
+Con `ENVIRONMENT=production` y sin `DATABASE_URL`, `Settings` lanza `ValueError` si `POSTGRES_PASSWORD` es la de ejemplo (`change-me`) o está vacía; el mensaje no imprime la contraseña. En `development` el valor por defecto sigue permitido (docker-compose y `.env.example` no cambian). Test: `shared/tests/test_shared_config.py`.
+
+## Artefactos del modelo
+
+`joblib` deserializa pickle, que puede ejecutar código arbitrario al cargarse. `noshow.train.save` guarda el SHA-256 del `.joblib` en `metadata.json` (`joblib_sha256`) y `load_verified_bundle` lo verifica ANTES de `joblib.load`; el programador y el simulador solo cargan modelos con esa función. Si falta `metadata.json`, falta el hash o no coincide, lanza `ValueError` y no carga nada.
+
+Alcance: esto detecta corrupción o reemplazo parcial del archivo. No protege si un atacante puede escribir ambos archivos (modelo y `metadata.json`): el directorio de modelos debe ser de confianza, con escritura restringida al proceso de entrenamiento. Tests: `noshow/tests/test_noshow_pipeline.py` (`test_load_verified_bundle_*`).
+
 ## Auditoría de dependencias
 
 Comando (también `make audit`):

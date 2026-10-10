@@ -14,7 +14,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import polars as pl
-from noshow.train import load_bundle  # type: ignore[import-untyped]
+from noshow.train import load_verified_bundle  # type: ignore[import-untyped]
 from priority.rules import RuleSet, load_default_rules
 from shared.db.enums import NoShowScenario
 from shared.schemas import CareType
@@ -115,7 +115,7 @@ def world_from_run(run_dir: Path, model_path: Path) -> World:
         )
 
     rules = load_default_rules()
-    bundle = load_bundle(model_path)
+    bundle = load_verified_bundle(model_path)
     timezone = ZoneInfo(str(assumptions.value("timezone")))
 
     return World(

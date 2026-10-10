@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 import polars as pl
 from noshow.data import load_fairness_attributes  # type: ignore[import-untyped]
 from noshow.features import build_candidate_features  # type: ignore[import-untyped]
-from noshow.train import load_bundle, predict_noshow  # type: ignore[import-untyped]
+from noshow.train import load_verified_bundle, predict_noshow  # type: ignore[import-untyped]
 from priority.adapters import rank_frame
 
 from priority import RuleSet, load_default_rules
@@ -248,7 +248,7 @@ def noshow_frame(
     model_path: Path,
 ) -> tuple[pl.DataFrame, str]:
     """Tabla ``noshow`` (§2.2) desde la corrida y el modelo; envuelve ``noshow_from_frames``."""
-    bundle = load_bundle(model_path)
+    bundle = load_verified_bundle(model_path)
     history = _read(run_dir, "appointment").select(
         pl.col("patient_id").cast(pl.String), "scheduled_start", pl.col("status").cast(pl.String)
     )
