@@ -35,3 +35,11 @@ Pendientes de baja prioridad de la revisión P17 ([`review.md`](review.md)) y pe
 - **Cobertura baja** en `dashboard/views/programacion.py` (65 %), `dashboard/cli.py` (49 %), `simulation/world.py` (59 %), y en las migraciones 0002, 0003 y 0005 (57-58 %). Los tests `db` (almacén SQL de planes, carga sintética) se omiten sin PostgreSQL: con el CI desactivado nadie los corre por defecto.
 - **CI desactivado** (decisión del 2026-10-09). Los chequeos dependen del hook `pre-push` y de la disciplina de correr `make lint typecheck test audit`.
 - **Pendientes anteriores a P17**: límites de equidad de P6 sin formalizar, `dash-bootstrap-components` declarada y sin uso, y la fase P11 que nunca se hizo.
+
+## Hallazgos de la revisión de P18 (2026-10-10), pendientes
+
+- **Medio: `p` puede llegar a S0 con descomposición por especialidad o semana** (`scheduler/src/scheduler/phases.py`, `record` y `remaining -= assigned_entries(prep, r.final)`): los días ocupados y el presupuesto de los componentes siguientes se calculan sobre la solución final (incluye la 3b), contra lo que dice la formulación §8.4 y §8.5. No afecta a la descomposición por defecto; falta un test con `decomposition="specialty"` y usar la solución de la fase 3a.
+- **Medio: grupos presentes en pocas réplicas sin marca en las tablas de grupos** (`reports/.../results.md.j2`): solo se marca el más expuesto; agregar una columna "Réplicas" a todas las tablas de grupos de la simulación.
+- **Medio: la fase 3b muestra "no aplica" en la brecha** (`plan.py:_gap_by_phase`): hay 18 fases `FEASIBLE` (brechas de 0,16 % a 1,7 %) y 22 `UNKNOWN` sin cota; mostrar "sin cota (n UNKNOWN)" y la brecha máxima.
+- **Medio: `neutralize` del CSV no cubre celdas con espacio inicial** (`api/src/api/export.py`): evaluar `value.lstrip(" \t\r\n")` y agregar tests para `\r` y espacios.
+- **Bajo:** `load_verified_bundle` no llama a `assert_production_bundle` al cargar (`noshow/src/noshow/train.py`); el informe dice 53 fases terminadas por el límite y la tabla suma 41 (12 son de la primera pasada descartada), falta explicarlo; el commit de `results/` citado en el informe queda desfasado si se genera antes de commitear; `entry_reason` no compara `rec.run_id` con el catálogo; texto duplicado en "Costo de las variables excluidas".

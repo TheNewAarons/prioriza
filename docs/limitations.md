@@ -86,7 +86,7 @@ Fuente: `docs/simulation-design.md`.
 
 ## Equidad y agregación
 
-- **Control por grupo, no por paciente**: el programador limita la brecha de exposición al sobrecupo entre grupos (`GroupLimitsConfig`: edad, previsión y comuna, grupos de al menos 30 entradas, 5 pp por defecto; contrato provisional, no validado con expertos). No garantiza nada para un paciente específico, y en el plan canónico hay comunas pequeñas con exposición muy por sobre el total (la mayor, 16305 con 91 entradas, +38,5 pp).
+- **Control por grupo, no por paciente**: el programador limita la brecha de exposición al sobrecupo entre grupos (`GroupLimitsConfig`: edad, previsión y comuna, grupos de al menos 30 entradas, 5 pp por defecto; contrato provisional, no validado con expertos). No garantiza nada para un paciente específico, y en el plan canónico hay comunas pequeñas con exposición muy por sobre el total (la mayor, 05703 con 63 entradas, +65,9 pp).
   
   Fuente: `docs/results.md` § Equidad.
 

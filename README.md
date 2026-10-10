@@ -236,8 +236,8 @@ Detalles en `[docs/security.md](docs/security.md)`. **Antes de datos reales falt
 
 Los datos son sintéticos y los supuestos no se validan contra cada celda del mundo real. El generador tiene limitaciones conocidas:
 
-- **Granularidad de la oferta**: a 10.000 entradas, solo el 37 % de las celdas de consulta recibe algún bloque en 26 semanas (el 76 % del stock sí).
-- **Ley de Little para las llegadas**: no hay estacionalidad, tendencia ni abandono.
+- **Granularidad de la oferta**: a 10.000 entradas, el 58,3 % de las celdas de consulta recibe algún bloque en 26 semanas (el 91,8 % del stock sí).
+- **Ley de Little para las llegadas**: no hay estacionalidad ni tendencia, y el abandono está apagado por defecto.
 - **Sin validación clínica** de los parámetros de inasistencia ni autorización de cambios de política.
 
 Listado completo: `[docs/limitations.md](docs/limitations.md)`.
